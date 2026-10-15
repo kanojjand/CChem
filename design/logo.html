@@ -1,0 +1,159 @@
+<title>CC Hexa Logo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+  /* Layout: two stages side by side (bright theme, CC Lab brand theme), controls under them, static marks below. */
+  :root {
+    --page: #EEF3F8;
+    --card: #FFFFFF;
+    --ink: #0E1726;
+    --muted: #556274;
+    --line: #D6DFEA;
+    --accent: #1450F5;
+    --accent-ink: #FFFFFF;
+    --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+    --body: "Onest", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #0B0D12; --card: #14171E; --ink: #F2F4F8; --muted: #9AA3B2; --line: #262B35;
+      --accent: #6E93FF; --accent-ink: #0B0D12; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0B0D12; --card: #14171E; --ink: #F2F4F8; --muted: #9AA3B2; --line: #262B35;
+    --accent: #6E93FF; --accent-ink: #0B0D12; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 40px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 22px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+  .lead { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
+  .stages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .stage { border-radius: 18px; padding: 28px 20px 22px; display: grid; justify-items: center; gap: 14px; border: 1px solid var(--line); }
+  .stage.bright { background: #FFFFFF; color: #0E1726; }
+  .stage.brand { background: #000000; color: #FFFFFF; border-color: #000000; }
+  .stage-label { justify-self: start; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
+  .mark { width: min(240px, 60vw); aspect-ratio: 840 / 900; max-width: 100%; cursor: pointer; }
+  .wordmark { display: grid; justify-items: center; gap: 2px; }
+  .wordmark b { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: 0.01em; }
+  .wordmark span { font-size: 13px; opacity: 0.65; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button.btn {
+    font: inherit; font-weight: 600; border-radius: 12px; padding: 10px 16px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  }
+  button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.btn:focus-visible, .mark:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  label.auto { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .note h2 { font-size: 15px; margin: 0 0 6px; }
+  .note ul { margin: 0; padding-left: 18px; color: var(--muted); }
+  .note li + li { margin-top: 4px; }
+  .statics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .static { border-radius: 14px; padding: 16px; display: grid; justify-items: center; gap: 10px; border: 1px solid var(--line); }
+  .static.bright { background: #FFFFFF; color: #0E1726; }
+  .static.brand { background: #000; color: #FFF; border-color: #000; }
+  .static img, .static svg { width: 92px; height: auto; }
+  .static small { font-size: 12px; opacity: 0.7; text-align: center; }
+  .headers { display: grid; gap: 10px; }
+  .hdr { display: flex; align-items: center; gap: 10px; border-radius: 12px; padding: 10px 14px; border: 1px solid var(--line); }
+  .hdr.bright { background: #FFFFFF; color: #0E1726; }
+  .hdr.brand { background: #000; color: #FFF; border-color: #000; }
+  .hdr .mini { width: 30px; height: 32px; }
+  .hdr b { font-family: var(--display); font-size: 17px; }
+  .hdr span { font-size: 12px; opacity: 0.6; margin-left: auto; }
+  @media (max-width: 720px) {
+    .stages { grid-template-columns: minmax(0, 1fr); }
+    .statics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Логотип CC Hexa</h1>
+    <p class="lead">В покое это бензольное кольцо. Время от времени оно раскрывается в логотип CC Lab: кольцо делится на две буквы C, а внутренний круг сжимается в звезду. Потом всё собирается обратно. Нажми на логотип или на кнопку.</p>
+  </header>
+
+  <section class="stages" aria-label="Анимация в двух темах">
+    <div class="stage bright">
+      <div class="stage-label">Светлая тема</div>
+      <div class="mark" id="markBright" tabindex="0" role="button" aria-label="Превратить логотип"></div>
+      <div class="wordmark"><b>CC Hexa</b><span>by CC Lab</span></div>
+    </div>
+    <div class="stage brand">
+      <div class="stage-label">Фирменная тема CC Lab</div>
+      <div class="mark" id="markBrand" tabindex="0" role="button" aria-label="Превратить логотип"></div>
+      <div class="wordmark"><b>CC Hexa</b><span>by CC Lab</span></div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <button class="btn primary" id="btnPlay" type="button">Превратить и вернуть</button>
+    <button class="btn" id="btnToggle" type="button">Переключить состояние</button>
+    <button class="btn" id="btnFlash" type="button">Вспышка «новое открытие»</button>
+    <label class="auto"><input type="checkbox" id="auto" checked> Повторять каждые 5 секунд (для демо)</label>
+  </div>
+
+  <div class="note">
+    <h2>Как это будет в приложении</h2>
+    <ul>
+      <li>Экран загрузки: одно полное превращение.</li>
+      <li>Шапка: раз в 45–60 секунд, около 1,5 секунды, чтобы не отвлекать на уроке.</li>
+      <li>Новое открытие в коллекции: звезда вспыхивает внутри кольца.</li>
+      <li>Если на устройстве включено «уменьшить движение», анимация не запускается сама.</li>
+    </ul>
+  </div>
+
+  <section class="statics" aria-label="Статичные знаки">
+    <div class="static bright"><img src="logo/cc-hexa-ink.svg" alt="CC Hexa"><small>CC Hexa</small></div>
+    <div class="static brand"><img src="logo/cc-hexa-white.svg" alt="CC Hexa"><small>CC Hexa</small></div>
+    <div class="static bright"><img src="logo/cc-lab-ink.svg" alt="CC Lab"><small>CC Lab, обведён в вектор</small></div>
+    <div class="static brand"><img src="logo/cc-lab-white.svg" alt="CC Lab"><small>CC Lab, обведён в вектор</small></div>
+  </section>
+
+  <section class="headers" aria-label="Логотип в шапке">
+    <div class="hdr bright"><div class="mini" id="hdrBright"></div><b>CC Hexa</b><span>шапка, светлая тема</span></div>
+    <div class="hdr brand"><div class="mini" id="hdrBrand"></div><b>CC Hexa</b><span>шапка, фирменная тема</span></div>
+  </section>
+</div>
+
+<script src="hexa-logo.js"></script>
+<script>
+  (function () {
+    var big = [
+      CCHexaLogo.mount(document.getElementById('markBright'), { interval: 0 }),
+      CCHexaLogo.mount(document.getElementById('markBrand'), { interval: 0 })
+    ];
+    var small = [
+      CCHexaLogo.mount(document.getElementById('hdrBright'), { interval: 0 }),
+      CCHexaLogo.mount(document.getElementById('hdrBrand'), { interval: 0 })
+    ];
+    var all = big.concat(small);
+    function each(fn) { all.forEach(function (l) { l[fn](); }); }
+
+    document.getElementById('btnPlay').addEventListener('click', function () { each('play'); });
+    document.getElementById('btnToggle').addEventListener('click', function () { each('toggle'); });
+    document.getElementById('btnFlash').addEventListener('click', function () { each('flash'); });
+    ['markBright', 'markBrand'].forEach(function (id) {
+      var node = document.getElementById(id);
+      node.addEventListener('click', function () { each('play'); });
+      node.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); each('play'); }
+      });
+    });
+
+    var auto = document.getElementById('auto');
+    function setAuto() { all.forEach(function (l) { l.setInterval(auto.checked ? 5000 : 0); }); }
+    auto.addEventListener('change', setAuto);
+    setAuto();
+    setTimeout(function () { each('play'); }, 600);
+  })();
+</script>

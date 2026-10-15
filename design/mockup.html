@@ -1,0 +1,833 @@
+<title>CC Hexa Lab Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+  /* Layout: shelf | bench (tiled wall + bench top with real glassware) | "what happened" panel. Phone: shelf strip, bench, panel stacked. */
+  :root {
+    --page: #E9EFF6;
+    --tile: #F8FAFD;
+    --grout: #DDE5EF;
+    --panel: #FFFFFF;
+    --panel-2: #F2F5FA;
+    --ink: #0E1726;
+    --muted: #586579;
+    --line: #D5DEE9;
+    --accent: #1450F5;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E4ECFF;
+    --ok: #0B8F63;
+    --ok-soft: #DCF4E9;
+    --warn: #B86E00;
+    --warn-soft: #FFF0D2;
+    --info: #B0175A;
+    --info-soft: #FDE3EE;
+    --heat: #FF6A13;
+    --glass: #8D9FB5;
+    --glass-fill: rgba(255, 255, 255, 0.6);
+    --bench: #CCD6E2;
+    --bench-edge: #A9B7C8;
+    --rack: #42536A;
+    --bubble: rgba(30, 64, 110, 0.6);
+    --wall-pattern: repeating-linear-gradient(0deg, var(--grout) 0 1px, transparent 1px 36px), repeating-linear-gradient(90deg, var(--grout) 0 1px, transparent 1px 36px);
+    --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+    --body: "Onest", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    color-scheme: light;
+  }
+  :root[data-skin="brand"] {
+    --page: #000000;
+    --tile: #000000;
+    --grout: #161618;
+    --panel: #0A0A0B;
+    --panel-2: #141416;
+    --ink: #FFFFFF;
+    --muted: #A3A7AF;
+    --line: #26262B;
+    --accent: #FFFFFF;
+    --accent-ink: #000000;
+    --accent-soft: #1C1C20;
+    --ok: #3DDC97;
+    --ok-soft: #0E281D;
+    --warn: #FFB547;
+    --warn-soft: #2A200E;
+    --info: #FF6FA5;
+    --info-soft: #2C1320;
+    --heat: #FF7A2E;
+    --glass: #E8E8EA;
+    --glass-fill: rgba(255, 255, 255, 0.05);
+    --bench: #111113;
+    --bench-edge: #2C2C31;
+    --rack: #4A4A52;
+    --bubble: rgba(255, 255, 255, 0.85);
+    --wall-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 1 L55 16.5 L55 48.5 L28 64 L1 48.5 L1 16.5 Z M28 64 L28 97' fill='none' stroke='%23161618' stroke-width='1.5'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: var(--body); font-size: 15px; line-height: 1.45;
+    padding-left: max(0px, env(safe-area-inset-left, 0px));
+    padding-right: max(0px, env(safe-area-inset-right, 0px));
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  sub, sup { font-size: 0.68em; line-height: 0; }
+
+  .app {
+    height: 100%; display: grid;
+    grid-template-columns: 292px minmax(0, 1fr) 388px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "top top top" "shelf bench panel";
+  }
+
+  /* ---------- Top bar ---------- */
+  .top {
+    grid-area: top; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 32px; height: 34px; color: var(--ink); background: none; border: 0; padding: 0; }
+  .wordmark { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: 0.01em; white-space: nowrap; }
+  .mock-badge { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 8px; }
+  .grade { display: flex; align-items: center; gap: 8px; }
+  .grade-label { font-size: 13px; color: var(--muted); }
+  .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; }
+  .seg button { border: 0; background: transparent; border-radius: 9px; padding: 6px 11px; font-weight: 600; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .tool { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 7px 12px; font-weight: 600; font-size: 14px; }
+  .tool svg { width: 18px; height: 18px; flex: none; }
+  .spacer { flex: 1; }
+  .icon-btn { width: 38px; height: 38px; display: inline-grid; place-items: center; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; }
+  .icon-btn svg { width: 19px; height: 19px; }
+
+  /* ---------- Shelf ---------- */
+  .shelf { grid-area: shelf; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .shelf-head { padding: 14px 16px 10px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+  .shelf-title { display: flex; justify-content: space-between; align-items: baseline; }
+  .shelf-title h2 { margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .shelf-title span { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .search { width: 100%; border: 1px solid var(--line); background: var(--panel-2); border-radius: 12px; padding: 9px 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 11px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+  .bottles { overflow: auto; padding: 8px 10px 16px; display: grid; gap: 2px; align-content: start; min-height: 0; }
+  .group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); padding: 12px 8px 4px; }
+  .bottle { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 12px; padding: 6px 8px; }
+  .bottle:hover { background: var(--panel-2); border-color: var(--line); }
+  .bottle svg { width: 30px; height: 40px; }
+  .bottle b { display: block; font-size: 15px; }
+  .bottle small { display: block; color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 1px 5px; margin-left: 6px; background: var(--warn-soft); color: var(--warn); vertical-align: 2px; }
+
+  /* ---------- Bench ---------- */
+  .bench { grid-area: bench; position: relative; container-type: inline-size; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; background-color: var(--tile); background-image: var(--wall-pattern); }
+  .hint { margin: 14px 16px 0; justify-self: center; display: inline-flex; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 13.5px; color: var(--muted); max-width: calc(100% - 32px); }
+  .hint svg { width: 17px; height: 17px; flex: none; color: var(--accent); }
+  .scene { position: relative; display: flex; align-items: flex-end; justify-content: center; gap: clamp(10px, 1.6vw, 24px); padding: 18px 16px 0; min-height: 300px; flex-wrap: wrap; }
+  .rack { position: relative; display: flex; gap: clamp(8px, 1.6vw, 18px); padding: 0 18px; align-items: flex-end; }
+  .rack::before { content: ""; position: absolute; left: 0; right: 0; bottom: 116px; height: 12px; border-radius: 4px; background: var(--rack); z-index: 2; }
+  .rack::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px; border-radius: 4px; background: var(--rack); }
+  .rack-legs { position: absolute; inset: auto 6px 0; height: 128px; border-left: 6px solid var(--rack); border-right: 6px solid var(--rack); pointer-events: none; }
+  .tube { position: relative; z-index: 1; display: grid; justify-items: center; gap: 6px; border: 0; background: transparent; padding: 0 0 18px; }
+  .tube svg { width: 58px; height: 236px; overflow: visible; }
+  .tube .num { position: relative; z-index: 3; font-size: 12px; font-weight: 700; min-width: 26px; padding: 2px 8px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tube[aria-pressed="true"] .num { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .tube[aria-pressed="true"] .glass-line { stroke: var(--accent); stroke-width: 3.2; }
+  .glass { fill: var(--glass-fill); stroke: var(--glass); stroke-width: 2.4; }
+  .glass-back { fill: var(--glass-fill); stroke: none; }
+  .glass-line { fill: none; stroke: var(--glass); stroke-width: 2.4; }
+  .item { display: grid; justify-items: center; gap: 6px; padding-bottom: 18px; }
+  .item svg { overflow: visible; }
+  .item span { font-size: 12.5px; color: var(--muted); }
+  .bench-top { min-height: 46px; background: var(--bench); border-top: 6px solid var(--bench-edge); padding: 8px 16px 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 3px 10px 3px 4px; font-size: 13px; font-weight: 600; }
+  .legend-item b { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--panel-2); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .legend-item[aria-pressed="true"] { border-color: var(--accent); }
+  .legend-item[aria-pressed="true"] b { background: var(--accent); color: var(--accent-ink); }
+  .legend-item.is-empty { color: var(--muted); font-weight: 500; }
+  @container (max-width: 720px) { .item.optional { display: none; } }
+
+  .bubble { fill: none; stroke: var(--bubble); stroke-width: 1.4; animation: rise 2.2s linear infinite; }
+  @keyframes rise { from { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } to { transform: translateY(-120px); opacity: 0; } }
+  .flame { transform-origin: 50% 100%; animation: flicker 1.4s ease-in-out infinite; }
+  @keyframes flicker { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(0.94, 1.07); } }
+  @media (prefers-reduced-motion: reduce) { .bubble, .flame { animation: none; } }
+
+  /* ---------- Panel ---------- */
+  .panel { grid-area: panel; background: var(--panel); border-left: 1px solid var(--line); overflow: auto; min-height: 0; }
+  .panel-inner { padding: 16px 18px 24px; display: grid; gap: 16px; }
+  .panel-kicker { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .panel-kicker h2 { margin: 0; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+  .contents { font-size: 13px; font-weight: 600; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }
+  .status { justify-self: start; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 4px 11px 4px 9px; }
+  .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .status.ok { background: var(--ok-soft); color: var(--ok); }
+  .status.none { background: var(--warn-soft); color: var(--warn); }
+  .status.info { background: var(--info-soft); color: var(--info); }
+  .status.empty { background: var(--panel-2); color: var(--muted); }
+  .result-title { margin: 0; font-family: var(--display); font-weight: 700; font-size: 21px; line-height: 1.25; letter-spacing: -0.005em; text-wrap: balance; }
+  .say { margin: 0; font-size: 15.5px; }
+  .signs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sign { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); border-radius: 10px; padding: 4px 9px; color: var(--muted); }
+  .sign svg { width: 15px; height: 15px; }
+  .sign.on { border-color: var(--ink); color: var(--ink); background: var(--panel-2); }
+  .sign.off { opacity: 0.45; }
+  .eq { display: grid; gap: 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  .eq-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .eq-line { font-size: 18px; font-weight: 600; }
+  .eq-line.ionic { font-size: 16px; }
+  .ph { display: grid; gap: 6px; }
+  .ph-bar { position: relative; height: 12px; border-radius: 999px; background: linear-gradient(90deg, #E5262B, #F28C1B 22%, #F3D21B 38%, #46B649 52%, #1D8FD6 70%, #3B3BC4 85%, #6B2A9E); }
+  .ph-mark { position: absolute; top: -5px; width: 4px; height: 22px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--panel); transform: translateX(-2px); }
+  .ph-scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  details.why { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  details.why summary { list-style: none; cursor: pointer; padding: 11px 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  details.why summary::-webkit-details-marker { display: none; }
+  details.why summary svg { width: 18px; height: 18px; color: var(--accent); }
+  details.why[open] summary { border-bottom: 1px solid var(--line); }
+  .why-body { padding: 12px 14px; display: grid; gap: 12px; }
+  .why-body p { margin: 0; }
+  .series { display: flex; flex-wrap: wrap; gap: 4px; }
+  .series span { font-size: 13px; font-weight: 600; border-radius: 7px; padding: 3px 6px; background: var(--panel-2); border: 1px solid var(--line); }
+  .series .h { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  .series .hit { outline: 2.5px solid var(--warn); outline-offset: 1px; }
+  .series .good { outline: 2.5px solid var(--ok); outline-offset: 1px; }
+  .series-cap { font-size: 12px; color: var(--muted); }
+  .try { justify-self: start; display: inline-flex; gap: 8px; align-items: center; border: 0; border-radius: 12px; padding: 9px 14px; font-weight: 700; background: var(--accent); color: var(--accent-ink); }
+  .mol-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+  .mol-toggle label { display: flex; align-items: center; gap: 9px; font-weight: 700; cursor: pointer; }
+  .switch { appearance: none; width: 40px; height: 24px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; flex: none; margin: 0; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); transition: transform 0.18s; }
+  .switch:checked { background: var(--accent); }
+  .switch:checked::after { transform: translateX(16px); }
+  :root[data-skin="brand"] .switch:checked::after { background: #000; }
+  .ions { display: grid; gap: 10px; }
+  .ion-row { display: grid; gap: 6px; }
+  .ion-row h3 { margin: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .ion-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ion { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; border-radius: 999px; padding: 3px 10px 3px 4px; background: var(--panel-2); border: 1px solid var(--line); }
+  .ion i { width: 20px; height: 20px; border-radius: 50%; display: inline-block; }
+  .ion em { font-style: normal; color: var(--muted); font-weight: 600; font-size: 12px; }
+  .grade-note { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; background: var(--ink); color: var(--panel); border-radius: 12px; padding: 10px 16px; font-weight: 600; font-size: 14px; max-width: min(520px, calc(100vw - 32px)); transition: opacity 0.2s, transform 0.2s; z-index: 10; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1220px) {
+    .app { grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: auto minmax(420px, 1fr) auto; grid-template-areas: "top top" "shelf bench" "shelf panel"; height: auto; min-height: 100%; }
+    .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+    .shelf { max-height: none; }
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "top" "shelf" "bench" "panel"; }
+    .top { gap: 10px; }
+    .grade-label, .tool span, .mock-badge { display: none; }
+    .spacer { display: none; }
+    .shelf { border-right: 0; border-bottom: 1px solid var(--line); }
+    .shelf-head { padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+    .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .chip { flex: none; }
+    .bottles { grid-auto-flow: column; grid-auto-columns: 150px; overflow-x: auto; overflow-y: hidden; padding-inline: max(12px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-right, 0px)); }
+    .group-label { display: none; }
+    .scene { min-height: 280px; gap: 14px; }
+    .rack { padding: 0 10px; }
+    .tube svg { width: 46px; height: 200px; }
+    .rack::before { bottom: 100px; }
+    .rack-legs { height: 112px; }
+      .panel-inner { padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+  }
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <button class="logo" id="logo" type="button" aria-label="CC Hexa"></button>
+      <span class="wordmark">CC Hexa</span>
+      <span class="mock-badge" data-t="mock"></span>
+    </div>
+    <div class="grade">
+      <span class="grade-label" data-t="grade"></span>
+      <div class="seg" id="grades" role="group"></div>
+    </div>
+    <button class="tool" type="button" data-toast="toastTables">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/></svg>
+      <span data-t="tables"></span>
+    </button>
+    <button class="tool" type="button" data-toast="toastJournal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>
+      <span data-t="journal"></span>
+    </button>
+    <div class="spacer"></div>
+    <div class="seg" id="langs" role="group" aria-label="Language"></div>
+    <div class="seg" id="skins" role="group" aria-label="Theme"></div>
+    <button class="icon-btn" id="undo" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12h-2" transform="translate(0 -6)"/></svg>
+    </button>
+    <button class="icon-btn" id="clear" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+    </button>
+  </header>
+
+  <aside class="shelf" aria-labelledby="shelfTitle">
+    <div class="shelf-head">
+      <div class="shelf-title"><h2 id="shelfTitle" data-t="reagents"></h2><span id="count"></span></div>
+      <input class="search" id="search" type="search" autocomplete="off">
+      <div class="chips" id="cats" role="group"></div>
+    </div>
+    <div class="bottles" id="bottles"></div>
+  </aside>
+
+  <main class="bench">
+    <div class="hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v1.5m0 0a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-5-2.7L5 15.5a1.6 1.6 0 0 1 2.6-1.8L8 14"/></svg>
+      <span data-t="hint"></span>
+    </div>
+    <div class="scene">
+      <div class="rack" id="rack"><div class="rack-legs"></div></div>
+      <div class="item" id="beaker"></div>
+      <div class="item" id="lamp"></div>
+      <div class="item optional" id="funnel"></div>
+      <div class="item optional" id="magnet"></div>
+    </div>
+    <div class="bench-top" id="legend"></div>
+  </main>
+
+  <section class="panel" aria-live="polite">
+    <div class="panel-inner" id="panel"></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="hexa-logo.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Text in three languages ----------
+  var T = {
+    kk: {
+      mock: 'макет', grade: 'Сынып', tables: 'Кестелер', journal: 'Журнал', undo: 'Болдырмау', clear: 'Үстелді тазалау',
+      bright: 'Жарық', reagents: 'Реактивтер', search: 'Реактив іздеу…',
+      cat_all: 'Барлығы', cat_acid: 'Қышқылдар', cat_base: 'Негіздер', cat_salt: 'Тұздар', cat_metal: 'Металдар', cat_ind: 'Индикаторлар',
+      hint: 'Банканы пробиркаға сүйре. Ішінде не бар екенін көру үшін пробирканы бас.',
+      tube: 'Пробирка', beaker: 'Стакан', lamp: 'Спирт шамы', funnel: 'Құйғыш', magnet: 'Магнит',
+      what: 'Не болды?', ok: 'Реакция жүрді', none: 'Реакция жүрмейді', info: 'Индикатор көрсетті', empty: 'Бос',
+      signs: 'Реакция белгілері', s_precip: 'Тұнба', s_gas: 'Газ', s_color: 'Түс', s_heat: 'Жылу',
+      eq: 'Реакция теңдеуі', ionic: 'Қысқартылған иондық теңдеу', dissoc: 'Диссоциация', why: 'Неге?',
+      mol: 'Иондарды көрсету', inSol: 'Ерітіндіде', inSolid: 'Тұнбада немесе қатты күйде', inGas: 'Газ',
+      series: 'Металдардың белсенділік қатары', seriesCap: 'Сутектен (H₂) солға қарай тұрған металдар қышқылдан сутекті ығыстырады.',
+      tryZn: 'Мыстың орнына мырыш сал', ph: 'pH шамамен',
+      note7: '7-сынып: түсіндірме сөзбен. Теңдеулер 8-сыныптан бастап шығады.',
+      note8: '8-сынып: молекулалық теңдеу қосылды. Иондық теңдеулер 9-сыныптан.',
+      note10: '10–11-сынып: кейін осы жерде графиктер мен есептеулер шығады.',
+      emptyTitle: 'Пробирка бос', emptyText: 'Сөреден реактивті сүйреп әкел.',
+      toastDrag: 'Жұмыс нұсқасында банканы пробиркаға сүйреуге болады.',
+      toastTables: 'Кестелер 1-кезеңде қосылады: Менделеев кестесі, ерігіштік кестесі, белсенділік қатары.',
+      toastJournal: 'Журналда барлық тәжірибелер сақталады (1-кезең).',
+      toastCleared: 'Үстел тазаланды. «Болдырмау» бәрін қайтарады.', toastNothing: 'Болдырмайтын ештеңе жоқ.'
+    },
+    ru: {
+      mock: 'макет', grade: 'Класс', tables: 'Таблицы', journal: 'Журнал', undo: 'Отменить', clear: 'Очистить стол',
+      bright: 'Светлая', reagents: 'Реактивы', search: 'Найти реактив…',
+      cat_all: 'Все', cat_acid: 'Кислоты', cat_base: 'Основания', cat_salt: 'Соли', cat_metal: 'Металлы', cat_ind: 'Индикаторы',
+      hint: 'Перетащи банку на пробирку. Нажми на пробирку, чтобы увидеть, что внутри.',
+      tube: 'Пробирка', beaker: 'Стакан', lamp: 'Спиртовка', funnel: 'Воронка', magnet: 'Магнит',
+      what: 'Что произошло', ok: 'Реакция идёт', none: 'Реакция не идёт', info: 'Индикатор сработал', empty: 'Пусто',
+      signs: 'Признаки реакции', s_precip: 'Осадок', s_gas: 'Газ', s_color: 'Цвет', s_heat: 'Тепло',
+      eq: 'Уравнение реакции', ionic: 'Сокращённое ионное уравнение', dissoc: 'Диссоциация', why: 'Почему?',
+      mol: 'Показать ионы', inSol: 'В растворе', inSolid: 'В осадке или твёрдое', inGas: 'Газ',
+      series: 'Ряд активности металлов', seriesCap: 'Металлы левее водорода (H₂) вытесняют водород из кислот.',
+      tryZn: 'Замени медь на цинк', ph: 'pH около',
+      note7: '7 класс: объяснение словами. Уравнения появятся с 8 класса.',
+      note8: '8 класс: добавилось уравнение реакции. Ионные уравнения с 9 класса.',
+      note10: '10–11 класс: позже здесь появятся графики и расчёты.',
+      emptyTitle: 'Пробирка пустая', emptyText: 'Перетащи реактив с полки.',
+      toastDrag: 'В рабочей версии банку можно перетащить на пробирку.',
+      toastTables: 'Таблицы появятся на этапе 1: Менделеев, растворимость, ряд активности.',
+      toastJournal: 'В журнале будут сохраняться все опыты (этап 1).',
+      toastCleared: 'Стол очищен. «Отменить» вернёт всё обратно.', toastNothing: 'Нечего отменять.'
+    },
+    en: {
+      mock: 'mockup', grade: 'Grade', tables: 'Tables', journal: 'Log', undo: 'Undo', clear: 'Clear bench',
+      bright: 'Bright', reagents: 'Reagents', search: 'Find a reagent…',
+      cat_all: 'All', cat_acid: 'Acids', cat_base: 'Bases', cat_salt: 'Salts', cat_metal: 'Metals', cat_ind: 'Indicators',
+      hint: 'Drag a bottle onto a tube. Tap a tube to see what is inside.',
+      tube: 'Tube', beaker: 'Beaker', lamp: 'Spirit lamp', funnel: 'Funnel', magnet: 'Magnet',
+      what: 'What happened', ok: 'Reaction', none: 'No reaction', info: 'Indicator responded', empty: 'Empty',
+      signs: 'Signs of reaction', s_precip: 'Precipitate', s_gas: 'Gas', s_color: 'Color', s_heat: 'Heat',
+      eq: 'Equation', ionic: 'Net ionic equation', dissoc: 'Dissociation', why: 'Why?',
+      mol: 'Show ions', inSol: 'In solution', inSolid: 'Precipitate or solid', inGas: 'Gas',
+      series: 'Metal activity series', seriesCap: 'Metals to the left of hydrogen (H₂) displace hydrogen from acids.',
+      tryZn: 'Swap copper for zinc', ph: 'pH about',
+      note7: 'Grade 7: explained in words. Equations appear from grade 8.',
+      note8: 'Grade 8: the equation is added. Ionic equations come in grade 9.',
+      note10: 'Grades 10–11: charts and calculations will appear here later.',
+      emptyTitle: 'The tube is empty', emptyText: 'Drag a reagent from the shelf.',
+      toastDrag: 'In the working version you drag the bottle onto a tube.',
+      toastTables: 'Tables arrive in stage 1: periodic table, solubility, activity series.',
+      toastJournal: 'The log will keep every experiment (stage 1).',
+      toastCleared: 'Bench cleared. Undo brings everything back.', toastNothing: 'Nothing to undo.'
+    }
+  };
+
+  // ---------- Shelf ----------
+  var REAGENTS = [
+    { f: 'HCl', cat: 'acid', c: '#EEF4FA', n: { kk: 'Тұз қышқылы', ru: 'Соляная кислота', en: 'Hydrochloric acid' } },
+    { f: 'H_2SO_4', cat: 'acid', c: '#EEF4FA', tag: { kk: 'сұйылт.', ru: 'разб.', en: 'dil.' }, n: { kk: 'Күкірт қышқылы', ru: 'Серная кислота', en: 'Sulfuric acid' } },
+    { f: 'HNO_3', cat: 'acid', c: '#EEF4FA', n: { kk: 'Азот қышқылы', ru: 'Азотная кислота', en: 'Nitric acid' } },
+    { f: 'CH_3COOH', cat: 'acid', c: '#EEF4FA', n: { kk: 'Сірке қышқылы', ru: 'Уксусная кислота', en: 'Acetic acid' } },
+    { f: 'NaOH', cat: 'base', c: '#EEF4FA', n: { kk: 'Натрий гидроксиді', ru: 'Гидроксид натрия', en: 'Sodium hydroxide' } },
+    { f: 'KOH', cat: 'base', c: '#EEF4FA', n: { kk: 'Калий гидроксиді', ru: 'Гидроксид калия', en: 'Potassium hydroxide' } },
+    { f: 'Ca(OH)_2', cat: 'base', c: '#F4F6F8', n: { kk: 'Әк суы', ru: 'Известковая вода', en: 'Limewater' } },
+    { f: 'NaCl', cat: 'salt', c: '#EEF4FA', n: { kk: 'Натрий хлориді', ru: 'Хлорид натрия', en: 'Sodium chloride' } },
+    { f: 'CuSO_4', cat: 'salt', c: '#2F8FE0', n: { kk: 'Мыс(II) сульфаты', ru: 'Сульфат меди(II)', en: 'Copper(II) sulfate' } },
+    { f: 'FeCl_3', cat: 'salt', c: '#D8A023', n: { kk: 'Темір(III) хлориді', ru: 'Хлорид железа(III)', en: 'Iron(III) chloride' } },
+    { f: 'AgNO_3', cat: 'salt', c: '#EEF4FA', n: { kk: 'Күміс нитраты', ru: 'Нитрат серебра', en: 'Silver nitrate' } },
+    { f: 'BaCl_2', cat: 'salt', c: '#EEF4FA', n: { kk: 'Барий хлориді', ru: 'Хлорид бария', en: 'Barium chloride' } },
+    { f: 'Na_2CO_3', cat: 'salt', c: '#EEF4FA', n: { kk: 'Натрий карбонаты', ru: 'Карбонат натрия', en: 'Sodium carbonate' } },
+    { f: 'Zn', cat: 'metal', c: '#A9B3BD', solid: true, n: { kk: 'Мырыш', ru: 'Цинк', en: 'Zinc' } },
+    { f: 'Fe', cat: 'metal', c: '#6E747A', solid: true, n: { kk: 'Темір', ru: 'Железо', en: 'Iron' } },
+    { f: 'Cu', cat: 'metal', c: '#C9692C', solid: true, n: { kk: 'Мыс', ru: 'Медь', en: 'Copper' } },
+    { f: 'Mg', cat: 'metal', c: '#C4CBD2', solid: true, n: { kk: 'Магний', ru: 'Магний', en: 'Magnesium' } },
+    { f: 'Phph', cat: 'ind', c: '#F4F6F8', label: { kk: 'Фенолфталеин', ru: 'Фенолфталеин', en: 'Phenolphthalein' }, n: { kk: 'сілтіде таңқурай', ru: 'малиновый в щёлочи', en: 'crimson in alkali' } },
+    { f: 'Litmus', cat: 'ind', c: '#7A4FC0', label: { kk: 'Лакмус', ru: 'Лакмус', en: 'Litmus' }, n: { kk: 'қышқылда қызыл', ru: 'красный в кислоте', en: 'red in acid' } },
+    { f: 'MeOr', cat: 'ind', c: '#F08A24', label: { kk: 'Метилоранж', ru: 'Метилоранж', en: 'Methyl orange' }, n: { kk: 'қышқылда қызғылт', ru: 'розовый в кислоте', en: 'pink in acid' } }
+  ];
+  var CATS = ['all', 'acid', 'base', 'salt', 'metal', 'ind'];
+
+  // ---------- What is in each tube ----------
+  var SC = {
+    cu_oh: {
+      contents: { all: 'CuSO_4 + NaOH' }, status: 'ok', signs: ['precip'], ph: 7.5,
+      look: { liquid: '#CFE6F7', precip: '#3E9BE0' },
+      title: { kk: 'Көгілдір тұнба түсті', ru: 'Выпал голубой осадок', en: 'A light-blue precipitate formed' },
+      say7: {
+        kk: 'Мыс(II) сульфаты мен натрий гидроксиді (сілті) жаңа зат түзді: мыс(II) гидроксиді. Ол суда ерімейді, сондықтан көгілдір тұнба болып түседі. Тұнба химиялық реакцияның белгісі.',
+        ru: 'Сульфат меди(II) и гидроксид натрия (щёлочь) образовали новое вещество, гидроксид меди(II). Оно не растворяется в воде и выпадает голубым осадком. Осадок — признак химической реакции.',
+        en: 'Copper(II) sulfate and sodium hydroxide (an alkali) formed a new substance, copper(II) hydroxide. It does not dissolve in water, so it settles as a light-blue precipitate. A precipitate is a sign of a chemical reaction.'
+      },
+      say8: {
+        kk: 'Бұл алмасу реакциясы: заттар құрамдас бөліктерімен алмасты. Түзілген Cu(OH)₂ ерімейтін негіз, ол көгілдір тұнба болып бөлінді.',
+        ru: 'Это реакция обмена: вещества обменялись составными частями. Получился Cu(OH)₂, нерастворимое основание, и он выпал голубым осадком.',
+        en: 'This is an exchange reaction: the substances swapped their parts. The product, Cu(OH)₂, is an insoluble base, so it came out as a light-blue precipitate.'
+      },
+      why7: {
+        kk: 'Кейбір заттар суда ерімейді. Олар түзілсе, ерітінді лайланады немесе түбіне тұнба түседі.',
+        ru: 'Некоторые вещества не растворяются в воде. Когда они образуются, раствор мутнеет или на дно выпадает осадок.',
+        en: 'Some substances do not dissolve in water. When they form, the solution turns cloudy or a precipitate settles.'
+      },
+      why8: {
+        kk: 'Ерігіштік кестесі бойынша Cu(OH)₂ суда ерімейді. Ион алмасу реакциясы тұнба, газ немесе су түзілгенде аяғына дейін жүреді.',
+        ru: 'По таблице растворимости Cu(OH)₂ нерастворим. Реакция ионного обмена идёт до конца, если образуется осадок, газ или вода.',
+        en: 'The solubility table shows that Cu(OH)₂ is insoluble. An ion-exchange reaction goes to completion when it forms a precipitate, a gas or water.'
+      },
+      eq: 'CuSO_4 + 2NaOH -> Cu(OH)_2↓ + Na_2SO_4', ionic: 'Cu^{2+} + 2OH^{-} -> Cu(OH)_2↓',
+      ions: { sol: [['Na^{+}', 2, '#9AA5B1'], ['SO_4^{2-}', 1, '#E8C547']], solid: [['Cu(OH)_2', 1, '#3E9BE0']], gas: [] }
+    },
+    cu_hcl: {
+      contents: { all: 'Cu + HCl' }, status: 'none', signs: [], ph: 0.3, tryNext: 'zn_hcl',
+      look: { liquid: '#EAF1F8', wire: true },
+      title: { kk: 'Мыс қышқылда өзгеріссіз қалды', ru: 'Медь в кислоте не изменилась', en: 'Copper stays unchanged in the acid' },
+      say7: {
+        kk: 'Мыс тұз қышқылымен әрекеттеспейді: көпіршік жоқ, түсі өзгермеді. Мыс белсенділігі төмен металл.',
+        ru: 'Медь не реагирует с соляной кислотой: нет пузырьков, цвет не изменился. Медь — малоактивный металл.',
+        en: 'Copper does not react with hydrochloric acid: no bubbles and no color change. Copper is a low-activity metal.'
+      },
+      say8: {
+        kk: 'Мыс қышқыл ерітіндісінен сутекті ығыстыра алмайды, сондықтан ешқандай өзгеріс жоқ.',
+        ru: 'Медь не может вытеснить водород из раствора кислоты, поэтому ничего не происходит.',
+        en: 'Copper cannot displace hydrogen from the acid solution, so nothing happens.'
+      },
+      why7: {
+        kk: 'Металдар белсенділігі бойынша қатарға тізілген. Қатардың басындағы металдар қышқылмен әрекеттеседі, соңындағылары әрекеттеспейді.',
+        ru: 'Металлы выстроены в ряд по активности. Металлы из начала ряда реагируют с кислотой, из конца ряда — нет.',
+        en: 'Metals are lined up by activity. Metals at the start of the series react with acids; those near the end do not.'
+      },
+      why8: {
+        kk: 'Белсенділік қатарында мыс сутектен кейін тұр. Сутектен кейінгі металдар қышқыл ерітінділерінен сутекті ығыстырмайды.',
+        ru: 'В ряду активности медь стоит после водорода. Металлы после водорода не вытесняют водород из растворов кислот.',
+        en: 'Copper comes after hydrogen in the activity series. Metals after hydrogen do not displace hydrogen from acid solutions.'
+      },
+      eq: 'Cu + HCl ↛', ionic: null, series: { hit: 'Cu', good: ['Zn', 'Fe'] },
+      ions: { sol: [['H^{+}', 1, '#E5626A'], ['Cl^{-}', 1, '#5DBB63']], solid: [['Cu', 1, '#C9692C']], gas: [] }
+    },
+    zn_hcl: {
+      contents: { all: 'Zn + HCl' }, status: 'ok', signs: ['gas'], ph: 0.6,
+      look: { liquid: '#EAF1F8', granules: true, bubbles: true },
+      title: { kk: 'Сутек бөлініп жатыр', ru: 'Выделяется водород', en: 'Hydrogen is released' },
+      say7: {
+        kk: 'Мырыш тұз қышқылымен әрекеттесіп, сутек газын бөледі. Жанып тұрған шырпыны жақындатсаң, сутек сарт етіп жанады.',
+        ru: 'Цинк реагирует с соляной кислотой, выделяется водород. Поднеси горящую лучинку: водород сгорает с хлопком.',
+        en: 'Zinc reacts with hydrochloric acid and gives off hydrogen. Bring a burning splint close: the hydrogen burns with a pop.'
+      },
+      say8: {
+        kk: 'Бұл орынбасу реакциясы: мырыш қышқылдағы сутектің орнын басты.',
+        ru: 'Это реакция замещения: цинк занял место водорода в кислоте.',
+        en: 'This is a substitution reaction: zinc took the place of hydrogen in the acid.'
+      },
+      why7: {
+        kk: 'Мырыш белсенді металл, ол қышқылмен оңай әрекеттеседі.',
+        ru: 'Цинк — активный металл, он легко реагирует с кислотой.',
+        en: 'Zinc is an active metal and reacts easily with acids.'
+      },
+      why8: {
+        kk: 'Белсенділік қатарында мырыш сутектің алдында тұр, сондықтан ол қышқылдан сутекті ығыстырады.',
+        ru: 'В ряду активности цинк стоит до водорода, поэтому вытесняет водород из кислоты.',
+        en: 'Zinc comes before hydrogen in the activity series, so it displaces hydrogen from the acid.'
+      },
+      eq: 'Zn + 2HCl -> ZnCl_2 + H_2↑', ionic: 'Zn + 2H^{+} -> Zn^{2+} + H_2↑', series: { good: ['Zn'] },
+      ions: { sol: [['Zn^{2+}', 1, '#A9B3BD'], ['Cl^{-}', 2, '#5DBB63']], solid: [], gas: [['H_2', 1, '#C9D7E8']] }
+    },
+    co2: {
+      contents: { all: 'Na_2CO_3 + HCl' }, status: 'ok', signs: ['gas'], ph: 6.5,
+      look: { liquid: '#EAF1F8', bubbles: true },
+      title: { kk: 'Көмірқышқыл газы бөлінді', ru: 'Выделяется углекислый газ', en: 'Carbon dioxide is released' },
+      say7: {
+        kk: 'Сода мен тұз қышқылы араласқанда көмірқышқыл газы бөлінеді. Көпіршіктер химиялық реакцияның белгісі. Жанып тұрған шырпы бұл газда сөнеді.',
+        ru: 'Сода и соляная кислота дают углекислый газ. Пузырьки — признак химической реакции. Горящая лучинка в этом газе гаснет.',
+        en: 'Soda and hydrochloric acid give off carbon dioxide. Bubbles are a sign of a chemical reaction. A burning splint goes out in this gas.'
+      },
+      say8: {
+        kk: 'Бұл алмасу реакциясы. Түзілген көмір қышқылы тұрақсыз, ол бірден су мен CO₂-ге ыдырайды.',
+        ru: 'Это реакция обмена. Получившаяся угольная кислота неустойчива и сразу распадается на воду и CO₂.',
+        en: 'This is an exchange reaction. The carbonic acid that forms is unstable and breaks down at once into water and CO₂.'
+      },
+      why7: {
+        kk: 'Газ көпіршік болып ерітіндіден шығып кетеді. Бұл жаңа зат түзілгенін көрсетеді.',
+        ru: 'Газ уходит из раствора пузырьками. Значит, образовалось новое вещество.',
+        en: 'The gas leaves the solution as bubbles, which means a new substance has formed.'
+      },
+      why8: {
+        kk: 'Газ бөлінсе, ион алмасу реакциясы аяғына дейін жүреді. Карбонаттар кез келген қышқылмен осылай көпіршиді: бұл карбонат-ионға сапалық реакция.',
+        ru: 'Если выделяется газ, реакция ионного обмена идёт до конца. Любая кислота так «вскипает» с карбонатами: это качественная реакция на карбонат-ион.',
+        en: 'When a gas escapes, an ion-exchange reaction goes to completion. Carbonates fizz like this with any acid, which makes it the test for the carbonate ion.'
+      },
+      eq: 'Na_2CO_3 + 2HCl -> 2NaCl + H_2O + CO_2↑', ionic: 'CO_3^{2-} + 2H^{+} -> H_2O + CO_2↑',
+      ions: { sol: [['Na^{+}', 2, '#9AA5B1'], ['Cl^{-}', 2, '#5DBB63']], solid: [], gas: [['CO_2', 1, '#8C99A8']] }
+    },
+    phph: {
+      contents: { kk: 'NaOH + фенолфталеин', ru: 'NaOH + фенолфталеин', en: 'NaOH + phenolphthalein' }, status: 'info', signs: ['color'], ph: 13,
+      look: { liquid: '#D61F69' },
+      title: { kk: 'Ерітінді таңқурай түске боялды', ru: 'Раствор стал малиновым', en: 'The solution turned crimson' },
+      say7: {
+        kk: 'Фенолфталеин индикатор. Сілтіде ол таңқурай түске боялады. Демек, пробиркада сілті бар.',
+        ru: 'Фенолфталеин — индикатор. В щёлочи он становится малиновым. Значит, в пробирке щёлочь.',
+        en: 'Phenolphthalein is an indicator. It turns crimson in an alkali, so the tube holds an alkali.'
+      },
+      say8: {
+        kk: 'Орта сілтілі, pH шамамен 13. Қышқыл тамызсаң, бейтараптану жүріп, түсі жоғалады.',
+        ru: 'Среда щелочная, pH около 13. Добавь кислоту: пройдёт нейтрализация, и окраска исчезнет.',
+        en: 'The solution is alkaline, pH about 13. Add acid and neutralization makes the color disappear.'
+      },
+      why7: {
+        kk: 'Индикаторлар қышқылда және сілтіде әртүрлі түске боялады. Сол арқылы ерітіндіде не барын білеміз.',
+        ru: 'Индикаторы окрашиваются по-разному в кислоте и в щёлочи. Так можно узнать, что в растворе.',
+        en: 'Indicators take different colors in acids and alkalis, which tells you what is in the solution.'
+      },
+      why8: {
+        kk: 'Ерітіндіде OH⁻ иондары көп болса, фенолфталеин түссізден таңқурай түске ауысады. Қышқыл және бейтарап ортада ол түссіз.',
+        ru: 'Когда в растворе много ионов OH⁻, фенолфталеин из бесцветного становится малиновым. В кислой и нейтральной среде он бесцветный.',
+        en: 'When the solution is rich in OH⁻ ions, phenolphthalein turns from colorless to crimson. In acidic and neutral solutions it stays colorless.'
+      },
+      eq: null, ionic: 'NaOH -> Na^{+} + OH^{-}', ionicLabel: 'dissoc',
+      ions: { sol: [['Na^{+}', 1, '#9AA5B1'], ['OH^{-}', 1, '#6C8CF5']], solid: [], gas: [] }
+    }
+  };
+
+  // ---------- State ----------
+  var state = { lang: 'ru', grade: 8, skin: 'bright', cat: 'all', q: '', sel: 0, tubes: ['cu_oh', 'cu_hcl', 'co2', 'phph'], mol: false };
+  var history = [];
+  try {
+    var saved = JSON.parse(localStorage.getItem('cchexa-mockup') || '{}');
+    ['lang', 'grade', 'skin'].forEach(function (k) { if (saved[k] != null) state[k] = saved[k]; });
+  } catch (e) { /* storage unavailable: keep defaults */ }
+  function persist() {
+    try { localStorage.setItem('cchexa-mockup', JSON.stringify({ lang: state.lang, grade: state.grade, skin: state.skin })); } catch (e) { /* ignore */ }
+  }
+
+  function t(key) { return T[state.lang][key]; }
+  function L(obj) { return obj[state.lang] || obj.all || obj.ru; }
+  // "CuSO_4" -> CuSO<sub>4</sub>, "Cu^{2+}" -> Cu<sup>2+</sup>, "->" -> arrow.
+  function fx(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/->/g, '→')
+      .replace(/_(\d+)/g, '<sub>$1</sub>')
+      .replace(/\^\{([^}]+)\}/g, function (_, c) { return '<sup>' + c.replace('-', '−') + '</sup>'; });
+  }
+  function $(id) { return document.getElementById(id); }
+
+  // ---------- Drawing ----------
+  function bottleSVG(r) {
+    if (r.solid) {
+      return '<svg viewBox="0 0 30 40" aria-hidden="true"><path d="M8 6h14v4l4 6v20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V16l4-6z" class="glass"/>' +
+        '<g fill="' + r.c + '"><circle cx="11" cy="32" r="3"/><circle cx="17" cy="33" r="3.2"/><circle cx="21" cy="29" r="2.6"/><circle cx="14" cy="28" r="2.4"/></g>' +
+        '<rect x="9" y="2" width="12" height="5" rx="1.5" fill="var(--rack)"/></svg>';
+    }
+    return '<svg viewBox="0 0 30 40" aria-hidden="true"><path d="M8 6h14v4l4 6v20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V16l4-6z" class="glass"/>' +
+      '<path d="M4.6 20h20.8v16a2 2 0 0 1-2 2H6.6a2 2 0 0 1-2-2z" fill="' + r.c + '" opacity="0.95"/>' +
+      '<rect x="9" y="2" width="12" height="5" rx="1.5" fill="var(--rack)"/></svg>';
+  }
+
+  function tubeSVG(id, sc, i) {
+    var clip = 'tclip' + i;
+    var inner = 'M12 14 V196 A18 18 0 0 0 48 196 V14 Z';
+    var g = '<svg viewBox="0 0 60 236" aria-hidden="true"><defs><clipPath id="' + clip + '"><path d="' + inner + '"/></clipPath></defs>';
+    g += '<path d="' + inner + '" class="glass-back"/>';
+    g += '<g clip-path="url(#' + clip + ')">';
+    if (sc) {
+      var look = sc.look;
+      g += '<rect x="0" y="118" width="60" height="120" fill="' + look.liquid + '"/>';
+      g += '<rect x="12" y="118" width="36" height="3" fill="#FFFFFF" opacity="0.55"/>';
+      if (look.precip) {
+        g += '<path d="M10 184 Q20 178 30 182 T52 180 V240 H10 Z" fill="' + look.precip + '"/>';
+        for (var k = 0; k < 14; k++) {
+          g += '<circle cx="' + (16 + (k * 7) % 28) + '" cy="' + (150 + (k * 13) % 30) + '" r="1.6" fill="' + look.precip + '" opacity="0.7"/>';
+        }
+      }
+      if (look.wire) {
+        g += '<path d="M20 214 C28 204 36 222 42 208 C36 200 26 214 20 202 C26 192 36 206 40 194" fill="none" stroke="#C9692C" stroke-width="4" stroke-linecap="round"/>';
+      }
+      if (look.granules) {
+        g += '<g fill="#A9B3BD" stroke="#7E8994" stroke-width="1"><path d="M18 208l7-5 7 3-1 8-9 2z"/><path d="M30 214l8-4 6 5-4 6-8-1z"/><path d="M22 220l6 2-2 6-6-2z"/></g>';
+      }
+      if (look.bubbles) {
+        for (var b = 0; b < 9; b++) {
+          var bx = 18 + (b * 11) % 26, by = 210 - (b * 9) % 30, br = 1.8 + (b % 3) * 0.9;
+          g += '<circle class="bubble" cx="' + bx + '" cy="' + by + '" r="' + br + '" style="animation-delay:' + (b * 0.27).toFixed(2) + 's"/>';
+        }
+      }
+    }
+    g += '</g>';
+    g += '<path d="' + inner.replace(' Z', '') + '" class="glass-line"/>';
+    g += '<rect x="7" y="8" width="46" height="8" rx="4" class="glass"/>';
+    return g + '</svg>';
+  }
+
+  function beakerSVG() {
+    return '<svg width="96" height="113" viewBox="0 0 112 132" aria-hidden="true">' +
+      '<path d="M18 56h76v64a8 8 0 0 1-8 8H26a8 8 0 0 1-8-8z" fill="#CFE8F8" opacity="0.85"/>' +
+      '<path d="M12 8h88M18 8v112a8 8 0 0 0 8 8h60a8 8 0 0 0 8-8V8" class="glass-line"/>' +
+      '<path d="M84 26h10M84 44h10M84 62h10M84 80h10" stroke="var(--glass)" stroke-width="2"/></svg>';
+  }
+  function lampSVG() {
+    return '<svg width="76" height="132" viewBox="0 0 76 132" aria-hidden="true">' +
+      '<g class="flame"><path d="M38 6c10 16 14 26 14 34a14 14 0 0 1-28 0c0-8 4-18 14-34z" fill="var(--heat)"/>' +
+      '<path d="M38 24c5 8 7 13 7 17a7 7 0 0 1-14 0c0-4 2-9 7-17z" fill="#FFD25A"/></g>' +
+      '<rect x="33" y="54" width="10" height="14" rx="2" fill="var(--rack)"/>' +
+      '<path d="M12 128c0-30 6-52 26-60 20 8 26 30 26 60z" class="glass"/>' +
+      '<path d="M15 128c1-14 3-24 6-30h34c3 6 5 16 6 30z" fill="#BFE3F2" opacity="0.8"/></svg>';
+  }
+  function funnelSVG() {
+    return '<svg width="64" height="88" viewBox="0 0 80 110" aria-hidden="true">' +
+      '<path d="M6 10h68L46 52v52h-12V52z" class="glass"/><path d="M14 16h52L40 46z" fill="#FFFFFF" opacity="0.65"/></svg>';
+  }
+  function magnetSVG() {
+    return '<svg width="56" height="56" viewBox="0 0 70 70" aria-hidden="true">' +
+      '<path d="M10 8h16v28a9 9 0 0 0 18 0V8h16v28a25 25 0 0 1-50 0z" fill="#E5383B"/>' +
+      '<path d="M10 8h16v12H10zM44 8h16v12H44z" fill="#D5DCE4"/></svg>';
+  }
+
+  // ---------- Rendering ----------
+  function renderTop() {
+    document.documentElement.setAttribute('data-skin', state.skin);
+    document.documentElement.lang = state.lang === 'kk' ? 'kk' : state.lang;
+    document.querySelectorAll('[data-t]').forEach(function (n) { n.textContent = t(n.getAttribute('data-t')); });
+    $('search').placeholder = t('search');
+    $('search').setAttribute('aria-label', t('search'));
+    $('undo').title = t('undo'); $('undo').setAttribute('aria-label', t('undo'));
+    $('clear').title = t('clear'); $('clear').setAttribute('aria-label', t('clear'));
+    $('grades').setAttribute('aria-label', t('grade'));
+
+    $('grades').innerHTML = [7, 8, 9, 10, 11].map(function (g) {
+      return '<button type="button" data-grade="' + g + '" aria-pressed="' + (g === state.grade) + '">' + g + '</button>';
+    }).join('');
+    $('langs').innerHTML = [['kk', 'ҚАЗ'], ['ru', 'РУС'], ['en', 'ENG']].map(function (l) {
+      return '<button type="button" data-lang="' + l[0] + '" aria-pressed="' + (l[0] === state.lang) + '">' + l[1] + '</button>';
+    }).join('');
+    $('skins').innerHTML =
+      '<button type="button" data-skin="bright" aria-pressed="' + (state.skin === 'bright') + '">' + t('bright') + '</button>' +
+      '<button type="button" data-skin="brand" aria-pressed="' + (state.skin === 'brand') + '">CC Lab</button>';
+  }
+
+  function renderShelf() {
+    $('cats').innerHTML = CATS.map(function (c) {
+      return '<button type="button" class="chip" data-cat="' + c + '" aria-pressed="' + (c === state.cat) + '">' + t('cat_' + c) + '</button>';
+    }).join('');
+    var q = state.q.trim().toLowerCase();
+    var list = REAGENTS.filter(function (r) {
+      if (state.cat !== 'all' && r.cat !== state.cat) return false;
+      if (!q) return true;
+      var hay = (r.f.replace(/_/g, '') + ' ' + L(r.n) + ' ' + (r.label ? L(r.label) : '')).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+    $('count').textContent = list.length;
+    var html = '', last = '';
+    list.forEach(function (r) {
+      if (r.cat !== last) { html += '<div class="group-label">' + t('cat_' + r.cat) + '</div>'; last = r.cat; }
+      var head = r.label ? L(r.label) : fx(r.f);
+      var tag = r.tag ? '<span class="tag">' + L(r.tag) + '</span>' : '';
+      html += '<button type="button" class="bottle">' + bottleSVG(r) + '<span><b>' + head + tag + '</b><small>' + L(r.n) + '</small></span></button>';
+    });
+    $('bottles').innerHTML = html;
+  }
+
+  function renderBench() {
+    var rack = $('rack');
+    rack.querySelectorAll('.tube').forEach(function (n) { n.remove(); });
+    state.tubes.forEach(function (id, i) {
+      var sc = id ? SC[id] : null;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tube';
+      btn.setAttribute('data-tube', i);
+      btn.setAttribute('aria-pressed', String(i === state.sel));
+      btn.setAttribute('aria-label', t('tube') + ' ' + (i + 1) + (sc ? ': ' + L(sc.contents).replace(/_|\^\{|\}/g, '') : ''));
+      btn.innerHTML = tubeSVG(id, sc, i) + '<span class="num">' + (i + 1) + '</span>';
+      rack.appendChild(btn);
+    });
+    $('legend').innerHTML = state.tubes.map(function (id, i) {
+      var sc = id ? SC[id] : null;
+      return '<button type="button" class="legend-item' + (sc ? '' : ' is-empty') + '" data-tube="' + i + '" aria-pressed="' + (i === state.sel) + '"><b>' + (i + 1) + '</b><span>' +
+        (sc ? fx(L(sc.contents)) : t('empty')) + '</span></button>';
+    }).join('');
+    $('beaker').innerHTML = beakerSVG() + '<span>' + t('beaker') + '</span>';
+    $('lamp').innerHTML = lampSVG() + '<span>' + t('lamp') + '</span>';
+    $('funnel').innerHTML = funnelSVG() + '<span>' + t('funnel') + '</span>';
+    $('magnet').innerHTML = magnetSVG() + '<span>' + t('magnet') + '</span>';
+  }
+
+  var SIGN_ICONS = {
+    precip: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="4" cy="12" r="2"/><circle cx="8.5" cy="12.5" r="2"/><circle cx="12.5" cy="11.5" r="2"/><circle cx="6.5" cy="8" r="1.6"/><circle cx="10.5" cy="7.5" r="1.4"/></svg>',
+    gas: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="5" cy="11" r="2.4"/><circle cx="10.5" cy="7" r="2.8"/><circle cx="6.5" cy="3.5" r="1.6"/></svg>',
+    color: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5C11 6 12.5 8.4 12.5 10.3a4.5 4.5 0 0 1-9 0C3.5 8.4 5 6 8 1.5z" fill="currentColor"/></svg>',
+    heat: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 2v8.2a3 3 0 1 0 4 0V2z"/><path d="M8 6v6"/></svg>'
+  };
+  var SERIES = ['Li', 'K', 'Ba', 'Ca', 'Na', 'Mg', 'Al', 'Zn', 'Fe', 'Ni', 'Sn', 'Pb', 'H₂', 'Cu', 'Hg', 'Ag', 'Pt', 'Au'];
+
+  function ionChips(list) {
+    return list.map(function (x) {
+      return '<span class="ion"><i style="background:' + x[2] + '"></i><span>' + fx(x[0]) + '</span>' + (x[1] > 1 ? ' <em>×' + x[1] + '</em>' : '') + '</span>';
+    }).join('');
+  }
+
+  function renderPanel() {
+    var id = state.tubes[state.sel];
+    var sc = id ? SC[id] : null;
+    var g = state.grade;
+    var html = '<div class="panel-kicker"><h2>' + t('tube') + ' ' + (state.sel + 1) + ' · ' + t('what') + '</h2>' +
+      (sc ? '<span class="contents">' + fx(L(sc.contents)) + '</span>' : '') + '</div>';
+
+    if (!sc) {
+      html += '<span class="status empty">' + t('empty') + '</span>' +
+        '<h3 class="result-title">' + t('emptyTitle') + '</h3><p class="say">' + t('emptyText') + '</p>';
+      $('panel').innerHTML = html;
+      return;
+    }
+
+    html += '<span class="status ' + sc.status + '">' + t(sc.status) + '</span>';
+    html += '<h3 class="result-title">' + L(sc.title) + '</h3>';
+    html += '<p class="say">' + L(sc.say7) + (g >= 8 ? ' ' + L(sc.say8) : '') + '</p>';
+
+    html += '<div><div class="eq-label" style="margin-bottom:6px">' + t('signs') + '</div><div class="signs">' +
+      ['precip', 'gas', 'color', 'heat'].map(function (s) {
+        var on = sc.signs.indexOf(s) !== -1;
+        return '<span class="sign ' + (on ? 'on' : 'off') + '">' + SIGN_ICONS[s] + t('s_' + s) + '</span>';
+      }).join('') + '</div></div>';
+
+    if (g >= 8 && sc.eq) {
+      html += '<div class="eq"><span class="eq-label">' + t('eq') + '</span><div class="eq-line">' + fx(sc.eq) + '</div>';
+      if (g >= 9 && sc.ionic) html += '<span class="eq-label">' + t(sc.ionicLabel || 'ionic') + '</span><div class="eq-line ionic">' + fx(sc.ionic) + '</div>';
+      html += '</div>';
+    } else if (g >= 9 && sc.ionic) {
+      html += '<div class="eq"><span class="eq-label">' + t(sc.ionicLabel || 'ionic') + '</span><div class="eq-line ionic">' + fx(sc.ionic) + '</div></div>';
+    }
+
+    if (g >= 8 && sc.ph != null) {
+      html += '<div class="ph"><div class="eq-label">' + t('ph') + ' ' + String(sc.ph).replace('.', state.lang === 'en' ? '.' : ',') + '</div>' +
+        '<div class="ph-bar"><span class="ph-mark" style="left:' + (sc.ph / 14 * 100).toFixed(1) + '%"></span></div>' +
+        '<div class="ph-scale"><span>0</span><span>7</span><span>14</span></div></div>';
+    }
+
+    html += '<details class="why" open><summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg>' + t('why') + '</summary><div class="why-body">';
+    html += '<p>' + L(g >= 8 ? sc.why8 : sc.why7) + '</p>';
+    if (sc.series) {
+      html += '<div><div class="eq-label" style="margin-bottom:6px">' + t('series') + '</div><div class="series">' +
+        SERIES.map(function (m) {
+          var cls = m === 'H₂' ? 'h' : (m === sc.series.hit ? 'hit' : ((sc.series.good || []).indexOf(m) !== -1 ? 'good' : ''));
+          return '<span class="' + cls + '">' + m + '</span>';
+        }).join('') + '</div><p class="series-cap" style="margin-top:6px">' + t('seriesCap') + '</p></div>';
+    }
+    if (sc.tryNext) html += '<button type="button" class="try" data-try="' + sc.tryNext + '">' + t('tryZn') + ' →</button>';
+    html += '</div></details>';
+
+    html += '<div class="mol-toggle"><label for="molSwitch">' + t('mol') + '</label><input class="switch" type="checkbox" id="molSwitch"' + (state.mol ? ' checked' : '') + '></div>';
+    if (state.mol) {
+      html += '<div class="ions">';
+      if (sc.ions.sol.length) html += '<div class="ion-row"><h3>' + t('inSol') + '</h3><div class="ion-list">' + ionChips(sc.ions.sol) + '</div></div>';
+      if (sc.ions.solid.length) html += '<div class="ion-row"><h3>' + t('inSolid') + '</h3><div class="ion-list">' + ionChips(sc.ions.solid) + '</div></div>';
+      if (sc.ions.gas.length) html += '<div class="ion-row"><h3>' + t('inGas') + '</h3><div class="ion-list">' + ionChips(sc.ions.gas) + '</div></div>';
+      html += '</div>';
+    }
+
+    var note = g === 7 ? 'note7' : g === 8 ? 'note8' : g >= 10 ? 'note10' : '';
+    if (note) html += '<p class="grade-note">' + t(note) + '</p>';
+    $('panel').innerHTML = html;
+  }
+
+  function renderAll() { renderTop(); renderShelf(); renderBench(); renderPanel(); }
+
+  // ---------- Toast ----------
+  var toastTimer = 0;
+  function toast(key) {
+    var n = $('toast');
+    n.textContent = t(key);
+    n.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { n.classList.remove('show'); }, 2600);
+  }
+
+  // ---------- Events ----------
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('button');
+    if (!el) return;
+    if (el.hasAttribute('data-grade')) { state.grade = +el.getAttribute('data-grade'); persist(); renderTop(); renderPanel(); return; }
+    if (el.hasAttribute('data-lang')) { state.lang = el.getAttribute('data-lang'); persist(); renderAll(); return; }
+    if (el.hasAttribute('data-skin') && el.closest('#skins')) { state.skin = el.getAttribute('data-skin'); persist(); renderTop(); return; }
+    if (el.hasAttribute('data-cat')) { state.cat = el.getAttribute('data-cat'); renderShelf(); return; }
+    if (el.hasAttribute('data-tube')) { state.sel = +el.getAttribute('data-tube'); renderBench(); renderPanel(); return; }
+    if (el.hasAttribute('data-try')) {
+      history.push(state.tubes.slice());
+      state.tubes[state.sel] = el.getAttribute('data-try');
+      renderBench(); renderPanel();
+      if (logo) logo.flash();
+      return;
+    }
+    if (el.hasAttribute('data-toast')) { toast(el.getAttribute('data-toast')); return; }
+    if (el.classList.contains('bottle')) { toast('toastDrag'); return; }
+    if (el.id === 'undo') {
+      if (!history.length) { toast('toastNothing'); return; }
+      state.tubes = history.pop(); renderBench(); renderPanel(); return;
+    }
+    if (el.id === 'clear') {
+      history.push(state.tubes.slice());
+      state.tubes = state.tubes.map(function () { return null; });
+      renderBench(); renderPanel(); toast('toastCleared'); return;
+    }
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'molSwitch') { state.mol = e.target.checked; renderPanel(); }
+  });
+  $('search').addEventListener('input', function (e) { state.q = e.target.value; renderShelf(); });
+
+  var logo = window.CCHexaLogo ? CCHexaLogo.mount($('logo'), { interval: 15000 }) : null;
+  if (logo) $('logo').addEventListener('click', function () { logo.play(); });
+
+  renderAll();
+})();
+</script>
