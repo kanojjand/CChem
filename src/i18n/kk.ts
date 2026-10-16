@@ -1,4 +1,5 @@
 import type { Strings } from './types';
+import { apparatusEvents } from './apparatusTexts';
 
 // Kazakh texts. Chemical terms follow school nomenclature; see docs/content-mvp.md for the review list.
 
@@ -145,6 +146,7 @@ export const kk: Strings = {
   ],
   elements: ELEMENTS,
   events: {
+    ...apparatusEvents('kk'),
     precip: (p, h) => ({
       title: `${h.cap(h.color(p.color))} тұнба түсті`,
       say: `${h.cap(h.NF(p.product))} түзілді. Ол суда ерімейді, сондықтан тұнбаға түседі — бұл химиялық реакцияның белгісі.` +

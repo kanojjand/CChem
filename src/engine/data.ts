@@ -113,6 +113,8 @@ const COMPOUND_LIST: CompoundDef[] = [
   C('NO2', 'азот(IV) оксиді', 'оксид азота(IV)', 'nitrogen dioxide', 'g'),
   C('SO2', 'күкірт(IV) оксиді', 'оксид серы(IV)', 'sulfur dioxide', 'g'),
   C('NH3', 'аммиак', 'аммиак', 'ammonia', 'g'),
+  C('Cl2', 'хлор', 'хлор', 'chlorine', 'g'),
+  C('I2', 'иод', 'иод', 'iodine', 'aq'),
   C('NH3·H2O', 'аммиак ерітіндісі', 'гидрат аммиака', 'aqueous ammonia', 'aq', { electrolyte: 'weak' }),
   C('CH3COOH', 'сірке қышқылы', 'уксусная кислота', 'acetic acid', 'aq', { electrolyte: 'weak', cation: 'H^+', anion: 'CH3COO^-', nCat: 1, nAn: 1 }),
   C('H3PO4', 'фосфор қышқылы', 'фосфорная кислота', 'phosphoric acid', 'aq', { electrolyte: 'weak', cation: 'H^+', anion: 'PO4^3-', nCat: 3, nAn: 1 }),
@@ -317,6 +319,8 @@ const CLEAR = '#E8F1F8';
 export const REAGENTS: Reagent[] = [
   // acids
   { id: 'HCl', formula: 'HCl', cat: 'acid', kind: 'liquid', name: L('Тұз қышқылы', 'Соляная кислота', 'Hydrochloric acid'), note: M1, aq: { 'H^+': 1, 'Cl^-': 1 }, parent: 'HCl', bottle: CLEAR, grade: 8 },
+  { id: 'HCl01', formula: 'HCl', cat: 'acid', kind: 'liquid', name: L('Тұз қышқылы', 'Соляная кислота', 'Hydrochloric acid'), note: L('0,1 М · титрлеуге', '0,1 М · для титрования', '0.1 M · for titration'), aq: { 'H^+': 0.1, 'Cl^-': 0.1 }, parent: 'HCl', bottle: CLEAR, grade: 9 },
+  { id: 'HClx', formula: 'HCl', cat: 'acid', kind: 'liquid', name: L('Тұз қышқылы X', 'Соляная кислота X', 'Hydrochloric acid X'), note: L('концентрациясы белгісіз', 'концентрация неизвестна', 'unknown concentration'), aq: { 'H^+': 0.1, 'Cl^-': 0.1 }, parent: 'HCl', bottle: '#E6EEF9', grade: 9 },
   { id: 'H2SO4', formula: 'H2SO4', cat: 'acid', kind: 'liquid', tag: 'dil', name: L('Күкірт қышқылы', 'Серная кислота', 'Sulfuric acid'), note: M1, aq: { 'H^+': 2, 'SO4^2-': 1 }, parent: 'H2SO4', bottle: CLEAR, grade: 8 },
   { id: 'H2SO4c', formula: 'H2SO4', cat: 'acid', kind: 'liquid', tag: 'conc', name: L('Күкірт қышқылы', 'Серная кислота', 'Sulfuric acid'), note: L('98 %', '98 %', '98 %'), aq: { 'H2SO4c': 18.4 }, parent: 'H2SO4', concVolume: true, bottle: '#F3EFE2', grade: 9 },
   { id: 'HNO3', formula: 'HNO3', cat: 'acid', kind: 'liquid', tag: 'dil', name: L('Азот қышқылы', 'Азотная кислота', 'Nitric acid'), note: L('2 М', '2 М', '2 M'), aq: { 'H^+': 2, 'NO3^-': 2 }, parent: 'HNO3', bottle: CLEAR, grade: 9 },
@@ -324,12 +328,14 @@ export const REAGENTS: Reagent[] = [
   { id: 'CH3COOH', formula: 'CH3COOH', cat: 'acid', kind: 'liquid', name: L('Сірке қышқылы', 'Уксусная кислота', 'Acetic acid'), note: M1, aq: { 'CH3COOH': 1 }, parent: 'CH3COOH', bottle: CLEAR, grade: 8 },
   // bases
   { id: 'NaOH', formula: 'NaOH', cat: 'base', kind: 'liquid', name: L('Натрий гидроксиді', 'Гидроксид натрия', 'Sodium hydroxide'), note: M1, aq: { 'Na^+': 1, 'OH^-': 1 }, parent: 'NaOH', bottle: CLEAR, grade: 8 },
+  { id: 'NaOH01', formula: 'NaOH', cat: 'base', kind: 'liquid', name: L('Натрий гидроксиді', 'Гидроксид натрия', 'Sodium hydroxide'), note: L('0,1 М · титрлеуге', '0,1 М · для титрования', '0.1 M · for titration'), aq: { 'Na^+': 0.1, 'OH^-': 0.1 }, parent: 'NaOH', bottle: CLEAR, grade: 9 },
   { id: 'KOH', formula: 'KOH', cat: 'base', kind: 'liquid', name: L('Калий гидроксиді', 'Гидроксид калия', 'Potassium hydroxide'), note: M1, aq: { 'K^+': 1, 'OH^-': 1 }, parent: 'KOH', bottle: CLEAR, grade: 8 },
   { id: 'CaOH2', formula: 'Ca(OH)2', cat: 'base', kind: 'liquid', name: L('Әк суы', 'Известковая вода', 'Limewater'), note: L('қаныққан', 'насыщенный', 'saturated'), aq: { 'Ca^2+': 0.02, 'OH^-': 0.04 }, parent: 'Ca(OH)2', bottle: '#F1F4F6', grade: 8 },
   { id: 'BaOH2', formula: 'Ba(OH)2', cat: 'base', kind: 'liquid', name: L('Барий гидроксиді', 'Гидроксид бария', 'Barium hydroxide'), note: L('0,1 М', '0,1 М', '0.1 M'), aq: { 'Ba^2+': 0.1, 'OH^-': 0.2 }, parent: 'Ba(OH)2', bottle: CLEAR, grade: 9 },
   { id: 'NH3aq', formula: 'NH3·H2O', cat: 'base', kind: 'liquid', name: L('Аммиак ерітіндісі', 'Раствор аммиака', 'Ammonia solution'), note: L('2 М', '2 М', '2 M'), aq: { 'NH3': 2 }, parent: 'NH3·H2O', bottle: CLEAR, grade: 9 },
   // salts
   { id: 'NaCl', formula: 'NaCl', cat: 'salt', kind: 'liquid', name: L('Натрий хлориді', 'Хлорид натрия', 'Sodium chloride'), note: M1, aq: { 'Na^+': 1, 'Cl^-': 1 }, parent: 'NaCl', bottle: CLEAR, grade: 7 },
+  { id: 'NaCls', formula: 'NaCl', cat: 'salt', kind: 'solid', name: L('Ас тұзы', 'Поваренная соль', 'Table salt'), note: L('кристалдар', 'кристаллы', 'crystals'), solid: { 'NaCl': 17 }, bottle: '#FFFFFF', grade: 7 },
   { id: 'KCl', formula: 'KCl', cat: 'salt', kind: 'liquid', name: L('Калий хлориді', 'Хлорид калия', 'Potassium chloride'), note: M1, aq: { 'K^+': 1, 'Cl^-': 1 }, parent: 'KCl', bottle: CLEAR, grade: 9 },
   { id: 'KI', formula: 'KI', cat: 'salt', kind: 'liquid', name: L('Калий иодиді', 'Иодид калия', 'Potassium iodide'), note: M05, aq: { 'K^+': 0.5, 'I^-': 0.5 }, parent: 'KI', bottle: CLEAR, grade: 9 },
   { id: 'CuSO4', formula: 'CuSO4', cat: 'salt', kind: 'liquid', name: L('Мыс(II) сульфаты', 'Сульфат меди(II)', 'Copper(II) sulfate'), note: M05, aq: { 'Cu^2+': 0.5, 'SO4^2-': 0.5 }, parent: 'CuSO4', bottle: '#4FA6E6', grade: 8 },
@@ -378,5 +384,6 @@ export const REAGENT_BY_ID: Record<string, Reagent> = Object.fromEntries(REAGENT
 
 // Solids that dissolve in water as ions: formula -> [ions per unit, solubility mol/L].
 export const SOLUBLE_SOLIDS: Record<string, { ions: Record<string, number>; S: number }> = {
-  NaHCO3: { ions: { 'Na^+': 1, 'HCO3^-': 1 }, S: 1.1 }
+  NaHCO3: { ions: { 'Na^+': 1, 'HCO3^-': 1 }, S: 1.1 },
+  NaCl: { ions: { 'Na^+': 1, 'Cl^-': 1 }, S: 6.1 }
 };

@@ -91,6 +91,7 @@ export function solutionColor(
     const ion = IONS[id];
     if (ion?.color && ion.refC) apply(ion.color, amt / volumeMl / ion.refC);
     if (id === 'Fe(SCN)3') apply('#8E0A16', amt / volumeMl / 0.004);
+    if (id === 'I2') apply('#8A4A12', amt / volumeMl / 0.01);
   }
   if (pH != null) {
     for (const key in inds) {

@@ -1,7 +1,7 @@
 import { balance } from './balance';
 import { compound, hasCompound, IONS } from './data';
 
-export type Cond = 't' | 'MnO2' | 'H2SO4c';
+export type Cond = 't' | 'MnO2' | 'H2SO4c' | 'el';
 
 export interface EqSpec {
   reactants: string[];

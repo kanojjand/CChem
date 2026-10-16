@@ -161,7 +161,8 @@ const alkaliMetal: Rule = (v, ctx) => {
     }
     addGas(v, 'H2', h2, ctx.now);
     const dT = release(v, met.heatWater * consumed);
-    const boom = m === 'Na' && consumed >= 5.5 && hasWater;
+    // A pea-sized piece (about 0.1 g, 4–5 mmol) skates on the water; from about 0.3 g the vessel bursts.
+    const boom = m === 'Na' && consumed >= 13 && hasWater;
     if (boom) v.fx.boomAt = ctx.now;
     else if (m === 'Na') v.fx.runAt = ctx.now;
     const withWater = rest >= fromAcid;

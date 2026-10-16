@@ -12,6 +12,8 @@ export type EventKind =
   | 'dissolveAcid' | 'amphoteric' | 'metalAlkali' | 'metalAcid' | 'activeMetalWater' | 'metalNitric'
   | 'metalSalt' | 'oxideWater' | 'h2o2' | 'dissolve' | 'dilutionSafe' | 'dilutionUnsafe' | 'sugarChar'
   | 'cuConcAcid' | 'hydroxideDecomp' | 'sugarHeat' | 'boiling' | 'minor'
+  // apparatus: delivery tube, gas tests, electrolysis
+  | 'gasAbsorbed' | 'gasThrough' | 'co2Limewater' | 'limewaterClears' | 'gasTest' | 'electrolysis' | 'noCurrent'
   // explanations produced when nothing visible happens
   | 'added' | 'diluted' | 'indicator' | 'exchangeNone' | 'metalAcidNone' | 'metalSaltNone' | 'metalWaterNone'
   | 'aluminumFilm' | 'passivation' | 'needsHeat' | 'insolubleSolid' | 'notModeled' | 'nothing';
@@ -37,6 +39,7 @@ export interface GasFx { id: string; amount: number; at: number; until: number }
 
 export interface Fx {
   gas: GasFx[];
+  spillAt?: number;       // liquid ran over the rim
   precipAt?: number;
   splashAt?: number;
   boomAt?: number;
@@ -48,9 +51,18 @@ export interface Fx {
   runAt?: number;         // sodium skating on water
 }
 
+export type VesselKind = 'tube' | 'beaker' | 'beaker250' | 'flask';
+
+export const CAPACITY: Record<VesselKind, number> = { tube: 20, beaker: 100, beaker250: 250, flask: 250 };
+
+export interface Electro {
+  cathode: Record<string, number>;  // mmol of metal plated on the cathode
+  state?: string;                   // products now forming, e.g. "Cu|Cl2"
+}
+
 export interface Vessel {
   id: string;
-  kind: 'tube' | 'beaker';
+  kind: VesselKind;
   capacity: number;        // mL
   volume: number;          // mL of liquid
   concVol: number;         // mL of undiluted concentrated sulfuric acid within volume
@@ -63,13 +75,17 @@ export interface Vessel {
   added: string[];                 // reagent ids in order of addition
   fx: Fx;
   lastEvents: ReactionEvent[];
+  gasTotal: Record<string, number>;          // mmol of each gas given off since the vessel was washed
+  gasLog: { id: string; amount: number }[];  // gas not yet handed to a gas tube or to the air
+  broken?: number;                            // time the vessel broke
+  electro?: Electro;                          // electrodes are in the vessel
 }
 
-export function newVessel(id: string, kind: Vessel['kind']): Vessel {
+export function newVessel(id: string, kind: VesselKind): Vessel {
   return {
     id,
     kind,
-    capacity: kind === 'tube' ? 20 : 100,
+    capacity: CAPACITY[kind],
     volume: 0,
     concVol: 0,
     temp: ROOM_T,
@@ -80,7 +96,9 @@ export function newVessel(id: string, kind: Vessel['kind']): Vessel {
     inds: {},
     added: [],
     fx: { gas: [] },
-    lastEvents: []
+    lastEvents: [],
+    gasTotal: {},
+    gasLog: []
   };
 }
 
@@ -122,6 +140,8 @@ export function release(v: Vessel, joules: number): number {
 
 export function addGas(v: Vessel, id: string, amount: number, now: number) {
   if (amount <= EPS) return;
+  v.gasTotal[id] = (v.gasTotal[id] || 0) + amount;
+  v.gasLog.push({ id, amount });
   const seconds = Math.min(9, 2.5 + amount * 1.2);
   v.fx.gas = v.fx.gas.filter((g) => g.until > now);
   const prev = v.fx.gas.find((g) => g.id === id);

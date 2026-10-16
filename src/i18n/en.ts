@@ -1,4 +1,5 @@
 import type { Strings } from './types';
+import { apparatusEvents } from './apparatusTexts';
 import { ELEMENTS } from '../data/elements';
 
 const JOINT_ION: Record<string, string> = { '(CuOH)2CO3': 'copper(II)', 'Fe(OH)3': 'iron(III)', 'Al(OH)3': 'aluminium' };
@@ -142,6 +143,7 @@ export const en: Strings = {
   ],
   elements: ELEMENTS.map((e) => e.en),
   events: {
+    ...apparatusEvents('en'),
     precip: (p, h) => ({
       title: `A ${h.color(p.color)} precipitate formed`,
       say: `${h.cap(h.NF(p.product))} formed. It does not dissolve in water and settles out as a precipitate — a sign of a chemical reaction.` +

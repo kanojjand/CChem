@@ -3,18 +3,18 @@ import { balance } from './balance';
 import { buildEquations } from './equation';
 import { parseFormula, pretty } from './formula';
 import { REAGENT_BY_ID } from './data';
-import { addReagent, pour, tick, phOf, type Dose } from './actions';
+import { addReagent, pour, tick, phOf, type Amount, type Dose } from './actions';
 import { newVessel, type ReactionEvent, type Vessel } from './vessel';
 import { indicatorColor } from './color';
 
-type Step = string | [string, Dose];
+type Step = string | [string, Dose | Amount];
 
 function run(steps: Step[], v: Vessel = newVessel('t', 'tube')) {
   let events: ReactionEvent[] = [];
   const all: ReactionEvent[] = [];
   let now = 1000;
   for (const s of steps) {
-    const [id, dose] = typeof s === 'string' ? [s, 1 as Dose] : s;
+    const [id, dose] = typeof s === 'string' ? [s, 1 as Dose | Amount] : s;
     const r = REAGENT_BY_ID[id];
     if (!r) throw new Error(`no reagent ${id}`);
     const res = addReagent(v, r, dose, (now += 1000));
@@ -162,9 +162,18 @@ describe('content-mvp experiments', () => {
     expect(indicatorColor('phph', phOf(v)!).name).toBe('crimson');
   });
 
-  it('19b. a big piece of sodium explodes', () => {
-    const { all } = run([['H2O', 2], ['Na', 2]]);
+  it('19b. a big piece of sodium explodes and breaks the vessel', () => {
+    const { all, v } = run([['H2O', { ml: 10 }], ['Na', { g: 0.5 }]]);
     expect(all.some((e) => e.safety === 'bigSodium')).toBe(true);
+    expect(v.broken).toBeDefined();
+    expect(v.volume).toBe(0);
+    expect(addReagent(v, REAGENT_BY_ID.H2O, { ml: 1 }, 99999).error).toBe('broken');
+  });
+
+  it('19c. a pea-sized piece of sodium only skates on the water', () => {
+    const { kinds, v } = run([['H2O', { ml: 10 }], ['Na', { g: 0.1 }]]);
+    expect(kinds).toContain('activeMetalWater');
+    expect(v.broken).toBeUndefined();
   });
 
   it('20–21. calcium and quicklime with water give cloudy limewater', () => {
