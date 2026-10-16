@@ -40,9 +40,9 @@ export const kk: Strings = {
   heat: 'Қыздыру',
   stopHeat: 'Шамды алу',
   wash: 'Жуу',
-  pourInto: 'Мұнда құю:',
+  pourInto: 'Құю',
   pourHint: 'Ыдысты басқа ыдысқа сүйреуге болады',
-  addTo: 'Қосу:',
+  addTo: 'Қосу',
   toasts: {
     full: 'Ыдыс толы — басқасын таңда немесе мынаны жу',
     emptyPour: 'Ыдыс бос, құятын ештеңе жоқ',

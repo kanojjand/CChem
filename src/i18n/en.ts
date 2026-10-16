@@ -1,0 +1,401 @@
+import type { Strings } from './types';
+import { ELEMENTS } from '../data/elements';
+
+const JOINT_ION: Record<string, string> = { '(CuOH)2CO3': 'copper(II)', 'Fe(OH)3': 'iron(III)', 'Al(OH)3': 'aluminium' };
+
+export const en: Strings = {
+  langName: 'English',
+  tagline: 'Chemistry sandbox lab',
+  splashHint: 'Tap to start',
+  grade: 'Grade',
+  gradeNotes: {
+    7: 'Explained in words, no equations',
+    8: 'Reaction equations added',
+    9: 'Ionic equations added',
+    10: 'Organic chemistry comes later — for now explanations are as in grade 9',
+    11: 'Charts and calculations come later — for now explanations are as in grade 9'
+  },
+  tables: 'Tables',
+  journal: 'Log',
+  undo: 'Undo',
+  clearAll: 'Clear bench',
+  theme: { bright: 'Bright', brand: 'CC Lab', label: 'Theme' },
+  language: 'Language',
+  reagents: 'Reagents',
+  search: 'Find a reagent…',
+  nothingFound: 'Nothing found',
+  cats: { all: 'All', acid: 'Acids', base: 'Bases', salt: 'Salts', oxide: 'Oxides', metal: 'Metals', ind: 'Indicators', other: 'Other' },
+  dose: 'Portion',
+  doseLiquid: ['a drop', '1 mL', '5 mL'],
+  doseSolid: ['a grain', 'a piece', 'a lot'],
+  doseDrops: ['1 drop', '2 drops', '5 drops'],
+  hint: 'Drag a bottle onto a vessel, or just click it — the reagent goes into the selected vessel.',
+  hintTouch: 'Pick a vessel, then tap a reagent on the shelf.',
+  tube: 'Tube',
+  beaker: 'Beaker',
+  lamp: 'Spirit lamp',
+  heat: 'Heat',
+  stopHeat: 'Remove the lamp',
+  wash: 'Wash',
+  pourInto: 'Pour into',
+  pourHint: 'You can also drag one vessel onto another',
+  addTo: 'Add to',
+  toasts: {
+    full: 'The vessel is full — pick another one or wash this one',
+    emptyPour: 'The vessel is empty, nothing to pour',
+    washed: 'Vessel washed',
+    cleared: 'Bench cleared. Undo brings everything back',
+    nothingToUndo: 'Nothing to undo',
+    added: 'Added',
+    poured: 'Poured',
+    discovery: 'New discovery!'
+  },
+  panel: {
+    title: 'What happened',
+    inside: 'In the vessel',
+    empty: 'The vessel is empty',
+    emptyText: 'Click a reagent on the shelf or drag a bottle here.',
+    ideas: 'Ideas for a first experiment',
+    signs: 'Signs of reaction',
+    equation: 'Equation',
+    fullIonic: 'Full ionic equation',
+    netIonic: 'Net ionic equation',
+    noReaction: 'no reaction',
+    why: 'Why?',
+    showIons: 'Show particles',
+    inSolution: 'In solution',
+    solids: 'Precipitate and solids',
+    gasesOut: 'Gas given off',
+    ph: 'pH about',
+    medium: { acid: 'acidic', neutral: 'neutral', alkaline: 'alkaline' },
+    temperature: 'Temperature',
+    type: 'Type',
+    safety: 'Lab safety',
+    also: 'Also happened',
+    concAcid: 'concentrated',
+    indicatorDrops: 'drops',
+    solution: 'solution',
+    gradeHint7: 'Pick grade 8 to see reaction equations.'
+  },
+  signs: { precip: 'Precipitate', gas: 'Gas', color: 'Color', heat: 'Heat', dissolve: 'Dissolving', smell: 'Smell', deposit: 'Coating', light: 'Light' },
+  types: {
+    exchange: 'exchange reaction',
+    substitution: 'displacement reaction',
+    combination: 'combination reaction',
+    decomposition: 'decomposition reaction',
+    neutralization: 'neutralization',
+    redox: 'redox reaction',
+    complex: 'complex formation',
+    physical: 'physical change'
+  },
+  safety: {
+    acidWater: { title: 'Water first, then acid', text: 'Concentrated acid is poured into water in a thin stream while stirring. If you pour water into the acid, the water boils and sprays acid around.' },
+    bigSodium: { title: 'Too big a piece of sodium', text: 'Sodium is used in pea-sized pieces, behind a safety screen. A big piece reacts explosively.' },
+    sodiumWater: { title: 'Careful: sodium', text: 'Sodium is kept under kerosene and handled with tweezers. The teacher shows this experiment behind a safety screen.' },
+    fumeHood: { title: 'Use the fume hood', text: 'Toxic or corrosive gases are given off. In a real lab this experiment is done in a fume hood.' },
+    ammoniaSmell: { title: 'How to smell a substance', text: 'Never hold the tube under your nose. Waft the vapour towards you with your hand.' },
+    hotTube: { title: 'Hot', text: 'Hold a heated tube with a holder and point its mouth away from yourself and others.' }
+  },
+  conc: 'conc.',
+  dil: 'dil.',
+  heated: 'heated',
+  tablesModal: {
+    title: 'Tables',
+    periodic: 'Periodic table',
+    solubility: 'Solubility',
+    activity: 'Activity series',
+    indicators: 'Indicators',
+    close: 'Close',
+    sol: { R: 'S', M: 'SS', N: 'I', D: '—' },
+    solLegend: { R: 'soluble', M: 'slightly soluble', N: 'insoluble', D: 'does not exist or is decomposed by water' },
+    activityNote: 'Metals to the left of hydrogen displace hydrogen from acids. A more active metal displaces a less active one from solutions of its salts.',
+    indicatorRows: { acid: 'acidic', neutral: 'neutral', alkaline: 'alkaline' },
+    massLabel: 'atomic mass',
+    categories: {
+      alkali: 'alkali metals', alkaline: 'alkaline earth metals', transition: 'transition metals', post: 'other metals',
+      metalloid: 'metalloids', nonmetal: 'nonmetals', halogen: 'halogens', noble: 'noble gases', lanthanide: 'lanthanides', actinide: 'actinides'
+    }
+  },
+  journalModal: { title: 'Experiment log', empty: 'Your experiments will appear here.', clear: 'Clear log', vessel: 'Vessel' },
+  discoveries: (n) => `Reactions discovered: ${n}`,
+  colors: {
+    white: 'white', curdy: 'white curdy', gel: 'white gelatinous', clearGel: 'colorless gelatinous', lightBlue: 'light-blue',
+    greyGreen: 'grey-green', brown: 'rust-brown', yellow: 'yellow', paleYellow: 'pale yellow', black: 'black', darkBrown: 'dark brown',
+    blueGreen: 'blue-green', redBrown: 'red-brown', copper: 'copper-red', silver: 'grey', greyMetal: 'grey'
+  },
+  indColors: {
+    colorless: 'colorless', crimson: 'crimson', red: 'red', pink: 'pink', orange: 'orange', yellow: 'yellow',
+    green: 'green', blue: 'blue', violet: 'violet', paleViolet: 'pale violet'
+  },
+  indicators: { phph: 'phenolphthalein', litmus: 'litmus', mo: 'methyl orange', univ: 'universal indicator' },
+  indicatorWhy: {
+    phph: 'Phenolphthalein is colorless in acidic and neutral solutions and crimson in alkaline ones.',
+    litmus: 'Litmus is red in acid, violet in neutral solution and blue in alkali.',
+    mo: 'Methyl orange is pink in acid, orange in neutral solution and yellow in alkali.',
+    univ: 'Universal indicator follows the pH scale: from red in strong acid to violet in strong alkali.'
+  },
+  ideaList: [
+    { label: 'Light-blue precipitate', steps: ['CuSO4', 'NaOH'] },
+    { label: 'Zinc in acid', steps: ['HCl', 'Zn'] },
+    { label: 'Crimson alkali', steps: ['NaOH', 'phph'] },
+    { label: 'Blood-red', steps: ['FeCl3', 'KSCN'] }
+  ],
+  elements: ELEMENTS.map((e) => e.en),
+  events: {
+    precip: (p, h) => ({
+      title: `A ${h.color(p.color)} precipitate formed`,
+      say: `${h.cap(h.NF(p.product))} formed. It does not dissolve in water and settles out as a precipitate — a sign of a chemical reaction.` +
+        (p.base === 'NH3' ? ' Here the ammonia solution acts as an alkali.' : '') +
+        (p.special === 'ag2o' ? ' Silver hydroxide is unstable and at once breaks down into silver oxide and water.' : ''),
+      why7: 'Some substances do not dissolve in water. When such a substance forms as solutions are mixed, the liquid turns cloudy and a precipitate settles to the bottom.',
+      why: `The solubility table lists ${h.F(p.product)} as ${p.sol === 'M' ? 'slightly soluble (SS)' : 'insoluble (I)'}. An exchange reaction goes to completion when a precipitate, a gas or water forms.` +
+        (p.product === 'Fe(OH)2' ? ' In air this precipitate slowly turns brown: Fe(OH)₂ is oxidized to Fe(OH)₃.' : '')
+    }),
+    saturated: (p, h) => ({
+      title: 'The solution turned cloudy',
+      say: `${h.cap(h.N(p.product))} dissolves poorly in water. The part that did not dissolve makes the solution cloudy.`,
+      why: `${h.F(p.product)} is slightly soluble (SS): only a little of it dissolves in water.`
+    }),
+    silicicGel: (_p, h) => ({
+      title: 'A gelatinous precipitate formed',
+      say: `The acid displaced silicic acid ${h.F('H2SiO3')} from the silicate. It does not dissolve in water and forms a clear jelly.`,
+      why: 'Silicic acid is weak and insoluble. A stronger acid displaces it from its salt.'
+    }),
+    jointHydrolysis: (p, h) => ({
+      title: `A ${h.color(p.color)} precipitate forms and gas is given off`,
+      say: `${JOINT_ION[p.product] ? `The ${JOINT_ION[p.product]} carbonate` : 'This carbonate'} cannot exist in water: instead ${h.NF(p.product)} settles out and carbon dioxide is given off.`,
+      why: 'The solubility table shows a dash for this salt: water decomposes it. Both salts are hydrolysed together.'
+    }),
+    fe3scn: (_p, h) => ({
+      title: 'The solution turned blood-red',
+      say: `Iron(III) ions met thiocyanate ions and formed ${h.NF('Fe(SCN)3')}, which colors the solution blood-red.`,
+      why: `This is the test for ${h.F('Fe^3+')} ions: even a tiny amount of iron(III) gives a strong color.`
+    }),
+    ammine: (p, h) => ({
+      title: p.solid === 'Cu(OH)2' ? 'The precipitate dissolved, the solution turned deep blue' : 'The precipitate dissolved in ammonia',
+      say: p.solid === 'Cu(OH)2'
+        ? `In excess ammonia copper(II) hydroxide dissolves, forming the deep-blue complex ${h.F(p.complex)}.`
+        : `${h.cap(h.N(p.solid))} dissolves in ammonia solution, forming the soluble complex ${h.F(p.complex)}.`,
+      why: p.solid === 'AgCl'
+        ? 'Ammonia molecules attach to silver ions and keep them in solution. Add nitric acid and the complex breaks down, so AgCl settles out again.'
+        : 'Ammonia molecules bind firmly to the metal ion and form a soluble complex ion. The deep-blue solution is a test for copper ions.'
+    }),
+    complexAcid: (p, h) => (p.product.includes('(OH)')
+      ? {
+          title: 'The precipitate came back',
+          say: `The acid neutralized the alkali, and ${h.NF(p.product)} settled out again. In excess acid it will dissolve.`,
+          why: 'An amphoteric hydroxide dissolves in both alkali and acid. So when acid is added to its alkaline solution, the precipitate first appears and then disappears.'
+        }
+      : {
+          title: p.product === 'Cu^2+' ? 'The deep-blue color disappeared' : 'The complex broke down',
+          say: `The acid turned ammonia into ammonium ions ${h.F('NH4^+')}, and the complex broke down.`,
+          why: 'Ammonia is a base. The acid binds it, so it can no longer hold on to the metal ion.'
+        }),
+    neutralization: (p, h, e) => ({
+      title: p.indTo ? `Neutralization: the indicator is ${h.indColor(p.indTo)}` : 'Neutralization took place',
+      say: `${h.cap(h.N(p.acid))} and ${h.N(p.base)} neutralize each other, forming the salt ${h.NF(p.salt)} and water.` +
+        ((e.dT ?? 0) > 2 ? ` The solution warmed up by ${h.num(e.dT!)} °C.` : p.indTo ? '' : ' Nothing is visible — an indicator helps.') +
+        (p.indTo ? ` Indicator color (${h.ind(p.ind)}): ${h.indColor(p.indFrom)} → ${h.indColor(p.indTo)}.` : ''),
+      why7: 'An acid and an alkali cancel each other out, giving a salt and water. An indicator shows what the solution is like.',
+      why: `Hydrogen ions ${h.F('H^+')} from the acid and hydroxide ions ${h.F('OH^-')} from the base join into water molecules. To see neutralization, add an indicator such as phenolphthalein.`
+    }),
+    weakAcidOut: (p, h) => (p.weak === 'CH3COOH'
+      ? { title: 'It smells of vinegar', say: `The strong acid displaced the weaker acetic acid ${h.F('CH3COOH')} from its salt — it has a typical smell.`, why: 'A stronger acid displaces a weaker one from its salts.' }
+      : { title: 'No visible signs', say: 'The strong acid displaced the weaker phosphoric acid from its salt. Nothing changed on the outside, but the reaction did happen.', why: 'A stronger acid displaces a weaker one from its salts.' }),
+    bicarbonateFirst: (_p, h, e) => ({
+      title: 'No bubbles yet',
+      say: `There is too little acid: the carbonate first turns into the hydrogen carbonate ${h.F(e.eq?.products[0] || 'NaHCO3')}. Add more acid and carbon dioxide will come off.`,
+      why: `The carbonate ion takes hydrogen ions one at a time: ${h.F('CO3^2-')} → ${h.F('HCO3^-')} → ${h.F('CO2')} and water. Gas appears only at the second step.`
+    }),
+    gasCO2: (p, h) => ({
+      title: 'Carbon dioxide is given off',
+      say: `${h.cap(h.N(p.carbonate))} reacts with the acid — the solution fizzes with bubbles of ${h.F('CO2')}. A burning splint goes out in this gas.`,
+      why7: 'Gas bubbles are a sign of a chemical reaction: a new substance, carbon dioxide, has formed.',
+      why: `Carbonic acid ${h.F('H2CO3')} forms: it is unstable and at once breaks down into water and carbon dioxide. This is the test for the carbonate ion.`
+    }),
+    ammonia: (p, h) => ({
+      title: 'A smell of ammonia',
+      say: `The alkali displaced ammonia from the ammonium salt ${h.F(p.salt)}. Heat it and ammonia comes off as a gas.`,
+      why: `This is the test for the ammonium ion ${h.F('NH4^+')}: heated with an alkali it gives off ammonia, which turns damp litmus paper blue.`
+    }),
+    ammoniaGas: () => ({
+      title: 'Ammonia is given off',
+      say: 'On heating, ammonia escapes from the solution. It has a sharp smell.',
+      why: 'Gases dissolve less in hot water, so ammonia leaves the solution.'
+    }),
+    dissolveAcid: (p, h) => {
+      const name = h.cap(h.N(p.solid));
+      if (p.solidKind === 'carbonate') return {
+        title: `${name} dissolves with bubbles`,
+        say: `${name} reacts with the acid: carbon dioxide ${h.F('CO2')} is given off and the solid disappears.`,
+        why: 'Acids break down carbonates: carbonic acid forms and splits into carbon dioxide and water.'
+      };
+      if (p.solidKind === 'phosphate') return { title: 'The precipitate dissolved', say: `${name} dissolves in a strong acid.`, why: 'Insoluble phosphates dissolve in strong acids.' };
+      return {
+        title: p.solidKind === 'oxide' ? `${name} dissolved` : 'The precipitate dissolved',
+        say: `The ${p.solidKind === 'oxide' ? 'basic oxide' : 'insoluble base'} ${h.F(p.solid)} reacts with the acid, giving the salt ${h.NF(p.salt)} and water.` +
+          (p.salt.startsWith('Cu') ? ' The solution turned blue because of copper(II) ions.' : ''),
+        why: (p.solidKind === 'oxide' ? 'Basic oxides' : 'Bases') + ' react with acids to form a salt and water.' +
+          (p.solid === 'CuO' ? ' Copper(II) oxide reacts with acid only when heated.' : '')
+      };
+    },
+    amphoteric: (p, h) => ({
+      title: 'The precipitate dissolved in excess alkali',
+      say: `${h.cap(h.N(p.solid))} ${h.F(p.solid)} dissolves in the alkali, forming ${h.NF(p.product)}.`,
+      why: p.solid === 'H2SiO3'
+        ? 'Silicic acid is neutralized by the alkali and turns into a soluble silicate.'
+        : `${h.F(p.solid)} is amphoteric: it reacts with both acids and alkalis. That is why a precipitate forms first and then dissolves in excess alkali.`
+    }),
+    metalAlkali: (p, h) => ({
+      title: `${h.cap(h.metal(p.metal))} dissolves in the alkali`,
+      say: `${h.cap(h.metal(p.metal))} is an amphoteric metal: it dissolves in alkali, giving off hydrogen ${h.F('H2')}.`,
+      why: 'Zinc and aluminium react with both acids and alkalis.'
+    }),
+    metalAcid: (p, h, e) => ({
+      title: 'Hydrogen is given off',
+      say: `${h.cap(h.metal(p.metal))} reacts with the acid: hydrogen bubbles ${h.F('H2')} appear on the metal. Bring a burning splint close — hydrogen burns with a pop.` +
+        ((e.dT ?? 0) > 5 ? ' The tube got noticeably warm.' : ''),
+      why7: `${h.cap(h.metal(p.metal))} is an active metal. Active metals react with acids and give off hydrogen.`,
+      why: `In the activity series ${h.metal(p.metal)} stands to the left of hydrogen, so it displaces hydrogen from the acid. Metals to the right of hydrogen cannot do this.`
+    }),
+    activeMetalWater: (p, h) => (p.metal === 'Na'
+      ? {
+          title: 'Sodium skates on the water',
+          say: `Sodium is lighter than water: it melts into a shiny ball and darts across the surface, giving off hydrogen. The alkali ${h.F('NaOH')} forms in the solution.`,
+          why: 'Sodium is at the very start of the activity series and displaces hydrogen even from water. Test the alkali with phenolphthalein.'
+        }
+      : {
+          title: 'Calcium reacts with water',
+          say: 'Calcium reacts with water more calmly than sodium: hydrogen is given off and the solution turns cloudy as slightly soluble calcium hydroxide forms.',
+          why: 'Alkaline earth metals also displace hydrogen from water. An alkali forms — test it with phenolphthalein.'
+        }),
+    metalNitric: (p, h) => ({
+      title: 'A gas comes off and turns brown at the mouth',
+      say: `${h.cap(h.metal(p.metal))} dissolves in nitric acid. No hydrogen is given off: the acid turns into nitrogen(II) oxide ${h.F('NO')}, which becomes brown ${h.F('NO2')} in air.`,
+      why: 'Nitric acid is a strong oxidizer, so with metals it gives no hydrogen and reacts even with copper and silver.'
+    }),
+    metalSalt: (p, h) => ({
+      title: `A coating of ${h.metal2(p.deposit)} appeared on the metal`,
+      say: `${h.cap(h.metal(p.metal))} displaces ${h.metal(p.deposit)} from the ${h.F(p.salt)} solution. ${h.cap(h.metal(p.deposit))} settles on the surface, and ${h.metal(p.metal)} goes into solution.` +
+        (p.ion === 'Cu^2+' ? ' The blue color of the solution fades.' : ''),
+      why7: `${h.cap(h.metal(p.metal))} is more active than ${h.metal(p.deposit)}, so it takes its place in the salt.`,
+      why: `In the activity series ${h.metal(p.metal)} stands to the left of ${h.metal(p.deposit)}. A more active metal displaces a less active one from a solution of its salt.`
+    }),
+    oxideWater: (_p, h) => ({
+      title: 'Quicklime is slaked by water',
+      say: `Calcium oxide reacts vigorously with water and the mixture gets very hot. Slaked lime forms — calcium hydroxide ${h.F('Ca(OH)2')}.`,
+      why: 'Oxides of active metals react with water to form alkalis.'
+    }),
+    h2o2: (p, h) => ({
+      title: 'Oxygen is given off vigorously',
+      say: p.catalyst
+        ? `Manganese(IV) oxide speeds up the breakdown of hydrogen peroxide into water and oxygen ${h.F('O2')}. A glowing splint relights in oxygen.`
+        : `On heating, hydrogen peroxide breaks down into water and oxygen ${h.F('O2')}.`,
+      why: p.catalyst
+        ? `${h.F('MnO2')} is a catalyst: it speeds up the reaction but is not used up. This is how oxygen is made in a school lab.`
+        : 'Heating makes the breakdown faster.'
+    }),
+    dissolve: (p, h) => ({
+      title: 'The substance dissolved',
+      say: `${h.cap(h.N(p.solid))} dissolves in water. No new substances form — this is a physical change.`,
+      why: 'When a substance dissolves, its particles spread evenly between water molecules.'
+    }),
+    dilutionSafe: () => ({
+      title: 'The solution got very hot',
+      say: 'Concentrated sulfuric acid mixes with water and releases a lot of heat. You did it right: acid goes into water.',
+      why: 'Sulfuric acid binds water strongly and releases heat. That is why it is diluted slowly while stirring.'
+    }),
+    dilutionUnsafe: () => ({
+      title: 'Splash! The water boiled on the acid',
+      say: 'Water is lighter than the acid and stays on top. The heat makes it boil instantly and spray acid around.',
+      why: 'The rule: water first, then acid. Pour the acid into the water, never the other way round.'
+    }),
+    sugarChar: () => ({
+      title: 'The sugar charred',
+      say: 'Concentrated sulfuric acid pulls water out of sugar. Carbon is left: a black porous mass rises out of the vessel, with steam and corrosive gases.',
+      why: 'Concentrated sulfuric acid strongly removes water from other substances. This experiment is done only in a fume hood.'
+    }),
+    cuConcAcid: (p, h) => ({
+      title: `${h.cap(h.metal(p.metal))} dissolves in hot sulfuric acid`,
+      say: `When heated, concentrated sulfuric acid oxidizes the metal. Sulfur dioxide ${h.F('SO2')} with a sharp smell is given off.`,
+      why: 'Concentrated sulfuric acid is an oxidizer: it reacts even with metals after hydrogen, but no hydrogen is given off.'
+    }),
+    hydroxideDecomp: (_p, h) => ({
+      title: 'The precipitate turned black',
+      say: `On heating, light-blue copper(II) hydroxide breaks down into black copper(II) oxide ${h.F('CuO')} and water.`,
+      why: 'Insoluble bases break down into an oxide and water when heated.'
+    }),
+    sugarHeat: () => ({
+      title: 'The sugar melts and turns black',
+      say: 'Strong heating breaks sugar down: drops of water appear on the walls and carbon is left behind.',
+      why: 'A change of color and water given off are signs of a chemical reaction.'
+    }),
+    boiling: () => ({
+      title: 'The liquid is boiling',
+      say: 'The solution reached 100 °C and is boiling. This is a physical change.',
+      why: 'When water boils it turns into steam, but it stays the same substance.'
+    }),
+    minor: () => ({ title: '', say: '' }),
+    added: (p, h) => ({
+      title: `${h.cap(h.reagent(p.reagent))} is in the vessel`,
+      say: 'Now add a second substance and see what happens.'
+    }),
+    diluted: () => ({ title: 'The solution is diluted', say: 'Water lowered the concentration. No new substances formed.' }),
+    indicator: (p, h) => ({
+      title: `Indicator: ${h.indColor(p.to)}`,
+      say: `The solution is ${en.panel.medium[p.medium as 'acid'] || ''}. In it ${h.ind(p.ind)} is ${h.indColor(p.to)}.`,
+      why: en.indicatorWhy[p.ind as 'phph']
+    }),
+    exchangeNone: (p, h) => ({
+      title: 'No signs of reaction',
+      say: 'The solutions mixed, but no precipitate, gas or water formed — all the ions stayed in solution.' +
+        (p.a ? ` The possible products, such as ${h.F(p.a)}${p.b ? ` and ${h.F(p.b)}` : ''}, are soluble.` : ''),
+      why: 'An ion exchange reaction goes to completion only if a precipitate, a gas or water forms. Check the solubility table.'
+    }),
+    metalAcidNone: (p, h) => ({
+      title: `${h.cap(h.metal(p.metal))} does not react with the acid`,
+      say: 'No bubbles, the metal is unchanged. Try zinc, magnesium or iron.',
+      why7: `${h.cap(h.metal(p.metal))} is a low-activity metal and does not react with this acid.`,
+      why: `In the activity series ${h.metal(p.metal)} stands to the right of hydrogen. Such metals do not displace hydrogen from acid solutions.`
+    }),
+    metalSaltNone: (p, h) => ({
+      title: 'No reaction',
+      say: `${h.cap(h.metal(p.metal))} does not displace ${h.ionMetal(p.ion)} from the ${h.F(p.salt)} solution.`,
+      why: `${h.cap(h.metal(p.metal))} is less active than ${h.ionMetal(p.ion)}: it stands further right in the activity series. A less active metal cannot displace a more active one.`
+    }),
+    metalWaterNone: (p, h) => ({
+      title: `${h.cap(h.metal(p.metal))} does not react with water`,
+      say: 'At room temperature only the most active metals react with water: sodium, potassium, calcium.',
+      why: 'The further left a metal is in the activity series, the more easily it reacts with water.'
+    }),
+    aluminumFilm: () => ({
+      title: 'Aluminium barely reacts',
+      say: 'Aluminium is covered with a tough oxide film, so in copper(II) sulfate solution almost nothing happens.',
+      why: 'Try copper(II) chloride CuCl₂: chloride ions break the oxide film and aluminium starts displacing copper.'
+    }),
+    passivation: (p, h) => ({
+      title: `${h.cap(h.metal(p.metal))} does not dissolve`,
+      say: 'Cold concentrated sulfuric acid covers this metal with a tough film and the reaction stops.',
+      why: 'This is called passivation. It is why concentrated sulfuric acid is transported in iron tanks.'
+    }),
+    needsHeat: (p, h) => (p.what === 'cuConc'
+      ? { title: 'Needs heating', say: 'Cold copper does not react with concentrated sulfuric acid. Heat the vessel with the spirit lamp.', why: 'Many reactions go only when heated.' }
+      : { title: 'Needs heating', say: `${h.cap(h.N(p.solid))} dissolves in acid very slowly. Heat the vessel and the reaction will go.`, why: 'Reactions go faster when heated.' }),
+    insolubleSolid: (p, h) => ({
+      title: `${h.cap(h.N(p.solid))} does not dissolve in water`,
+      say: 'The substance lies at the bottom and the solution is unchanged.' + (p.solid !== 'MnO2' ? ' Try adding an acid.' : ''),
+      why: 'Not every substance dissolves in water. Insoluble oxides and carbonates react with acids.'
+    }),
+    notModeled: (p) => ({
+      title: 'CC Hexa does not show this reaction yet',
+      say: {
+        iodide: 'A redox reaction happens here: iodine is released and the solution turns brown.',
+        permanganate: 'Permanganate oxidizes the other substance and its crimson color disappears.',
+        iron3metal: 'Iron(III) ions oxidize this metal. Such reactions are studied in grades 10–11.',
+        concActive: 'Active metals reduce concentrated sulfuric acid to SO₂, S or H₂S.'
+      }[p.topic] || '',
+      why: 'We do not show a reaction until we can show it correctly. It will come in a later version.'
+    }),
+    nothing: () => ({ title: 'No visible changes', say: 'The substances did not react, or the reaction has no visible signs.' })
+  }
+};
