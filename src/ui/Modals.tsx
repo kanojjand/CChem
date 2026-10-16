@@ -4,7 +4,11 @@ import { indicatorColor } from '../engine/color';
 import { ELEMENTS, type ElementCat } from '../data/elements';
 import { fmt, makeH } from '../i18n';
 import type { Strings } from '../i18n/types';
-import type { JournalEntry, Lab } from '../state/lab';
+import { COLLECTOR_ID, type JournalEntry, type Lab } from '../state/lab';
+import type { Extra } from '../i18n/extra';
+import { REAGENT_INFO } from '../i18n/reagentInfo';
+import { molarMass } from '../engine/formula';
+import { BottleIcon } from './icons';
 import { Formula, Rich } from './Formula';
 import { IconClose } from './icons';
 
@@ -169,10 +173,10 @@ function timeOf(at: number, lang: Lang) {
   }
 }
 
-export function JournalModal({ lab, s, lang, onClose }: { lab: Lab; s: Strings; lang: Lang; onClose: () => void }) {
+export function JournalModal({ lab, s, x, lang, onClose }: { lab: Lab; s: Strings; x: Extra; lang: Lang; onClose: () => void }) {
   const h = makeH(lang, s);
   const entries: JournalEntry[] = [...lab.journal].reverse();
-  const label = (id: string) => (id.startsWith('t') ? `${s.tube} ${id.slice(1)}` : s.beaker);
+  const label = (id: string) => (id === COLLECTOR_ID ? x.collector.name : lab.has(id) ? x.vesselShort[lab.vessel(id).kind] : s.journalModal.vessel);
   return (
     <Modal title={s.journalModal.title} onClose={onClose} narrow>
       {entries.length === 0 ? (
@@ -196,6 +200,41 @@ export function JournalModal({ lab, s, lang, onClose }: { lab: Lab; s: Strings; 
           <p><button type="button" className="btn" onClick={() => lab.clearJournal()}>{s.journalModal.clear}</button></p>
         </>
       )}
+    </Modal>
+  );
+}
+
+export function ReagentModal({ id, s, x, lang, onClose, onAdd }: { id: string; s: Strings; x: Extra; lang: Lang; onClose: () => void; onAdd: (id: string) => void }) {
+  const r = REAGENT_BY_ID[id];
+  if (!r) return null;
+  const info = REAGENT_INFO[id];
+  let mass: string | null = null;
+  if (!r.indicator) {
+    try { mass = fmt(molarMass(r.formula.replace('·', '')), lang, 1); } catch { mass = null; }
+  }
+  return (
+    <Modal title={r.name[lang]} onClose={onClose} narrow>
+      <div className="reagent-card">
+        <div className="reagent-head">
+          <BottleIcon color={r.bottle} solid={r.kind === 'solid'} />
+          <div>
+            <b className="reagent-formula">{r.indicator ? r.name[lang] : <Formula f={r.formula} />}</b>
+            {r.note && <span>{r.note[lang]}</span>}
+          </div>
+        </div>
+        <dl className="reagent-facts">
+          {mass && <><dt>{x.info.molar}</dt><dd>{mass} {lang === 'en' ? 'g/mol' : 'г/моль'}</dd></>}
+          <dt>{s.cats[r.cat]}</dt><dd>{x.info.grade(r.grade)}</dd>
+        </dl>
+        {info && (
+          <>
+            <h3>{x.info.life}</h3>
+            <p>{info.life[lang]}</p>
+            {info.hazard && <div className="safety-card"><b>{x.info.hazard}</b><p>{info.hazard[lang]}</p></div>}
+          </>
+        )}
+        <p><button type="button" className="btn primary" onClick={() => { onAdd(id); onClose(); }}>{s.addTo} ✓</button></p>
+      </div>
     </Modal>
   );
 }

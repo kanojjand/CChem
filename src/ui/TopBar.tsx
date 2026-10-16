@@ -3,14 +3,17 @@ import type { Lang } from '../engine/data';
 import { LANGS } from '../i18n';
 import type { Strings } from '../i18n/types';
 import { mountLogo, type HexaLogo } from '../logo/hexaLogo';
-import { IconJournal, IconTables, IconTrash, IconUndo } from './icons';
+import { IconJournal, IconTables, IconTrash, IconUndo, IconUser } from './icons';
 import type { Grade } from './Panel';
+import type { Extra } from '../i18n/extra';
+import type { Account } from '../net/api';
 
 export const APP_NAME = 'CC Hexa';
 export type Skin = 'bright' | 'brand';
 
-export function TopBar({ s, lang, grade, skin, found, logoRef, setLang, setGrade, setSkin, onTables, onJournal, onUndo, onClear }: {
-  s: Strings; lang: Lang; grade: Grade; skin: Skin; found: number;
+export function TopBar({ s, x, lang, grade, skin, found, logoRef, account, setLang, setGrade, setSkin, onTables, onJournal, onAccount, onUndo, onClear }: {
+  s: Strings; x: Extra; lang: Lang; grade: Grade; skin: Skin; found: number; account: Account | null;
+  onAccount: () => void;
   logoRef: MutableRefObject<HexaLogo | null>;
   setLang: (l: Lang) => void; setGrade: (g: Grade) => void; setSkin: (k: Skin) => void;
   onTables: () => void; onJournal: () => void; onUndo: () => void; onClear: () => void;
@@ -50,6 +53,9 @@ export function TopBar({ s, lang, grade, skin, found, logoRef, setLang, setGrade
         <button type="button" aria-pressed={skin === 'bright'} onClick={() => setSkin('bright')}>{s.theme.bright}</button>
         <button type="button" aria-pressed={skin === 'brand'} onClick={() => setSkin('brand')}>{s.theme.brand}</button>
       </div>
+      <button className={`account-btn ${account ? 'signed' : ''}`} type="button" onClick={onAccount} title={account ? account.nickname : x.account.login}>
+        <IconUser /><span>{account ? account.nickname : x.account.login}</span>
+      </button>
       <button className="icon-btn" type="button" title={s.undo} aria-label={s.undo} onClick={onUndo}><IconUndo /></button>
       <button className="icon-btn" type="button" title={s.clearAll} aria-label={s.clearAll} onClick={onClear}><IconTrash /></button>
     </header>

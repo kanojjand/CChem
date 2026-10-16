@@ -40,20 +40,21 @@ function join(terms: Term[], concLabel: string): ReactNode[] {
   return out;
 }
 
-export function EquationLine({ side, cond, noReaction, noReactionLabel, concLabel, heatLabel }: {
+export function EquationLine({ side, cond, noReaction, noReactionLabel, concLabel, heatLabel, elLabel }: {
   side: Side;
   cond?: string;
   noReaction?: boolean;
   noReactionLabel: string;
   concLabel: string;
   heatLabel: string;
+  elLabel?: string;
 }) {
-  const condText = cond === 't' ? heatLabel : cond === 'MnO2' ? 'MnO₂' : cond === 'H2SO4c' ? `H₂SO₄ (${concLabel})` : '';
+  const condText = cond === 't' ? heatLabel : cond === 'MnO2' ? 'MnO₂' : cond === 'H2SO4c' ? `H₂SO₄ (${concLabel})` : cond === 'el' ? '⚡' : '';
   return (
     <span className="eq-text">
       {join(side.lhs, concLabel)}
       <span className="arrow">
-        {condText && <span className="arrow-cond">{condText}</span>}
+        {condText && <span className="arrow-cond" title={cond === 'el' ? elLabel : undefined}>{condText}</span>}
         <span aria-hidden="true">→</span>
       </span>
       {noReaction ? <span className="no-reaction">{noReactionLabel}</span> : join(side.rhs, concLabel)}

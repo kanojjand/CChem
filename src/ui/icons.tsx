@@ -13,6 +13,7 @@ export const IconFlame = () => <svg {...P}><path d="M12 3c3 4 6 6.5 6 10.5A6 6 0
 export const IconWash = () => <svg {...P}><path d="M12 3s5 5.6 5 9.5a5 5 0 0 1-10 0C7 8.6 12 3 12 3z" /><path d="M9.5 13.5a2.5 2.5 0 0 0 2.5 2.5" /></svg>;
 export const IconPour = () => <svg {...P}><path d="M4 7h9l-1 13H5z" /><path d="M13 9l5-4 2 2-5 5" /></svg>;
 export const IconAlert = () => <svg {...P}><path d="M12 3 2 20h20z" /><path d="M12 10v4M12 17h.01" /></svg>;
+export const IconUser = () => <svg {...P}><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>;
 export const IconClose = () => <svg {...P}><path d="M6 6l12 12M18 6 6 18" /></svg>;
 
 const SIGN_PATHS: Record<Sign, ReactElement> = {
