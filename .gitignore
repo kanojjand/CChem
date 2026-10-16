@@ -4,3 +4,4 @@ dev-dist
 *.log
 .vercel
 *.tsbuildinfo
+dist-preview

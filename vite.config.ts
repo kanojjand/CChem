@@ -2,11 +2,15 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// PREVIEW=1 builds without the service worker, for hosts where service workers are not allowed.
+const preview = process.env.PREVIEW === '1';
+
 export default defineConfig({
   base: './',
+  build: preview ? { outDir: 'dist-preview' } : undefined,
   plugins: [
     react(),
-    VitePWA({
+    !preview && VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
