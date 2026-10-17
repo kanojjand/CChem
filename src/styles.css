@@ -209,6 +209,15 @@ sub, sup { font-size: 0.68em; line-height: 0; }
 @keyframes puff { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.7; } }
 .splash circle { animation: splash 1.1s ease-out forwards; }
 @keyframes splash { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+.glow { mix-blend-mode: screen; animation: glow 1.1s ease-in-out infinite; }
+@keyframes glow { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.7; } }
+.melt-layer { filter: saturate(1.1); }
+.alkali-flame { animation-duration: 0.45s; }
+.smoke { animation-duration: 2.2s; }
+.volcano .spark { animation: splash 1.2s ease-out infinite; }
+.flame-result { width: 34px; height: 48px; margin: 4px 0 2px; }
+.flame-result svg { width: 100%; height: 100%; }
+.row-label { align-self: center; color: var(--muted); font-size: 13px; }
 .boom { transform-box: fill-box; transform-origin: center; animation: boom 1.1s ease-out forwards; }
 @keyframes boom { 0% { opacity: 0; scale: 0.2; } 20% { opacity: 1; scale: 1.3; } 100% { opacity: 0; scale: 1.8; } }
 .char { transform-box: fill-box; transform-origin: 50% 100%; animation: grow 3.5s ease-out; }
@@ -218,7 +227,7 @@ sub, sup { font-size: 0.68em; line-height: 0; }
 .shake { animation: shake 0.5s linear 2; }
 @keyframes shake { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .bubble, .flame, .steam path, .smell path, .brown-gas, .skate, .shake, .precip-layer, .char, .fall, .cloud, .splash circle, .boom { animation: none !important; }
+  .bubble, .flame, .steam path, .smell path, .brown-gas, .skate, .shake, .precip-layer, .char, .fall, .cloud, .splash circle, .boom, .glow, .volcano .spark { animation: none !important; }
   .fall, .splash circle, .boom { display: none; }
   .vessel { transition: none; }
 }

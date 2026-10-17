@@ -259,10 +259,12 @@ export function App() {
         <Bench lab={lab} s={s} x={x} lang={lang} now={now} touch={touch} onDrop={onDrop} onLampTap={() => lab.toggleHeat()} onAddVessel={onAddVessel} />
         <Panel lab={lab} s={s} x={x} lang={lang} grade={grade} now={now} onIdea={onIdea}
           onHeat={() => lab.toggleHeat()} onWash={() => { lab.wash(); say(s.toasts.washed); }}
-          onPour={(t) => handle(lab.pour(lab.selected, t))} onTest={onTest} onReplace={() => lab.wash()} />
+          onPour={(t) => handle(lab.pour(lab.selected, t))} onTest={onTest} onReplace={() => lab.wash()}
+          onFilter={(t) => handle(lab.pour(lab.selected, t, true))}
+          onMagnet={() => celebrate(lab.magnet().discovered)} onFlame={() => celebrate(lab.flameTest().discovered)} />
       </div>
       <Ghost lang={lang} />
-      {modal === 'tables' && <TablesModal s={s} lang={lang} onClose={() => setModal(null)} />}
+      {modal === 'tables' && <TablesModal s={s} lang={lang} onClose={() => setModal(null)} onAdd={(id) => handle(lab.add(id, amountFor(id)))} />}
       {modal === 'journal' && <JournalModal lab={lab} s={s} x={x} lang={lang} onClose={() => setModal(null)} />}
       {modal === 'auth' && <AuthModal x={x} lang={lang} grade={grade} onClose={() => setModal(null)} onSignedIn={(n) => say(x.account.welcome(n))} />}
       {modal === 'profile' && <ProfileModal x={x} onClose={() => setModal(null)} onAdmin={openAdmin} onSaved={say} />}

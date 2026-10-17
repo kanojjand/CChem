@@ -5,6 +5,8 @@
 //   ions:     "Cu^2+", "SO4^2-", "Na^+", "[Zn(OH)4]^2-"
 // Digits after an element or a closing bracket are subscripts; everything after "^" is the charge.
 
+import { ELEMENTS } from '../data/elements';
+
 export type Counts = Record<string, number>;
 
 export interface Parsed {
@@ -18,7 +20,8 @@ export function parseFormula(formula: string): Parsed {
   const hit = cache.get(formula);
   if (hit) return hit;
 
-  let body = formula;
+  // A state mark at the end, as in H2O(s), does not change the composition.
+  let body = formula.replace(/\((s|l|g|aq)\)$/, '');
   let charge = 0;
   const caret = formula.indexOf('^');
   if (caret !== -1) {
@@ -76,11 +79,7 @@ function parseGroup(s: string, whole: string): Counts {
   return stack[0];
 }
 
-const MASSES: Record<string, number> = {
-  H: 1.008, Li: 6.94, C: 12.011, N: 14.007, O: 15.999, Na: 22.99, Mg: 24.305, Al: 26.982, Si: 28.085,
-  P: 30.974, S: 32.06, Cl: 35.45, K: 39.098, Ca: 40.078, Mn: 54.938, Fe: 55.845, Cu: 63.546, Zn: 65.38,
-  Br: 79.904, Ag: 107.87, I: 126.9, Ba: 137.33, Pb: 207.2
-};
+const MASSES: Record<string, number> = Object.fromEntries(ELEMENTS.map((e) => [e.sym, e.mass]));
 
 export function molarMass(formula: string): number {
   const { counts } = parseFormula(formula);

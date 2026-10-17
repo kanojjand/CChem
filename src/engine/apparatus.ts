@@ -2,7 +2,7 @@
 // into another vessel, gas tests (glowing and burning splint, damp litmus, limewater),
 // electrical conductivity and electrolysis with inert (graphite) electrodes.
 
-import { IONS, salt } from './data';
+import { IONS, METALS, compound, hasCompound, salt } from './data';
 import { finish, snapshot, type ActionResult } from './actions';
 import { settle, type Ctx } from './rules';
 import { EPS, addGas, amt, put, putIon, take, waterVolume, type ReactionEvent, type Vessel } from './vessel';
@@ -87,6 +87,24 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
     put(v.aq, 'NH3', mmol);
     events.push(...settle(v, ctx));
     if (!events.some((e) => e.importance >= 2)) events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: 'absorb:NH3' }));
+  } else if (gas === 'I2') {
+    // Iodine vapour settles as crystals on the cold glass or dissolves a little in water.
+    put(v.solids, 'I2', mmol);
+    events.push(...settle(v, ctx));
+  } else if (gas === 'H2S' || gas === 'SO2') {
+    // Both dissolve fairly well; with alkali they form salts.
+    const oh = amt(v.aq, 'OH^-');
+    const n = Math.min(mmol, oh / 2);
+    const anion = gas === 'H2S' ? 'S^2-' : 'SO3^2-';
+    if (n > EPS) {
+      take(v.aq, 'OH^-', 2 * n);
+      const cat = Object.keys(v.aq).find((id) => IONS[id]?.charge > 0 && id !== 'H^+') || 'Na^+';
+      putIon(v, anion, n, salt(cat, anion).id);
+    }
+    const rest = mmol - n;
+    if (rest > EPS) put(v.aq, gas, rest);
+    events.push(...settle(v, ctx));
+    if (!events.some((e) => e.importance >= 2)) events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: `absorb:${gas}` }));
   } else if (gas === 'Cl2') {
     // Chlorine water: a little dissolves, the rest escapes with a sharp smell.
     addGas(v, gas, mmol * 0.7, now);
@@ -118,22 +136,23 @@ export function testGas(sample: Record<string, number>, tool: GasTool): { result
   const co2 = x('CO2');
   const nh3 = x('NH3');
   const cl2 = x('Cl2');
+  const inert = x('N2');
   switch (tool) {
     case 'glowing':
       if (o2 > 0.35) return { result: 'relights' };
       if (h2 > 0.05 && o2 > 0.05) return { result: 'loudPop', burns: ['H2'] };
-      if (co2 + nh3 > 0.5) return { result: 'goesOut' };
+      if (co2 + nh3 + inert > 0.5) return { result: 'goesOut' };
       return { result: 'stillGlows' };
     case 'burning':
       if (h2 > 0.05 && o2 > 0.1) return { result: 'loudPop', burns: ['H2', 'O2'] };
       if (h2 > 0.05) return { result: 'pop', burns: ['H2'] };
       if (o2 > 0.35) return { result: 'burnsBrighter' };
-      if (co2 + nh3 + cl2 > 0.4) return { result: 'goesOut' };
+      if (co2 + nh3 + cl2 + inert > 0.4) return { result: 'goesOut' };
       return { result: 'burnsAsUsual' };
     case 'litmus':
       if (cl2 > 0.1) return { result: 'litmusBleached' };
       if (nh3 > 0.05) return { result: 'litmusBlue' };
-      if (co2 > 0.2 || x('SO2') > 0.05 || x('NO2') > 0.05) return { result: 'litmusRed' };
+      if (co2 > 0.2 || x('SO2') > 0.05 || x('NO2') > 0.05 || x('H2S') > 0.05) return { result: 'litmusRed' };
       return { result: 'litmusSame' };
     case 'limewater':
       return { result: co2 > 0.05 ? 'limewaterCloudy' : 'limewaterSame' };
@@ -271,4 +290,28 @@ export function electrolysisStep(v: Vessel, seconds: number, now: number): React
   });
   v.lastEvents = [e];
   return [e];
+}
+
+// ---------------------------------------------------------------- flame test
+
+/** Colors that metal ions give to a flame. */
+export const FLAME_COLORS: Record<string, string> = {
+  'Li^+': '#E0203A', 'Na^+': '#FFB000', 'K^+': '#B07CE0', 'Ca^2+': '#F05A28', 'Ba^2+': '#A8D84A', 'Cu^2+': '#2EC4A0'
+};
+
+/** Dip a clean wire loop into the vessel and hold it in the flame. */
+export function flameTest(v: Vessel): { ions: string[]; color: string | null } {
+  const found = new Map<string, number>();
+  const add = (ion: string | undefined, n: number) => {
+    if (ion && FLAME_COLORS[ion] && n > 1e-5) found.set(ion, (found.get(ion) || 0) + n);
+  };
+  for (const id in v.aq) add(id, v.aq[id]);
+  for (const id in v.solids) {
+    if (METALS[id]) add(METALS[id].ion, v.solids[id]);
+    else if (hasCompound(id)) add(compound(id).cation, v.solids[id]);
+  }
+  const ions = [...found.entries()].sort((a, b) => b[1] - a[1]).map(([ion]) => ion);
+  // Sodium's bright yellow hides the other colors.
+  const main = ions.includes('Na^+') ? 'Na^+' : ions[0];
+  return { ions: main ? [main, ...ions.filter((i) => i !== main)] : [], color: main ? FLAME_COLORS[main] : null };
 }

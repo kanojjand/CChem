@@ -11,6 +11,7 @@ export interface EqSpec {
   cond?: Cond;
   conc?: string;          // reactant written as concentrated (e.g. H2SO4)
   noReaction?: boolean;
+  k?: number[];           // coefficients given by hand when the balancer has more than one answer
 }
 
 export interface Term { f: string; k: number; mark?: '↓' | '↑'; conc?: boolean }
@@ -48,7 +49,7 @@ export function buildEquations(eq: EqSpec): Equations | null {
     };
   }
 
-  const k = balance(eq.reactants, eq.products);
+  const k = eq.k ?? balance(eq.reactants, eq.products);
   if (!k) return null;
   const nr = eq.reactants.length;
   const molecular: Equations['molecular'] = {

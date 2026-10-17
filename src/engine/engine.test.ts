@@ -195,7 +195,7 @@ describe('content-mvp experiments', () => {
 
   it('23. Cu(OH)2 turns into black CuO on heating', () => {
     const { v } = run(['CuSO4', 'NaOH']);
-    const evs = heat(v, 20);
+    const evs = heat(v, 60);
     expect(evs.map((e) => e.kind)).toContain('hydroxideDecomp');
     expect(solids(v)).toContain('CuO');
   });
@@ -296,8 +296,8 @@ describe('more chemistry', () => {
     expect(run(['CuCl2', 'Al']).kinds).toContain('metalSalt');
   });
 
-  it('copper iodide reaction is honestly marked as not modelled', () => {
-    expect(run(['CuSO4', 'KI']).kinds).toContain('notModeled');
+  it('copper(II) and iodide give iodine and copper(I) iodide', () => {
+    expect(run(['CuSO4', 'KI']).kinds).toContain('iodideOx');
   });
 
   it('pouring one tube into another mixes and reacts', () => {

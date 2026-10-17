@@ -1,0 +1,33 @@
+/* Element card under the periodic table. Uses the shared tokens, so it follows both skins. */
+.el-card { margin-top: 12px; padding: 14px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); display: grid; gap: 12px; min-width: 0; }
+.el-head { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.el-tile { width: 84px; height: 92px; flex: none; border-radius: 12px; border: 1px solid var(--line); padding: 6px 8px; display: grid; grid-template-rows: auto 1fr auto; color: var(--ink); }
+:root[data-skin="brand"] .el-tile { background: var(--panel); }
+.el-z { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.el-sym { font-family: var(--display); font-size: 32px; line-height: 1; align-self: center; justify-self: center; }
+.el-mass { font-size: 11.5px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.el-title { display: grid; gap: 4px; min-width: 0; }
+.el-title h3 { margin: 0; font-family: var(--display); font-size: 22px; line-height: 1.15; overflow-wrap: anywhere; }
+.el-cat { font-size: 13.5px; color: var(--muted); }
+.el-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.el-flag { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--warn); color: var(--warn); background: var(--warn-soft); }
+.el-flag.toxic, .el-flag.radioactive { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+.el-fact { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+.el-fact b { font-size: 12.5px; color: var(--accent); }
+.el-fact p { margin: 0; font-size: 14.5px; line-height: 1.45; }
+.el-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px 16px; margin: 0; }
+.el-grid > div { min-width: 0; }
+.el-grid > div.wide { grid-column: span 2; }
+.el-grid dt { font-size: 12px; color: var(--muted); }
+.el-grid dd { margin: 2px 0 0; font-weight: 600; font-size: 14.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.el-config { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 600; letter-spacing: 0.01em; }
+.el-unknown { color: var(--muted); font-weight: 400; }
+.el-add { margin: 0; }
+@media (max-width: 520px) {
+  .el-card { padding: 12px; }
+  .el-tile { width: 70px; height: 78px; }
+  .el-sym { font-size: 26px; }
+  .el-title h3 { font-size: 19px; }
+  .el-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+  .el-grid > div.wide { grid-column: 1 / -1; }
+}

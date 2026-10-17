@@ -104,7 +104,7 @@ export interface Strings {
   };
   journalModal: { title: string; empty: string; clear: string; vessel: string };
   discoveries: (n: number) => string;
-  colors: Record<ColorKey, string>;
+  colors: Partial<Record<ColorKey, string>>;
   indColors: Record<ColorName, string>;
   indicators: Record<IndicatorId, string>;
   events: EventTexts;

@@ -14,6 +14,14 @@ export type EventKind =
   | 'cuConcAcid' | 'hydroxideDecomp' | 'sugarHeat' | 'boiling' | 'minor'
   // apparatus: delivery tube, gas tests, electrolysis
   | 'gasAbsorbed' | 'gasThrough' | 'co2Limewater' | 'limewaterClears' | 'gasTest' | 'electrolysis' | 'noCurrent'
+  // more substances: sulfur compounds, halogens, chromium, redox, heating dry solids
+  | 'sulfideAcid' | 'sulfiteAcid' | 'thiosulfateAcid' | 'chromateAcid' | 'dichromateBase' | 'halogenDisplace'
+  | 'iodideOx' | 'starchIodine' | 'bleach' | 'permanganateRedox' | 'dichromateRedox' | 'sulfideHydrolysis'
+  | 'metalSulfur' | 'carbonReduce' | 'thermalDecomp' | 'volcano' | 'hardWater' | 'adsorption' | 'leadFilm'
+  | 'dissolveHot' | 'flameTest' | 'magnet' | 'magnetNone' | 'filtered'
+  // physical processes
+  | 'dryOut' | 'crystallize' | 'melting' | 'sublimation' | 'distillation' | 'iceMelt'
+  | 'gasOut' | 'floats' | 'dissolveCold' | 'dissolveHotSolid'
   // explanations produced when nothing visible happens
   | 'added' | 'diluted' | 'indicator' | 'exchangeNone' | 'metalAcidNone' | 'metalSaltNone' | 'metalWaterNone'
   | 'aluminumFilm' | 'passivation' | 'needsHeat' | 'insolubleSolid' | 'notModeled' | 'nothing';
@@ -21,7 +29,7 @@ export type EventKind =
 export type ReactionType =
   | 'exchange' | 'substitution' | 'combination' | 'decomposition' | 'neutralization' | 'redox' | 'complex' | 'physical';
 
-export type SafetyKey = 'acidWater' | 'bigSodium' | 'fumeHood' | 'ammoniaSmell' | 'hotTube' | 'sodiumWater';
+export type SafetyKey = 'acidWater' | 'bigSodium' | 'fumeHood' | 'ammoniaSmell' | 'hotTube' | 'sodiumWater' | 'alkaliFire' | 'toxic' | 'hotGlass';
 
 export interface ReactionEvent {
   kind: EventKind;
@@ -49,6 +57,13 @@ export interface Fx {
   depositAt?: number;
   dissolveAt?: number;
   runAt?: number;         // sodium skating on water
+  flame?: { at: number; color: string };  // a burning piece of potassium, a flame test
+  glowAt?: number;        // a dry mixture glows red-hot (iron and sulfur)
+  volcanoAt?: number;     // ammonium dichromate "volcano"
+  smokeAt?: number;       // white smoke at the mouth (ammonium chloride)
+  vaporAt?: number;       // violet iodine vapour
+  dropsAt?: number;       // water droplets on the cool upper walls
+  iodineBlue?: number;    // starch turned blue
 }
 
 export type VesselKind = 'tube' | 'beaker' | 'beaker250' | 'flask';
@@ -79,6 +94,8 @@ export interface Vessel {
   gasLog: { id: string; amount: number }[];  // gas not yet handed to a gas tube or to the air
   broken?: number;                            // time the vessel broke
   electro?: Electro;                          // electrodes are in the vessel
+  boiling?: boolean;                          // the liquid is boiling right now
+  seen: string[];                             // keys of events already reported since the vessel was washed
 }
 
 export function newVessel(id: string, kind: VesselKind): Vessel {
@@ -98,7 +115,8 @@ export function newVessel(id: string, kind: VesselKind): Vessel {
     fx: { gas: [] },
     lastEvents: [],
     gasTotal: {},
-    gasLog: []
+    gasLog: [],
+    seen: []
   };
 }
 
@@ -134,7 +152,7 @@ export function waterVolume(v: Vessel): number {
 export function release(v: Vessel, joules: number): number {
   const mass = Math.max(0.5, waterVolume(v) + v.concVol * 1.84);
   const dT = joules / (4.18 * mass);
-  v.temp = Math.min(v.volume > 0.01 ? 100 : 300, v.temp + dT);
+  v.temp = Math.max(-25, Math.min(v.volume > 0.01 ? 110 : 350, v.temp + dT));
   return dT;
 }
 

@@ -1,4 +1,4 @@
-import { IONS, ION_METAL_FORMS, METALS, REAGENT_BY_ID, compound, hasCompound, type Lang } from '../engine/data';
+import { COLORS, IONS, ION_METAL_FORMS, METALS, REAGENT_BY_ID, compound, hasCompound, type Lang } from '../engine/data';
 import type { H, Strings } from './types';
 import { kk } from './kk';
 import { ru } from './ru';
@@ -38,7 +38,7 @@ export function makeH(lang: Lang, s: Strings): H {
       const name = substanceName(id, lang);
       return name ? `${name} ⟦${id}⟧` : F(id);
     },
-    color: (key) => (s.colors as Record<string, string>)[key] ?? key,
+    color: (key) => (s.colors as Record<string, string>)[key] ?? (COLORS as Record<string, { name: Record<Lang, string> }>)[key]?.name[lang] ?? key,
     ind: (id) => (s.indicators as Record<string, string>)[id] ?? id,
     indColor: (c) => (s.indColors as Record<string, string>)[c] ?? c,
     metal: (m) => metalForm(METALS[m]?.forms, false, N(m)),

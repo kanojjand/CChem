@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ACTIVITY, COLORS, REAGENT_BY_ID, TABLE_ANIONS, TABLE_CATIONS, solubility, type IndicatorId, type Lang } from '../engine/data';
 import { indicatorColor } from '../engine/color';
-import { ELEMENTS, type ElementCat } from '../data/elements';
+import { ELEMENTS, type ElementCat, type ElementDef } from '../data/elements';
+import { ElementCard } from './ElementCard';
 import { fmt, makeH } from '../i18n';
 import type { Strings } from '../i18n/types';
 import { COLLECTOR_ID, type JournalEntry, type Lab } from '../state/lab';
@@ -37,16 +38,38 @@ function Modal({ title, onClose, narrow, tabs, children }: { title: string; onCl
 
 const CATS: ElementCat[] = ['alkali', 'alkaline', 'transition', 'post', 'metalloid', 'nonmetal', 'halogen', 'noble', 'lanthanide', 'actinide'];
 
-function Periodic({ s, lang }: { s: Strings; lang: Lang }) {
+/** Next element from `z` in a direction on the displayed grid, or null at the edge. */
+function neighbour(z: number, key: string): number | null {
+  const cur = ELEMENTS[z - 1];
+  let best: ElementDef | undefined;
+  for (const el of ELEMENTS) {
+    if (key === 'ArrowRight' && el.row === cur.row && el.col > cur.col && (!best || el.col < best.col)) best = el;
+    if (key === 'ArrowLeft' && el.row === cur.row && el.col < cur.col && (!best || el.col > best.col)) best = el;
+    if (key === 'ArrowDown' && el.col === cur.col && el.row > cur.row && (!best || el.row < best.row)) best = el;
+    if (key === 'ArrowUp' && el.col === cur.col && el.row < cur.row && (!best || el.row > best.row)) best = el;
+  }
+  return best ? best.z : null;
+}
+
+function Periodic({ s, lang, onAdd }: { s: Strings; lang: Lang; onAdd?: (reagentId: string) => void }) {
   const [sel, setSel] = useState<number>(1);
+  const cells = useRef<Record<number, HTMLButtonElement | null>>({});
   const e = ELEMENTS[sel - 1];
+  const onKey = (ev: React.KeyboardEvent) => {
+    const next = neighbour(sel, ev.key);
+    if (next == null) return;
+    ev.preventDefault();
+    setSel(next);
+    cells.current[next]?.focus();
+  };
   return (
     <>
       <div style={{ overflowX: 'auto' }}>
-        <div className="pt" role="grid" aria-label={s.tablesModal.periodic}>
+        <div className="pt" role="grid" aria-label={s.tablesModal.periodic} onKeyDown={onKey}>
           {ELEMENTS.map((el) => (
             <button key={el.z} type="button" className={`pt-cell cat-${el.cat}`} aria-pressed={sel === el.z}
-              style={{ gridColumn: el.col, gridRow: el.row >= 9 ? el.row : el.row }}
+              ref={(b) => { cells.current[el.z] = b; }} tabIndex={sel === el.z ? 0 : -1}
+              style={{ gridColumn: el.col, gridRow: el.row }}
               onClick={() => setSel(el.z)} title={s.elements[el.z - 1]}>
               <span>{el.z}</span>
               <b>{el.sym}</b>
@@ -55,16 +78,10 @@ function Periodic({ s, lang }: { s: Strings; lang: Lang }) {
           <div className="pt-gap" style={{ gridRow: 8 }} />
         </div>
       </div>
-      <div className="pt-info" aria-live="polite">
-        <b>{e.sym}</b>
-        <span>{s.elements[e.z - 1]}</span>
-        <span>№ {e.z}</span>
-        <span>{s.tablesModal.massLabel}: {fmt(e.mass, lang, e.mass < 100 ? 3 : 2).replace(/[.,]?0+$/, '')}</span>
-        <span>{s.tablesModal.categories[e.cat]}</span>
-      </div>
       <div className="pt-legend">
         {CATS.map((c) => <span key={c}><i className={`cat-${c}`} />{s.tablesModal.categories[c]}</span>)}
       </div>
+      <ElementCard el={e} s={s} lang={lang} onAdd={onAdd} />
     </>
   );
 }
@@ -143,7 +160,7 @@ function Indicators({ s }: { s: Strings }) {
 
 type Tab = 'periodic' | 'solubility' | 'activity' | 'indicators';
 
-export function TablesModal({ s, lang, onClose }: { s: Strings; lang: Lang; onClose: () => void }) {
+export function TablesModal({ s, lang, onClose, onAdd }: { s: Strings; lang: Lang; onClose: () => void; onAdd?: (reagentId: string) => void }) {
   const [tab, setTab] = useState<Tab>('solubility');
   const tabs: Tab[] = ['periodic', 'solubility', 'activity', 'indicators'];
   return (
@@ -157,7 +174,7 @@ export function TablesModal({ s, lang, onClose }: { s: Strings; lang: Lang; onCl
           ))}
         </div>
       }>
-      {tab === 'periodic' && <Periodic s={s} lang={lang} />}
+      {tab === 'periodic' && <Periodic s={s} lang={lang} onAdd={onAdd ? (id) => { onAdd(id); onClose(); } : undefined} />}
       {tab === 'solubility' && <Solubility s={s} lang={lang} />}
       {tab === 'activity' && <Activity s={s} />}
       {tab === 'indicators' && <Indicators s={s} />}

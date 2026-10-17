@@ -41,12 +41,12 @@ export function BottleIcon({ color, solid }: { color: string; solid?: boolean })
   );
 }
 
-export function LampSVG({ lit, width = 70, height = 122 }: { lit: boolean; width?: number; height?: number }) {
+export function LampSVG({ lit, color, width = 70, height = 122 }: { lit: boolean; color?: string; width?: number; height?: number }) {
   return (
     <svg width={width} height={height} viewBox="0 0 76 132" aria-hidden="true">
       {lit && (
         <g className="flame">
-          <path d="M38 6c10 16 14 26 14 34a14 14 0 0 1-28 0c0-8 4-18 14-34z" fill="var(--heat)" />
+          <path d="M38 6c10 16 14 26 14 34a14 14 0 0 1-28 0c0-8 4-18 14-34z" fill={color ?? 'var(--heat)'} />
           <path d="M38 24c5 8 7 13 7 17a7 7 0 0 1-14 0c0-4 2-9 7-17z" fill="#FFD25A" />
         </g>
       )}

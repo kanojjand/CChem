@@ -10,6 +10,8 @@ import { fmt, makeH } from '../i18n';
 import type { Strings } from '../i18n/types';
 import type { Extra } from '../i18n/extra';
 import { LIFE } from '../i18n/lifeTexts';
+import { LAB_MORE } from '../i18n/labMore';
+import { boilingPoint } from '../engine/physics';
 import { COLLECTOR_ID, type Burette, type Lab } from '../state/lab';
 import { EquationLine, Formula, Rich } from './Formula';
 import { AddedList, targetLabel, vesselLabel } from './Bench';
@@ -18,7 +20,7 @@ import { solidColor } from './VesselView';
 
 export type Grade = 7 | 8 | 9 | 10 | 11;
 
-const NONE = new Set(['exchangeNone', 'metalAcidNone', 'metalSaltNone', 'metalWaterNone', 'passivation', 'aluminumFilm', 'insolubleSolid', 'nothing', 'noCurrent']);
+const NONE = new Set(['exchangeNone', 'metalAcidNone', 'metalSaltNone', 'metalWaterNone', 'passivation', 'aluminumFilm', 'leadFilm', 'insolubleSolid', 'nothing', 'noCurrent', 'magnetNone']);
 const QUIET = new Set(['added', 'diluted', 'minor']);
 const MAIN_SIGNS: Sign[] = ['precip', 'gas', 'color', 'heat'];
 const EXTRA_SIGNS: Sign[] = ['dissolve', 'smell', 'deposit', 'light'];
@@ -301,7 +303,7 @@ function CollectorPanel({ lab, s, x, lang, onTest }: { lab: Lab; s: Strings; x: 
   );
 }
 
-export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onPour, onTest, onReplace }: {
+export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onPour, onTest, onReplace, onFilter, onMagnet, onFlame }: {
   lab: Lab; s: Strings; x: Extra; lang: Lang; grade: Grade; now: number;
   onIdea: (steps: string[]) => void;
   onHeat: () => void;
@@ -309,9 +311,13 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
   onPour: (target: string) => void;
   onTest: (target: string, tool: GasTool) => void;
   onReplace: () => void;
+  onFilter: (target: string) => void;
+  onMagnet: () => void;
+  onFlame: () => void;
 }) {
   const [showIons, setShowIons] = useState(false);
-  const [open, setOpen] = useState<Record<string, boolean>>({ pour: false, tube: false, test: false, burette: false, electro: false });
+  const [open, setOpen] = useState<Record<string, boolean>>({ pour: false, tube: false, test: false, sep: false, burette: false, electro: false });
+  const lm = LAB_MORE[lang];
   const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
   if (lab.selected === COLLECTOR_ID) return <CollectorPanel lab={lab} s={s} x={x} lang={lang} onTest={onTest} />;
@@ -379,6 +385,22 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
         <p className="grade-note">{x.tools.hint}</p>
         <ToolButtons target={v.id} x={x} onTest={onTest} />
       </Fold>
+      <Fold title={<span className="fold-title">{lm.sep.title}</span>} open={open.sep} onToggle={() => toggle('sep')}>
+        <p className="grade-note">{lm.sep.hint}</p>
+        <div className="action-row">
+          <button type="button" className="btn small" onClick={onMagnet} disabled={empty} title={lm.sep.magnetHint}>{lm.sep.magnet}</button>
+          <button type="button" className="btn small" onClick={onFlame} disabled={empty} title={lm.sep.flameHint}>{lm.sep.flame}</button>
+        </div>
+        {!empty && v.volume > 0.005 && others.length > 0 && (
+          <>
+            <p className="grade-note">{lm.sep.filterHint}</p>
+            <div className="action-row" role="group" aria-label={lm.sep.filter}>
+              <span className="row-label">{lm.sep.filterInto}:</span>
+              {others.map((o) => <button key={o.id} type="button" className="btn small" onClick={() => onFilter(o.id)}>{vesselLabel(lab, o, x)}</button>)}
+            </div>
+          </>
+        )}
+      </Fold>
       {canBurette && (
         <Fold title={<span className="fold-title">{x.burette.name}{burette ? ' ●' : ''}</span>} open={open.burette || burette} onToggle={() => toggle('burette')}>
           {burette ? <TitrationCard lab={lab} x={x} lang={lang} /> : (
@@ -442,6 +464,11 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
         {header}
         {status && <span className={`status ${status.cls}`}>{status.label}</span>}
         {main?.kind === 'gasTest' && <span className="status info">{x.tools.names[main.p.tool as GasTool]}</span>}
+        {main?.kind === 'flameTest' && (
+          <div className="flame-result" aria-hidden="true">
+            <svg viewBox="0 0 34 48"><path d="M17 2c7 11 10 18 10 26a10 10 0 0 1-20 0c0-8 3-15 10-26z" fill={main.p.color || '#F2A33A'} /><path d="M17 20c3.5 5.5 5 9 5 12a5 5 0 0 1-10 0c0-3 1.5-6.5 5-12z" fill="#FFF3C4" opacity="0.7" /></svg>
+          </div>
+        )}
         {txt && txt.title && <h3 className="result-title"><Rich text={txt.title} /></h3>}
         {txt && txt.say && <p className="say"><Rich text={txt.say} /></p>}
 
@@ -496,7 +523,10 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
               </>
             )}
             {Math.abs(dT) > 1.5 && (
-              <div className="facts"><span className={`fact ${dT > 0 ? 'hot' : 'cold'}`}>{s.panel.temperature}: {Math.round(v.temp)} °C</span></div>
+              <div className="facts">
+                <span className={`fact ${dT > 0 ? 'hot' : 'cold'}`}>{s.panel.temperature}: {Math.round(v.temp)} °C</span>
+                {v.boiling && <span className="fact hot">{lm.state.bp(fmt(boilingPoint(v), lang, 1))}</span>}
+              </div>
             )}
           </div>
         )}

@@ -4,10 +4,12 @@
 // objects and bumps a version number after every change.
 
 import { REAGENT_BY_ID } from '../engine/data';
-import { addReagent, mainEvent, phOf, pour, tick, wash, type ActionResult, type Amount } from '../engine/actions';
-import { ML_PER_MMOL, bubbleGas, electrolysisStep, testGas, type GasTestResult, type GasTool } from '../engine/apparatus';
+import { addReagent, condense, finish, mainEvent, phOf, pour, snapshot, tick, wash, type ActionResult, type Amount } from '../engine/actions';
+import { ML_PER_MMOL, bubbleGas, electrolysisStep, flameTest, testGas, type GasTestResult, type GasTool } from '../engine/apparatus';
+import { needsTick } from '../engine/physics';
+import { METALS } from '../engine/data';
 import { indicatorColor } from '../engine/color';
-import { EPS, ROOM_T, amt, newVessel, type ReactionEvent, type Vessel, type VesselKind } from '../engine/vessel';
+import { EPS, newVessel, type ReactionEvent, type Vessel, type VesselKind } from '../engine/vessel';
 
 export interface JournalEntry {
   id: number;
@@ -83,6 +85,8 @@ export class Lab {
   collector: Collector = { gases: {}, capacityMl: 100 };
   burette: Burette | null = null;
   electro: string | null = null;
+  /** Last flame test: the lamp flame shows its color for a few seconds. */
+  flame: { color: string; at: number } | null = null;
   speed: number = 1;
   journal: JournalEntry[] = load<JournalEntry[]>('cchem.journal', []);
   discoveries: string[] = load<string[]>('cchem.discoveries', []);
@@ -157,7 +161,16 @@ export class Lab {
         const target = this.tubes[v.id];
         if (!target) continue;
         for (const g of log) {
-          if (g.id === 'H2O') continue;
+          if (g.id === 'H2O') {
+            // Steam condenses in the cold tube: the receiving vessel collects distilled water.
+            if (target !== COLLECTOR_ID && this.has(target)) {
+              const t = this.vessel(target);
+              const events = condense(t, g.amount, now);
+              if (events.length) found.push(...this.record(t, events, now));
+            }
+            continue;
+          }
+          if (target === COLLECTOR_ID && g.id === 'I2') continue;
           if (target === COLLECTOR_ID) {
             const room = this.collector.capacityMl / ML_PER_MMOL - Object.values(this.collector.gases).reduce((s, n) => s + n, 0);
             const n = Math.min(g.amount, Math.max(0, room));
@@ -200,13 +213,13 @@ export class Lab {
     return { result, discovered };
   }
 
-  pour(fromId: string, toId: string): Outcome {
+  pour(fromId: string, toId: string, filter = false): Outcome {
     if (toId === COLLECTOR_ID || !this.has(fromId) || !this.has(toId)) return { error: 'nothing', discovered: [] };
     const from = this.vessel(fromId);
     const to = this.vessel(toId);
     this.remember();
     const now = Date.now();
-    const result = pour(from, to, now);
+    const result = pour(from, to, now, filter);
     if (result.error) {
       this.history.pop();
       return { error: result.error, discovered: [] };
@@ -351,6 +364,48 @@ export class Lab {
     return { result, discovered };
   }
 
+  /** Hold a magnet to the vessel: iron and nickel pieces jump to it. */
+  magnet(id = this.selected): { grams: number; discovered: string[] } {
+    if (!this.has(id)) return { grams: 0, discovered: [] };
+    const v = this.vessel(id);
+    const metals = Object.keys(v.solids).filter((m) => METALS[m]?.magnetic && v.solids[m] > EPS);
+    this.remember();
+    const now = Date.now();
+    const before = snapshot(v);
+    let grams = 0;
+    for (const m of metals) {
+      grams += (v.solids[m] * (m === 'Fe' ? 55.85 : 58.69)) / 1000;
+      delete v.solids[m];
+    }
+    const others = Object.keys(v.solids).filter((x) => v.solids[x] > EPS);
+    const event: ReactionEvent = metals.length
+      ? { kind: 'magnet', importance: 2, type: 'physical', p: { metal: metals[0], g: grams.toFixed(2), left: others[0] ?? '' }, signs: [], key: 'magnet' }
+      : { kind: 'magnetNone', importance: 2, type: 'physical', p: { solid: others[0] ?? '' }, signs: [] };
+    finish(v, before, [event], null);
+    const discovered = this.record(v, [event], now);
+    this.selected = id;
+    this.emit();
+    return { grams, discovered };
+  }
+
+  /** Dip a wire loop into the vessel and hold it in the lamp flame. */
+  flameTest(id = this.selected): { color: string | null; discovered: string[] } {
+    if (!this.has(id)) return { color: null, discovered: [] };
+    const v = this.vessel(id);
+    const now = Date.now();
+    const { ions, color } = flameTest(v);
+    const event: ReactionEvent = {
+      kind: 'flameTest', importance: 2, type: 'physical', p: { ion: ions[0] ?? '', others: ions.slice(1).join(','), color: color ?? '' },
+      signs: color ? ['light', 'color'] : [], key: ions[0] ? `flame:${ions[0]}` : undefined
+    };
+    v.lastEvents = [event];
+    this.flame = { color: color ?? '#F2A33A', at: now };
+    const discovered = this.record(v, [event], now);
+    this.selected = id;
+    this.emit();
+    return { color, discovered };
+  }
+
   // ---------------------------------------------------------------- burette (titration)
 
   attachBurette(vesselId: string, titrant = 'NaOH01') {
@@ -465,9 +520,7 @@ export class Lab {
     let endpoint = false;
     const discovered: string[] = [];
     for (const v of this.vessels) {
-      const drifting = Math.abs(v.temp - ROOM_T) > 0.05;
-      const browning = amt(v.solids, 'Fe(OH)2') > EPS;
-      if ((v.heating || drifting || browning) && !v.broken) {
+      if (needsTick(v)) {
         // Long steps are split so heating stays smooth at high speed.
         const n = Math.max(1, Math.ceil(simDt / 2));
         for (let i = 0; i < n; i++) {
@@ -497,7 +550,7 @@ export class Lab {
       discovered.push(...this.routeGas(now));
       changed = true;
     }
-    if (!changed && this.vessels.some((v) => hasActiveFx(v, now))) changed = true;
+    if (!changed && (this.vessels.some((v) => hasActiveFx(v, now)) || (this.flame && now - this.flame.at < FX_MS))) changed = true;
     if (changed) this.emit();
     return { discovered, endpoint };
   }
@@ -508,6 +561,7 @@ const FX_MS = 6000;
 export function hasActiveFx(v: Vessel, now: number): boolean {
   if (v.fx.gas.some((g) => g.until > now)) return true;
   const fx = v.fx;
-  return [fx.precipAt, fx.splashAt, fx.boomAt, fx.charAt, fx.brownAt, fx.smellAt, fx.depositAt, fx.dissolveAt, fx.runAt, fx.spillAt]
+  return [fx.precipAt, fx.splashAt, fx.boomAt, fx.charAt, fx.brownAt, fx.smellAt, fx.depositAt, fx.dissolveAt, fx.runAt, fx.spillAt,
+    fx.flame?.at, fx.glowAt, fx.volcanoAt, fx.smokeAt, fx.vaporAt, fx.dropsAt]
     .some((t) => t != null && now - t < FX_MS);
 }

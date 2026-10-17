@@ -2,7 +2,8 @@
 // bubbles and short effects (cloudiness, splash, smell, brown gas, charring, spill),
 // electrodes when electrolysis runs, and broken glass when the vessel burst.
 
-import { COLORS, METALS, compound, hasCompound } from '../engine/data';
+import { COLORS, METALS, SOLUBLE_SOLIDS, compound, hasCompound } from '../engine/data';
+import { MELTS } from '../engine/physics';
 import { solutionColor } from '../engine/color';
 import { phOf } from '../engine/actions';
 import { conductivity } from '../engine/apparatus';
@@ -129,6 +130,8 @@ function MetalPieces({ id, n, g, yBase, floatY, skating }: { id: string; n: numb
         </g>
       );
     }
+    case 'foil':
+      return <path d={`M${cx - 11} ${yBase - 3} l6 -9 l14 2 l-4 8 z`} fill={color} stroke={stroke} strokeWidth={0.6} />;
     case 'crystals':
       return (
         <g fill={color} stroke={stroke} strokeWidth={0.6}>
@@ -192,6 +195,32 @@ function Shards({ g }: { g: Geo }) {
   );
 }
 
+/** Salts that come as crystals (from the shelf or out of a solution) are drawn as small crystals. */
+const CRYSTALLINE = new Set([...Object.keys(SOLUBLE_SOLIDS), 'I2', 'KNO2', 'CuSO4·5H2O', 'CoCl2·6H2O']);
+const isCrystal = (id: string) => CRYSTALLINE.has(id) || (hasCompound(id) && compound(id).phase === 'aq' && !!compound(id).cation);
+
+function CrystalLayer({ x0, x1, y, h, color, seed }: { x0: number; x1: number; y: number; h: number; color: string; seed: number }) {
+  const n = Math.max(3, Math.round((x1 - x0) / 7));
+  const rows = h > 12 ? 2 : 1;
+  return (
+    <g fill={color} stroke="rgba(0,0,0,0.25)" strokeWidth={0.5}>
+      {Array.from({ length: n * rows }, (_, i) => {
+        const r = Math.floor(i / n);
+        const cx = x0 + 3 + ((i % n) + rand(seed + i) * 0.6) * ((x1 - x0 - 6) / n);
+        const by = y + h - r * (h / 2);
+        const w = 2.4 + rand(seed + i * 3) * 2;
+        const ht = Math.min(h / rows, 4 + rand(seed + i * 7) * 5);
+        return <path key={i} d={`M${cx - w} ${by} L${cx} ${by - ht} L${cx + w} ${by} L${cx} ${by + 1.2} Z`} />;
+      })}
+    </g>
+  );
+}
+
+function meltColor(id: string, t: number, base: string): string {
+  if (id === 'S') return t > 190 ? '#7A2E12' : '#E9A93A';
+  return base;
+}
+
 export function VesselSVG({ v, now }: { v: Vessel; now: number }) {
   const g = GEO[v.kind];
   const uid = `v-${v.id}`;
@@ -218,26 +247,35 @@ export function VesselSVG({ v, now }: { v: Vessel; now: number }) {
   const liquid = colored ?? (oily ? OILY : WATER);
 
   const solids = Object.entries(v.solids).filter(([, n]) => n > 1e-4);
+  const melted = (id: string) => MELTS[id] != null && v.temp >= MELTS[id];
   const metals = solids.filter(([id]) => METALS[id]);
-  const rest = solids.filter(([id]) => !METALS[id] && id !== 'C');
   const charred = amt(v.solids, 'C') > EPS && v.fx.charAt != null;
+  const ice = amt(v.solids, 'H2O(s)');
+  const floatingS = hasLiquid && amt(v.solids, 'S') > EPS && !melted('S');
+  const rest = solids.filter(([id]) => !METALS[id] && id !== 'H2O(s)' && !(id === 'C' && charred) && !(id === 'S' && floatingS));
   const firstPrecip = rest[0]?.[0];
 
   const maxLayer = v.kind === 'tube' ? 34 : 26;
   let yb = g.bottom;
   const layers = rest.map(([id, n]) => {
     const h = Math.min(maxLayer, 4 + 9 * Math.log2(1 + n * 2) * (v.kind === 'tube' ? 1 : 0.6));
-    const layer = { id, y: yb - h, h, color: solidColor(id) };
+    const layer = { id, y: yb - h, h, color: melted(id) ? meltColor(id, v.temp, solidColor(id)) : solidColor(id), melt: melted(id), crystal: !melted(id) && isCrystal(id) };
     yb -= h;
     return layer;
   });
 
   const gases = v.fx.gas.filter((gas) => gas.until > now && gas.id !== 'H2O');
-  const boiling = v.fx.gas.some((gas) => gas.id === 'H2O' && gas.until > now) && v.heating;
+  const boiling = !!v.boiling;
   const steam = hasLiquid && (boiling || v.temp > 75);
   const bubbleCount = Math.min(16, gases.reduce((s, gas) => s + Math.round(gas.amount * 3) + 3, 0) + (boiling ? 6 : 0));
-  const naSkating = recent(v.fx.runAt, now, 7000) && amt(v.solids, 'Na') > EPS && hasLiquid;
-  const brown = recent(v.fx.brownAt, now, 6000) || gases.some((gas) => gas.id === 'NO');
+  const running = recent(v.fx.runAt, now, 7000) && hasLiquid;
+  const brown = recent(v.fx.brownAt, now, 6000) || gases.some((gas) => gas.id === 'NO' || gas.id === 'Br2');
+  const violet = recent(v.fx.vaporAt, now, 2500) || gases.some((gas) => gas.id === 'I2');
+  const smoke = recent(v.fx.smokeAt, now, 5000);
+  const drops = recent(v.fx.dropsAt, now, 8000);
+  const glow = recent(v.fx.glowAt, now, 3500);
+  const volcano = recent(v.fx.volcanoAt, now, 4500);
+  const flame = v.fx.flame && recent(v.fx.flame.at, now, 2600) && hasLiquid ? v.fx.flame : null;
   const green = gases.some((gas) => gas.id === 'Cl2');
   const smell = recent(v.fx.smellAt, now, 5000) || gases.some((gas) => gas.id === 'NH3' || gas.id === 'SO2');
   const splash = recent(v.fx.splashAt, now, 1600);
@@ -259,13 +297,24 @@ export function VesselSVG({ v, now }: { v: Vessel; now: number }) {
             <rect x={0} y={yTop} width={g.w} height={2.4} fill="#FFFFFF" opacity={0.55} />
           </>
         )}
-        {metals.map(([id, n]) => (
+        {metals.map(([id, n]) => melted(id) && !hasLiquid ? (
+          <ellipse key={id} cx={cx} cy={g.bottom - 4} rx={span / 2 - 4} ry={4} fill={METALS[id].color} stroke="rgba(0,0,0,0.25)" strokeWidth={0.6} />
+        ) : (
           <MetalPieces key={id} id={id} n={n} g={g} yBase={g.bottom - 2}
-            floatY={id === 'Na' && hasLiquid ? yTop - 1 : null} skating={id === 'Na' && naSkating} />
+            floatY={METALS[id].floats && hasLiquid ? yTop - 1 : null} skating={!!METALS[id].floats && running} />
         ))}
-        {layers.map((l) => (
-          <path key={`${l.id}-${v.fx.precipAt ?? 0}`} className="precip-layer" d={wave(g.xL, g.xR, l.y, l.h + 30)} fill={l.color} opacity={0.95} />
+        {layers.map((l) => l.crystal ? (
+          <g key={`${l.id}-${v.fx.precipAt ?? 0}`} className="precip-layer"><CrystalLayer x0={g.xL} x1={g.xR} y={l.y} h={l.h} color={l.color} seed={l.id.length * 7} /></g>
+        ) : (
+          <path key={`${l.id}-${v.fx.precipAt ?? 0}`} className={l.melt ? 'melt-layer' : 'precip-layer'} d={l.melt ? `M${g.xL - 2} ${l.y + 3} Q${cx} ${l.y - 2} ${g.xR + 2} ${l.y + 3} V${l.y + l.h + 30} H${g.xL - 2} Z` : wave(g.xL, g.xR, l.y, l.h + 30)} fill={l.color} opacity={0.95} />
         ))}
+        {glow && <rect key={`glow-${v.fx.glowAt}`} className="glow" x={0} y={yb - 6} width={g.w} height={g.bottom - yb + 10} fill="#FF7A1A" />}
+        {floatingS && <path d={wave(g.xL, g.xR, yTop - 1, 4, 0.8)} fill={COLORS.yellow.hex} />}
+        {ice > EPS && Array.from({ length: Math.min(3, Math.max(1, Math.round(ice / 150))) }, (_, i) => {
+          const size = Math.min(span / 3, 14);
+          const y0 = hasLiquid ? yTop - size * 0.35 : g.bottom - size - 2 - i * 3;
+          return <rect key={i} x={g.xL + 4 + i * (size + 3)} y={y0} width={size} height={size} rx={3} fill="#EAF7FD" stroke="#9CC9DF" strokeWidth={0.8} opacity={0.9} transform={`rotate(${(i - 1) * 9} ${g.xL + 4 + i * (size + 3) + size / 2} ${y0 + size / 2})`} />;
+        })}
         {hasLiquid && firstPrecip && recent(v.fx.precipAt, now, 6000) && (
           <g key={`cloud-${v.fx.precipAt}`} clipPath={`url(#${uid}-liq)`}>
             <rect className="cloud" x={0} y={yTop} width={g.w} height={g.h} fill={solidColor(firstPrecip)} />
@@ -298,6 +347,28 @@ export function VesselSVG({ v, now }: { v: Vessel; now: number }) {
         <g className="steam" fill="none" stroke="var(--steam)" strokeWidth={2.4} strokeLinecap="round">
           <path d={`M${cx - 8} ${g.mouth - 6} q-5 -9 0 -18 t0 -18`} />
           <path d={`M${cx + 6} ${g.mouth - 4} q5 -9 0 -18 t0 -18`} style={{ animationDelay: '0.6s' }} />
+        </g>
+      )}
+      {flame && (
+        <g key={`flame-${flame.at}`} className="flame alkali-flame">
+          <path d={`M${cx} ${yTop - 34} c7 10 9 16 9 22 a9 9 0 0 1 -18 0 c0 -6 2 -12 9 -22z`} fill={flame.color} opacity={0.9} />
+          <path d={`M${cx} ${yTop - 20} c3 5 4 8 4 10 a4 4 0 0 1 -8 0 c0 -2 1 -5 4 -10z`} fill="#FFF0FF" opacity={0.8} />
+        </g>
+      )}
+      {drops && Array.from({ length: 6 }, (_, i) => (
+        <circle key={i} cx={i % 2 ? g.xR - 4 : g.xL + 4} cy={g.mouth + 12 + i * 7} r={1.6} fill="#CFE6F7" stroke="var(--glass)" strokeWidth={0.5} />
+      ))}
+      {violet && <ellipse className="brown-gas" cx={cx} cy={g.mouth - 12} rx={span / 2 + 8} ry={14} fill="#8A3FB8" />}
+      {smoke && <ellipse className="brown-gas smoke" cx={cx} cy={g.mouth - 10} rx={span / 2 + 10} ry={13} fill="#F4F4F4" />}
+      {volcano && (
+        <g key={`volcano-${v.fx.volcanoAt}`} className="volcano">
+          {Array.from({ length: 14 }, (_, i) => {
+            const a = -Math.PI / 2 + (rand(i + 1) - 0.5) * 1.6;
+            const d = 30 + rand(i + 9) * 40;
+            return <circle key={i} className="spark" cx={cx} cy={g.mouth} r={1.8} fill={i % 3 ? '#FFB31A' : '#FF5A1F'}
+              style={{ ['--dx' as string]: `${Math.cos(a) * d}px`, ['--dy' as string]: `${Math.sin(a) * d}px`, animationDelay: `${(rand(i + 4) * 0.8).toFixed(2)}s` }} />;
+          })}
+          <path d={`M${cx - 14} ${g.mouth + 2} q14 -22 28 0 z`} fill={COLORS.darkGreen.hex} opacity={0.9} />
         </g>
       )}
       {smell && !steam && (

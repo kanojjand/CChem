@@ -1,8 +1,9 @@
 import type { Strings } from './types';
 import { apparatusEvents } from './apparatusTexts';
+import { moreEvents } from './moreTexts';
 import { ELEMENTS } from '../data/elements';
 
-const JOINT_ION: Record<string, string> = { '(CuOH)2CO3': 'copper(II)', 'Fe(OH)3': 'iron(III)', 'Al(OH)3': 'aluminium' };
+const JOINT_ION: Record<string, string> = { '(CuOH)2CO3': 'copper(II)', 'Fe(OH)3': 'iron(III)', 'Al(OH)3': 'aluminium', 'Cr(OH)3': 'chromium(III)' };
 
 export const en: Strings = {
   langName: 'English',
@@ -25,7 +26,7 @@ export const en: Strings = {
   reagents: 'Reagents',
   search: 'Find a reagent…',
   nothingFound: 'Nothing found',
-  cats: { all: 'All', acid: 'Acids', base: 'Bases', salt: 'Salts', oxide: 'Oxides', metal: 'Metals', ind: 'Indicators', other: 'Other' },
+  cats: { all: 'All', acid: 'Acids', base: 'Bases', salt: 'Salts', oxide: 'Oxides', metal: 'Metals', nonmetal: 'Nonmetals', ind: 'Indicators', other: 'Other' },
   dose: 'Portion',
   doseLiquid: ['a drop', '1 mL', '5 mL'],
   doseSolid: ['a grain', 'a piece', 'a lot'],
@@ -91,11 +92,14 @@ export const en: Strings = {
   },
   safety: {
     acidWater: { title: 'Water first, then acid', text: 'Concentrated acid is poured into water in a thin stream while stirring. If you pour water into the acid, the water boils and sprays acid around.' },
-    bigSodium: { title: 'Too big a piece of sodium', text: 'Sodium is used in pea-sized pieces, behind a safety screen. A big piece reacts explosively.' },
+    bigSodium: { title: 'Too big a piece of an alkali metal', text: 'Sodium and potassium are used in pea-sized pieces, behind a safety screen. A big piece reacts explosively and shatters the glass.' },
     sodiumWater: { title: 'Careful: sodium', text: 'Sodium is kept under kerosene and handled with tweezers. The teacher shows this experiment behind a safety screen.' },
     fumeHood: { title: 'Use the fume hood', text: 'Toxic or corrosive gases are given off. In a real lab this experiment is done in a fume hood.' },
     ammoniaSmell: { title: 'How to smell a substance', text: 'Never hold the tube under your nose. Waft the vapour towards you with your hand.' },
-    hotTube: { title: 'Hot', text: 'Hold a heated tube with a holder and point its mouth away from yourself and others.' }
+    hotTube: { title: 'Hot', text: 'Hold a heated tube with a holder and point its mouth away from yourself and others.' },
+    alkaliFire: { title: 'Careful: potassium', text: 'Potassium reacts with water even more violently than sodium: the hydrogen catches fire and drops of alkali fly. Only the teacher shows this, with a tiny piece, behind a screen.' },
+    toxic: { title: 'Toxic substances', text: 'Chromium(VI), lead, barium, nickel and cobalt compounds are toxic. Wear gloves, work in a fume hood and pour leftovers into a waste jar, not down the sink.' },
+    hotGlass: { title: 'Hot glass', text: 'Very hot glass looks just like cold glass. Do not touch the tube until it has cooled, and never put it into cold water — it will crack.' }
   },
   conc: 'conc.',
   dil: 'dil.',
@@ -139,11 +143,18 @@ export const en: Strings = {
     { label: 'Light-blue precipitate', steps: ['CuSO4', 'NaOH'] },
     { label: 'Zinc in acid', steps: ['HCl', 'Zn'] },
     { label: 'Crimson alkali', steps: ['NaOH', 'phph'] },
-    { label: 'Blood-red', steps: ['FeCl3', 'KSCN'] }
+    { label: 'Blood-red', steps: ['FeCl3', 'KSCN'] },
+    { label: 'Golden precipitate', steps: ['PbNO32', 'KI'] },
+    { label: 'Halogens push each other out', steps: ['KBr', 'Cl2aq'] },
+    { label: 'Iodine and starch', steps: ['starch', 'KI', 'Cl2aq'] },
+    { label: 'Yellow turns orange', steps: ['K2CrO4', 'H2SO4'] },
+    { label: 'Cloudy — speed up time', steps: ['Na2S2O3', 'HCl'] },
+    { label: 'Cold pack', steps: ['H2O', 'NH4NO3s'] }
   ],
   elements: ELEMENTS.map((e) => e.en),
   events: {
     ...apparatusEvents('en'),
+    ...moreEvents('en'),
     precip: (p, h) => ({
       title: `A ${h.color(p.color)} precipitate formed`,
       say: `${h.cap(h.NF(p.product))} formed. It does not dissolve in water and settles out as a precipitate — a sign of a chemical reaction.` +
@@ -180,7 +191,9 @@ export const en: Strings = {
         : `${h.cap(h.N(p.solid))} dissolves in ammonia solution, forming the soluble complex ${h.F(p.complex)}.`,
       why: p.solid === 'AgCl'
         ? 'Ammonia molecules attach to silver ions and keep them in solution. Add nitric acid and the complex breaks down, so AgCl settles out again.'
-        : 'Ammonia molecules bind firmly to the metal ion and form a soluble complex ion. The deep-blue solution is a test for copper ions.'
+        : p.solid === 'Ni(OH)2'
+          ? 'Six ammonia molecules attach to each nickel ion, forming a soluble violet-blue complex.'
+          : 'Ammonia molecules bind firmly to the metal ion and form a soluble complex ion. The deep-blue solution is a test for copper ions.'
     }),
     complexAcid: (p, h) => (p.product.includes('(OH)')
       ? {
@@ -233,6 +246,16 @@ export const en: Strings = {
         why: 'Acids break down carbonates: carbonic acid forms and splits into carbon dioxide and water.'
       };
       if (p.solidKind === 'phosphate') return { title: 'The precipitate dissolved', say: `${name} dissolves in a strong acid.`, why: 'Insoluble phosphates dissolve in strong acids.' };
+      if (p.solidKind === 'sulfide') return {
+        title: 'The precipitate dissolved with a rotten-egg smell',
+        say: `${name} dissolves in the acid: the salt ${h.NF(p.salt)} forms and hydrogen sulfide ${h.F('H2S')} is given off.`,
+        why: 'Iron, zinc and manganese sulfides dissolve in strong acids. Copper, lead and silver sulfides are so insoluble that the acid cannot dissolve them.'
+      };
+      if (p.solidKind === 'sulfite') return {
+        title: 'The precipitate dissolved with a sharp smell',
+        say: `${name} dissolves in the acid: sulfur dioxide ${h.F('SO2')} is given off.`,
+        why: 'Sulfurous acid is weak and unstable: a stronger acid pushes it out of the salt and it falls apart into sulfur dioxide and water.'
+      };
       return {
         title: p.solidKind === 'oxide' ? `${name} dissolved` : 'The precipitate dissolved',
         say: `The ${p.solidKind === 'oxide' ? 'basic oxide' : 'insoluble base'} ${h.F(p.solid)} reacts with the acid, giving the salt ${h.NF(p.salt)} and water.` +
@@ -248,19 +271,47 @@ export const en: Strings = {
         ? 'Silicic acid is neutralized by the alkali and turns into a soluble silicate.'
         : `${h.F(p.solid)} is amphoteric: it reacts with both acids and alkalis. That is why a precipitate forms first and then dissolves in excess alkali.`
     }),
-    metalAlkali: (p, h) => ({
-      title: `${h.cap(h.metal(p.metal))} dissolves in the alkali`,
-      say: `${h.cap(h.metal(p.metal))} is an amphoteric metal: it dissolves in alkali, giving off hydrogen ${h.F('H2')}.`,
-      why: 'Zinc and aluminium react with both acids and alkalis.'
-    }),
+    metalAlkali: (p, h) => (p.metal === 'Si'
+      ? {
+          title: 'Silicon dissolves in the alkali',
+          say: `Silicon is a nonmetal, yet it dissolves in alkali solution: the silicate ${h.NF('Na2SiO3')} forms and hydrogen ${h.F('H2')} is given off.`,
+          why7: 'Silicon does not react with acids, but it does react with alkalis — and hydrogen comes off.',
+          why: 'Silicon gives away electrons and is oxidized to silicate, while water is reduced to hydrogen. This was once a field method for filling balloons with hydrogen.'
+        }
+      : {
+          title: `${h.cap(h.metal(p.metal))} dissolves in the alkali`,
+          say: `${h.cap(h.metal(p.metal))} is an amphoteric metal: it dissolves in alkali, giving off hydrogen ${h.F('H2')}.`,
+          why: 'Zinc and aluminium react with both acids and alkalis.'
+        }),
     metalAcid: (p, h, e) => ({
       title: 'Hydrogen is given off',
-      say: `${h.cap(h.metal(p.metal))} reacts with the acid: hydrogen bubbles ${h.F('H2')} appear on the metal. Bring a burning splint close — hydrogen burns with a pop.` +
+      say: (p.slow
+        ? `${h.cap(h.metal(p.metal))} reacts with the acid slowly: hydrogen bubbles ${h.F('H2')} appear one at a time. Speed up time and the metal will gradually dissolve.`
+        : `${h.cap(h.metal(p.metal))} reacts with the acid: hydrogen bubbles ${h.F('H2')} appear on the metal. Bring a burning splint close — hydrogen burns with a pop.`) +
         ((e.dT ?? 0) > 5 ? ' The tube got noticeably warm.' : ''),
       why7: `${h.cap(h.metal(p.metal))} is an active metal. Active metals react with acids and give off hydrogen.`,
       why: `In the activity series ${h.metal(p.metal)} stands to the left of hydrogen, so it displaces hydrogen from the acid. Metals to the right of hydrogen cannot do this.`
     }),
-    activeMetalWater: (p, h) => (p.metal === 'Na'
+    activeMetalWater: (p, h) => (p.metal === 'K'
+      ? {
+          title: 'Potassium bursts into flame on water',
+          say: `Potassium is lighter than water and reacts so violently that the hydrogen catches fire at once with a lilac flame. The piece darts about and often pops. The alkali ${h.F('KOH')} forms in the solution.`,
+          why7: 'Potassium is one of the most active metals. It reacts with water even more strongly than sodium.',
+          why: 'In the alkali metal group activity grows down the group: lithium reacts calmly, sodium vigorously, potassium bursts into flame. The lilac color of the flame comes from potassium.'
+        }
+      : p.metal === 'Li'
+      ? {
+          title: 'Lithium fizzes on water',
+          say: `Lithium is the lightest metal: it floats on water and fizzes calmly, giving off hydrogen. It does not melt or catch fire. The alkali ${h.F('LiOH')} forms in the solution.`,
+          why: 'Lithium is near the start of the activity series, yet it reacts with water more calmly than sodium and potassium: activity grows down the alkali metal group.'
+        }
+      : p.metal === 'Ba'
+      ? {
+          title: 'Barium reacts vigorously with water',
+          say: `Barium is heavier than water and sinks, but gives off hydrogen fast. The solution stays clear: barium hydroxide ${h.F('Ba(OH)2')} dissolves well — it is an alkali.`,
+          why: 'Barium is an alkaline earth metal, the most active one on the shelf: more active than calcium and magnesium.'
+        }
+      : p.metal === 'Na'
       ? {
           title: 'Sodium skates on the water',
           say: `Sodium is lighter than water: it melts into a shiny ball and darts across the surface, giving off hydrogen. The alkali ${h.F('NaOH')} forms in the solution.`,
@@ -332,9 +383,11 @@ export const en: Strings = {
       say: 'Strong heating breaks sugar down: drops of water appear on the walls and carbon is left behind.',
       why: 'A change of color and water given off are signs of a chemical reaction.'
     }),
-    boiling: () => ({
+    boiling: (p) => ({
       title: 'The liquid is boiling',
-      say: 'The solution reached 100 °C and is boiling. This is a physical change.',
+      say: Number(p.bp) > 100.4
+        ? `The solution boils at ${p.bp} °C — higher than pure water: dissolved substances raise the boiling point. The water boils away and the solution gets stronger.`
+        : 'The water reached 100 °C and is boiling: bubbles of steam form inside the liquid. This is a physical change.',
       why: 'When water boils it turns into steam, but it stays the same substance.'
     }),
     minor: () => ({ title: '', say: '' }),
@@ -356,7 +409,9 @@ export const en: Strings = {
     }),
     metalAcidNone: (p, h) => ({
       title: `${h.cap(h.metal(p.metal))} does not react with the acid`,
-      say: 'No bubbles, the metal is unchanged. Try zinc, magnesium or iron.',
+      say: p.noble
+        ? `${h.cap(h.metal(p.metal))} does not dissolve in hydrochloric, sulfuric or even nitric acid. Only aqua regia, a mixture of nitric and hydrochloric acids, dissolves it.`
+        : 'No bubbles, the metal is unchanged. Try zinc, magnesium or iron.',
       why7: `${h.cap(h.metal(p.metal))} is a low-activity metal and does not react with this acid.`,
       why: `In the activity series ${h.metal(p.metal)} stands to the right of hydrogen. Such metals do not displace hydrogen from acid solutions.`
     }),
@@ -380,12 +435,14 @@ export const en: Strings = {
       say: 'Cold concentrated sulfuric acid covers this metal with a tough film and the reaction stops.',
       why: 'This is called passivation. It is why concentrated sulfuric acid is transported in iron tanks.'
     }),
-    needsHeat: (p, h) => (p.what === 'cuConc'
+    needsHeat: (p, h) => (p.what === 'calcination'
+      ? { title: 'The spirit lamp is not enough', say: 'Marble and limestone break down into quicklime and carbon dioxide only at about 900 °C. A spirit lamp heats the tube far less, so nothing happens.', why: 'Lime is made by roasting limestone in big kilns. Different substances break down at very different temperatures.' }
+      : p.what === 'cuConc'
       ? { title: 'Needs heating', say: 'Cold copper does not react with concentrated sulfuric acid. Heat the vessel with the spirit lamp.', why: 'Many reactions go only when heated.' }
       : { title: 'Needs heating', say: `${h.cap(h.N(p.solid))} dissolves in acid very slowly. Heat the vessel and the reaction will go.`, why: 'Reactions go faster when heated.' }),
     insolubleSolid: (p, h) => ({
       title: `${h.cap(h.N(p.solid))} does not dissolve in water`,
-      say: 'The substance lies at the bottom and the solution is unchanged.' + (p.solid !== 'MnO2' ? ' Try adding an acid.' : ''),
+      say: 'The substance lies at the bottom and the solution is unchanged.' + (['MnO2', 'SiO2', 'C', 'Si'].includes(p.solid) ? '' : ' Try adding an acid.'),
       why: 'Not every substance dissolves in water. Insoluble oxides and carbonates react with acids.'
     }),
     notModeled: (p) => ({

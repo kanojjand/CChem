@@ -44,4 +44,42 @@ describe('lab apparatus', () => {
     slow.step(1); fast.step(1);
     expect(fast.vessel('b1').electro!.cathode.Cu).toBeCloseTo(slow.vessel('b1').electro!.cathode.Cu * 20, 5);
   });
+
+  it('distils water: steam from a boiling vessel condenses in another one', () => {
+    const lab = new Lab();
+    lab.add('KMnO4', { ml: 5 }, 't1');
+    lab.setTube('t1', 't2');
+    lab.toggleHeat('t1');
+    lab.setSpeed(60);
+    for (let i = 0; i < 40; i++) lab.step(0.25);
+    const t2 = lab.vessel('t2');
+    expect(t2.volume).toBeGreaterThan(0.2);
+    expect(t2.aq['MnO4^-'] ?? 0).toBe(0);
+    expect(lab.discoveries).toContain('distillation');
+  });
+
+  it('heating potassium permanganate fills the collector with oxygen that relights a splint', () => {
+    const lab = new Lab();
+    lab.add('KMnO4s', { g: 1 }, 't1');
+    lab.setTube('t1', 'collector');
+    lab.toggleHeat('t1');
+    lab.setSpeed(20);
+    for (let i = 0; i < 60; i++) lab.step(0.25);
+    expect(lab.collector.gases.O2).toBeGreaterThan(0);
+    expect(lab.testGas('collector', 'glowing').result).toBe('relights');
+  });
+
+  it('magnet pulls iron out of a mixture with sulfur but not out of iron sulfide', () => {
+    const lab = new Lab();
+    lab.add('Fe', { g: 0.5 }, 't1');
+    lab.add('S', { g: 0.3 }, 't1');
+    expect(lab.magnet('t1').grams).toBeGreaterThan(0.4);
+    lab.add('Fe', { g: 0.5 }, 't2');
+    lab.add('S', { g: 0.3 }, 't2');
+    lab.toggleHeat('t2');
+    lab.setSpeed(20);
+    for (let i = 0; i < 60; i++) lab.step(0.25);
+    expect(lab.vessel('t2').solids.FeS).toBeGreaterThan(0);
+    expect(lab.magnet('t2').grams).toBe(0);
+  });
 });

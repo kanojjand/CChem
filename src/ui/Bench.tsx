@@ -99,6 +99,7 @@ export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVes
   const over = drag?.over ?? null;
   const tubes = lab.vessels.filter((v) => v.kind === 'tube');
   const others = lab.vessels.filter((v) => v.kind !== 'tube');
+  const flameColor = lab.flame && now - lab.flame.at < 4000 ? lab.flame.color : undefined;
   const lampHandlers = dragHandlers({ kind: 'lamp' }, { onTap: onLampTap, onDrop: (t) => onDrop({ kind: 'lamp' }, t) });
   const lampBusy = lab.heating != null;
   const [menu, setMenu] = useState(false);
@@ -182,7 +183,7 @@ export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVes
         </button>
         <button type="button" className={`item lamp ${lampBusy ? 'in-use' : ''}`} {...lampHandlers}
           aria-label={lab.heating === lab.selected ? s.stopHeat : s.heat}>
-          <LampSVG lit={!lampBusy} />
+          <LampSVG lit={!lampBusy || flameColor != null} color={flameColor} />
           <span>{s.lamp}</span>
         </button>
         <svg className="tubes-overlay" aria-hidden="true">

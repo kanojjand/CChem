@@ -7,7 +7,7 @@ import { Formula } from './Formula';
 import { BottleIcon } from './icons';
 import { dragHandlers } from './drag';
 
-const CATS: ('all' | ReagentCat)[] = ['all', 'acid', 'base', 'salt', 'oxide', 'metal', 'ind', 'other'];
+const CATS: ('all' | ReagentCat)[] = ['all', 'acid', 'base', 'salt', 'oxide', 'metal', 'nonmetal', 'ind', 'other'];
 const ML_PRESETS = [0.05, 1, 2, 5, 10, 25, 50, 100];
 const G_PRESETS = [0.05, 0.1, 0.5, 1, 5, 10, 20];
 

@@ -3,12 +3,13 @@
 // happens `explain` says why.
 
 import {
-  IONS, METALS, REAGENT_BY_ID, activity, compound, hasCompound, salt, solubility,
+  IONS, METALS, NOBLE_METALS, REAGENT_BY_ID, activity, compound, hasCompound, salt, solubility,
   type IndicatorId, type Reagent
 } from './data';
 import { indicatorColor, type ColorName } from './color';
 import { solvePH, medium } from './ph';
 import { basicSolid, settle, type Ctx } from './rules';
+import { heatStep } from './physics';
 import { molarMass } from './formula';
 import {
   EPS, ROOM_T, amt, isEmpty, newVessel, putIon, put, waterVolume,
@@ -67,6 +68,7 @@ export function snapshot(v: Vessel): Before {
 }
 
 export function finish(v: Vessel, before: Before, events: ReactionEvent[], explainCtx: ExplainCtx | null): ActionResult {
+  for (const e of events) if (e.key && e.importance >= 1 && !v.seen.includes(e.key)) v.seen.push(e.key);
   // A violent reaction burst the vessel: the contents are lost.
   if (v.fx.boomAt != null && !v.broken && events.some((e) => e.safety === 'bigSodium')) {
     v.broken = v.fx.boomAt;
@@ -164,10 +166,15 @@ export function addReagent(v: Vessel, r: Reagent, dose: Dose | Amount, now: numb
   return { ...res, added, overflow: overflow > 0.005 ? overflow : undefined };
 }
 
-export function pour(from: Vessel, to: Vessel, now: number): ActionResult {
+export function pour(from: Vessel, to: Vessel, now: number, filter = false): ActionResult {
   if (from.id === to.id) return { events: [], error: 'same' };
   if (to.broken || from.broken) return { events: [], error: 'broken' };
   if (isEmpty(from) && Object.keys(from.inds).length === 0) return { events: [], error: 'empty' };
+  // Through a filter only the liquid passes; the solids stay on the paper.
+  if (filter && from.volume <= 0.005) return { events: [], error: 'empty' };
+  const residue = filter ? Object.keys(from.solids).sort((a, b) => from.solids[b] - from.solids[a])[0] : undefined;
+  const solidsKept = filter ? from.solids : null;
+  if (solidsKept) from.solids = {};
   const free = Math.max(0, to.capacity - to.volume);
   if (from.volume > 0.005 && free < 0.005) return { events: [], error: 'full' };
   // Pour as much as fits; the rest stays in the source vessel.
@@ -203,9 +210,15 @@ export function pour(from: Vessel, to: Vessel, now: number): ActionResult {
     from.concVol *= 1 - f;
   }
 
+  if (solidsKept) for (const id in solidsKept) put(from.solids, id, solidsKept[id]);
+
   const ctx: Ctx = { now, aqueousAddedToConc: before.hadConc && fromHasWater, limited: new Set() };
   const events = settle(to, ctx);
-  const res = finish(to, before, events, { poured: true, pouredIons: before });
+  if (filter) {
+    const busy = events.some((e) => e.importance >= 2);
+    events.unshift({ kind: 'filtered', importance: busy ? 1 : 2, type: 'physical', p: { residue: residue ?? '' }, signs: [], key: residue ? 'filter' : undefined });
+  }
+  const res = finish(to, before, events, filter ? null : { poured: true, pouredIons: before });
   return { ...res, added: ml, partial: f < 0.999 };
 }
 
@@ -214,35 +227,41 @@ export function wash(v: Vessel) {
   Object.assign(v, fresh, { heating: v.heating, electro: v.electro ? { cathode: {} } : undefined });
 }
 
-/** Advance time: heating, cooling, slow changes. Returns events when something happened. */
+/** Advance time: heating, cooling, boiling, slow changes. Returns events when something happened. */
 export function tick(v: Vessel, dt: number, now: number): ReactionEvent[] {
-  const wasTemp = v.temp;
-  if (v.heating) {
-    if (v.volume > 0.01) v.temp = Math.min(100, v.temp + 6 * dt);
-    else v.temp = Math.min(300, v.temp + 30 * dt);
-  } else if (Math.abs(v.temp - ROOM_T) > 0.05) {
-    v.temp = ROOM_T + (v.temp - ROOM_T) * Math.exp(-dt / 35);
-  }
-
-  // Iron(II) hydroxide slowly turns brown in air.
-  const feoh2 = amt(v.solids, 'Fe(OH)2');
-  if (feoh2 > EPS && v.fx.precipAt && now - v.fx.precipAt > 8000) {
-    const e = Math.min(feoh2, feoh2 * 0.03 * dt + 0.002);
-    v.solids['Fe(OH)2'] = feoh2 - e;
-    if (v.solids['Fe(OH)2'] <= EPS) delete v.solids['Fe(OH)2'];
-    put(v.solids, 'Fe(OH)3', e);
-  }
-
-  if (!v.heating && v.temp < 60 && wasTemp < 60) return [];
   const before = snapshot(v);
-  before.temp = wasTemp;
-  const ctx: Ctx = { now, aqueousAddedToConc: false, limited: new Set() };
-  const events = settle(v, ctx);
-  if (v.heating && v.volume > 0.01 && v.temp >= 99.5 && wasTemp < 99.5) {
-    events.push({ kind: 'boiling', importance: 1, type: 'physical', p: {}, signs: ['gas'], key: 'boiling' });
-    v.fx.gas.push({ id: 'H2O', amount: 1, at: now, until: now + 60000 });
+  const physical = heatStep(v, dt, now);
+
+  // Iron(II) and manganese(II) hydroxides slowly turn brown in air.
+  for (const [from, to] of [['Fe(OH)2', 'Fe(OH)3'], ['Mn(OH)2', 'MnO(OH)2']]) {
+    const n = amt(v.solids, from);
+    if (n <= EPS || !v.fx.precipAt || now - v.fx.precipAt < 8000) continue;
+    const e = Math.min(n, n * 0.03 * dt + 0.002);
+    v.solids[from] = n - e;
+    if (v.solids[from] <= EPS) delete v.solids[from];
+    put(v.solids, to, e);
   }
-  if (events.length === 0) return [];
+
+  const ctx: Ctx = { now, aqueousAddedToConc: false, limited: new Set(), dt };
+  const events = [...physical, ...settle(v, ctx)];
+  // Slow processes go on for a while: tell about each of them once.
+  for (const e of events) if (e.key && e.kind !== 'boiling' && v.seen.includes(e.key)) e.importance = 0;
+  if (!events.some((e) => e.importance > 0)) return [];
+  finish(v, before, events, null);
+  return events.filter((e) => e.importance > 0);
+}
+
+/** Condensed steam from a delivery tube collects in a vessel: distillation. */
+export function condense(v: Vessel, ml: number, now: number): ReactionEvent[] {
+  if (v.broken || ml <= 0) return [];
+  const add = Math.min(ml, Math.max(0, v.capacity - v.volume));
+  if (add <= 0) return [];
+  const before = snapshot(v);
+  if (v.volume > 0.01) v.temp = (v.temp * v.volume + ROOM_T * add) / (v.volume + add);
+  v.volume += add;
+  const events = settle(v, { now, aqueousAddedToConc: false, limited: new Set() });
+  if (!v.seen.includes('distillation')) events.unshift({ kind: 'distillation', importance: 2, type: 'physical', p: {}, signs: [], key: 'distillation' });
+  if (!events.some((e) => e.importance > 0)) return [];
   finish(v, before, events, null);
   return events;
 }
@@ -258,8 +277,7 @@ export interface ExplainCtx {
 function notModeled(v: Vessel): string | null {
   const has = (id: string) => amt(v.aq, id) > EPS;
   const solid = (id: string) => amt(v.solids, id) > EPS;
-  if (has('I^-') && (has('Cu^2+') || has('Fe^3+'))) return 'iodide';
-  if (has('MnO4^-') && (has('Fe^2+') || has('I^-') || has('H2O2'))) return 'permanganate';
+  if (has('MnO4^-') && !has('H^+') && (has('Fe^2+') || has('I^-') || has('H2O2') || has('SO3^2-'))) return 'permanganate';
   if (has('Fe^3+') && ['Fe', 'Cu', 'Zn', 'Mg', 'Al'].some(solid)) return 'iron3metal';
   if (amt(v.aq, 'H2SO4c') > EPS && waterVolume(v) <= 0.05 && ['Zn', 'Mg', 'Na', 'Ca'].some(solid)) return 'concActive';
   return null;
@@ -288,6 +306,17 @@ function explain(v: Vessel, before: Before, events: ReactionEvent[], x: ExplainC
   if (strongH) {
     const oxide = ['CuO', 'Fe2O3'].find(solid);
     if (oxide && v.temp < 60) return { kind: 'needsHeat', importance: 2, p: { what: 'oxide', solid: oxide }, signs: [] };
+    const filmed = metals.find((m) => METALS[m].film);
+    const hp = v.parent['H^+'] || 'HCl';
+    const acidAnion = hasCompound(hp) ? compound(hp).anion : undefined;
+    if (filmed && (acidAnion === 'Cl^-' || acidAnion === 'SO4^2-') && !has('NO3^-')) {
+      return { kind: 'leadFilm', importance: 2, p: { metal: filmed, acid: v.parent['H^+'] || 'HCl', salt: salt(METALS[filmed].ion, acidAnion).id }, signs: [] };
+    }
+    const precious = metals.find((m) => NOBLE_METALS.has(m));
+    if (precious) {
+      const acidParent = v.parent['H^+'] || 'HCl';
+      return { kind: 'metalAcidNone', importance: 2, p: { metal: precious, acid: acidParent, noble: '1' }, signs: [], eq: { reactants: [precious, acidParent], products: [], noReaction: true } };
+    }
     const noble = metals.find((m) => activity(m) > activity('H2'));
     if (noble && !has('NO3^-')) {
       const acidParent = v.parent['H^+'] || 'HCl';
@@ -317,9 +346,10 @@ function explain(v: Vessel, before: Before, events: ReactionEvent[], x: ExplainC
     }
   }
 
-  if (r && (r.cat === 'oxide' || r.id === 'CaCO3') && waterVolume(v) > 0.05) {
+  if (r && (r.cat === 'oxide' || r.cat === 'nonmetal' || r.id === 'CaCO3' || r.id === 'malachite') && r.kind === 'solid' && waterVolume(v) > 0.05) {
     const s = Object.keys(r.solid || {})[0];
-    if (s && solid(s) && (basicSolid(s) || s === 'MnO2')) return { kind: 'insolubleSolid', importance: 1, p: { solid: s }, signs: [] };
+    if (s === 'S' && solid(s)) return { kind: 'floats', importance: 2, p: { solid: s }, signs: [], key: 'sulfur-floats' };
+    if (s && solid(s) && (basicSolid(s) || ['MnO2', 'SiO2', 'C', 'Si'].includes(s))) return { kind: 'insolubleSolid', importance: 1, p: { solid: s }, signs: [] };
   }
 
   if (r?.indicator) {
