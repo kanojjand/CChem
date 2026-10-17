@@ -29,7 +29,7 @@ export type EventKind =
 export type ReactionType =
   | 'exchange' | 'substitution' | 'combination' | 'decomposition' | 'neutralization' | 'redox' | 'complex' | 'physical';
 
-export type SafetyKey = 'acidWater' | 'bigSodium' | 'fumeHood' | 'ammoniaSmell' | 'hotTube' | 'sodiumWater' | 'alkaliFire' | 'toxic' | 'hotGlass';
+export type SafetyKey = 'acidWater' | 'bigSodium' | 'fumeHood' | 'ammoniaSmell' | 'hotTube' | 'sodiumWater' | 'alkaliFire' | 'alkaliSplash' | 'toxic' | 'hotGlass';
 
 export interface ReactionEvent {
   kind: EventKind;

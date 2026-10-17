@@ -353,7 +353,9 @@ export interface MetalDef {
   forms: { ru: { nom: string; gen: string }; kk: { nom: string; abl: string }; en: string };
   floats?: boolean;      // lighter than water
   flame?: string;        // hydrogen catches fire on water; color of the flame
-  boomAt?: number;       // mmol at which a piece in water bursts the vessel
+  violentAt?: number;    // mmol at which a piece in a test tube of water spatters hot alkali out
+  boomAt?: number;       // mmol at which a piece in a test tube of water bursts it (larger vessels take more)
+  density?: number;      // g/cm³, to tell how big a piece is
   slow?: boolean;        // reacts with dilute acids slowly
   film?: boolean;        // an insoluble salt film stops the reaction with HCl and H2SO4
   magnetic?: boolean;
@@ -362,11 +364,11 @@ export interface MetalDef {
 const F = (ru: string, gen: string, kk: string, abl: string, en: string): MetalDef['forms'] => ({ ru: { nom: ru, gen }, kk: { nom: kk, abl }, en });
 
 export const METALS: Record<string, MetalDef> = {
-  Li: { id: 'Li', ion: 'Li^+', nitricIon: 'Li^+', alkali: true, heatWater: 222, look: 'piece', color: '#BFC4C8', floats: true, forms: F('литий', 'лития', 'литий', 'литийден', 'lithium') },
-  Na: { id: 'Na', ion: 'Na^+', nitricIon: 'Na^+', alkali: true, heatWater: 184, look: 'piece', color: '#C9CDD2', floats: true, boomAt: 13, forms: F('натрий', 'натрия', 'натрий', 'натрийден', 'sodium') },
-  K: { id: 'K', ion: 'K^+', nitricIon: 'K^+', alkali: true, heatWater: 196, look: 'piece', color: '#C3C9D0', floats: true, flame: '#B07CE0', boomAt: 5, forms: F('калий', 'калия', 'калий', 'калийден', 'potassium') },
-  Ca: { id: 'Ca', ion: 'Ca^2+', nitricIon: 'Ca^2+', alkali: true, heatWater: 414, look: 'piece', color: '#D8DADC', forms: F('кальций', 'кальция', 'кальций', 'кальцийден', 'calcium') },
-  Ba: { id: 'Ba', ion: 'Ba^2+', nitricIon: 'Ba^2+', alkali: true, heatWater: 372, look: 'piece', color: '#D3D6CF', forms: F('барий', 'бария', 'барий', 'барийден', 'barium') },
+  Li: { id: 'Li', ion: 'Li^+', nitricIon: 'Li^+', alkali: true, heatWater: 222, look: 'piece', color: '#BFC4C8', floats: true, density: 0.53, forms: F('литий', 'лития', 'литий', 'литийден', 'lithium') },
+  Na: { id: 'Na', ion: 'Na^+', nitricIon: 'Na^+', alkali: true, heatWater: 184, look: 'piece', color: '#C9CDD2', floats: true, violentAt: 9, boomAt: 45, density: 0.97, forms: F('натрий', 'натрия', 'натрий', 'натрийден', 'sodium') },
+  K: { id: 'K', ion: 'K^+', nitricIon: 'K^+', alkali: true, heatWater: 196, look: 'piece', color: '#C3C9D0', floats: true, flame: '#B07CE0', violentAt: 3, boomAt: 20, density: 0.86, forms: F('калий', 'калия', 'калий', 'калийден', 'potassium') },
+  Ca: { id: 'Ca', ion: 'Ca^2+', nitricIon: 'Ca^2+', alkali: true, heatWater: 414, look: 'piece', color: '#D8DADC', density: 1.55, forms: F('кальций', 'кальция', 'кальций', 'кальцийден', 'calcium') },
+  Ba: { id: 'Ba', ion: 'Ba^2+', nitricIon: 'Ba^2+', alkali: true, heatWater: 372, look: 'piece', color: '#D3D6CF', density: 3.5, forms: F('барий', 'бария', 'барий', 'барийден', 'barium') },
   Mg: { id: 'Mg', ion: 'Mg^2+', nitricIon: 'Mg^2+', alkali: false, heatWater: 467, look: 'ribbon', color: '#C4CBD2', forms: F('магний', 'магния', 'магний', 'магнийден', 'magnesium') },
   Al: { id: 'Al', ion: 'Al^3+', nitricIon: 'Al^3+', alkali: false, heatWater: 530, look: 'granules', color: '#D3D8DD', forms: F('алюминий', 'алюминия', 'алюминий', 'алюминийден', 'aluminium') },
   Mn: { id: 'Mn', ion: 'Mn^2+', nitricIon: 'Mn^2+', alkali: false, heatWater: 220, look: 'granules', color: '#A7A79E', forms: F('марганец', 'марганца', 'марганец', 'марганецтен', 'manganese') },

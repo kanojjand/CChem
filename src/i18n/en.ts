@@ -1,9 +1,16 @@
-import type { Strings } from './types';
+import type { EventText, H, Strings } from './types';
 import { apparatusEvents } from './apparatusTexts';
 import { moreEvents } from './moreTexts';
 import { ELEMENTS } from '../data/elements';
 
 const JOINT_ION: Record<string, string> = { '(CuOH)2CO3': 'copper(II)', 'Fe(OH)3': 'iron(III)', 'Al(OH)3': 'aluminium', 'Cr(OH)3': 'chromium(III)' };
+
+// A piece of an alkali metal: its size, and what happens when it is too big for the vessel.
+function piece(p: Record<string, string>, h: H, t: EventText): EventText {
+  const size = p.mm && p.mm !== '0' ? ` A ${h.num(Number(p.g))} g piece is a cube of about ${p.mm} mm.` : '';
+  const violent = p.violent ? ' That is too much metal for this vessel: the water boils and throws hot alkali out, so part of the solution splashed away.' : '';
+  return { ...t, title: p.violent ? `${h.cap(h.metal(p.metal))} reacts far too violently` : t.title, say: t.say + violent + size };
+}
 
 export const en: Strings = {
   langName: 'English',
@@ -92,7 +99,8 @@ export const en: Strings = {
   },
   safety: {
     acidWater: { title: 'Water first, then acid', text: 'Concentrated acid is poured into water in a thin stream while stirring. If you pour water into the acid, the water boils and sprays acid around.' },
-    bigSodium: { title: 'Too big a piece of an alkali metal', text: 'Sodium and potassium are used in pea-sized pieces, behind a safety screen. A big piece reacts explosively and shatters the glass.' },
+    bigSodium: { title: 'Too big a piece of an alkali metal', text: 'Sodium and potassium are used in pea-sized pieces (0.1–0.2 g), dropped into a wide dish of water behind a safety screen. A piece of about a gram in a test tube explodes and shatters the glass.' },
+    alkaliSplash: { title: 'Hot alkali splashes', text: 'Alkali metals are never dropped into a test tube: there is little water, it boils and throws the alkali out. The experiment is done in a wide dish with plenty of water, with a piece no bigger than a pea (0.1–0.2 g), behind a screen.' },
     sodiumWater: { title: 'Careful: sodium', text: 'Sodium is kept under kerosene and handled with tweezers. The teacher shows this experiment behind a safety screen.' },
     fumeHood: { title: 'Use the fume hood', text: 'Toxic or corrosive gases are given off. In a real lab this experiment is done in a fume hood.' },
     ammoniaSmell: { title: 'How to smell a substance', text: 'Never hold the tube under your nose. Waft the vapour towards you with your hand.' },
@@ -292,7 +300,7 @@ export const en: Strings = {
       why7: `${h.cap(h.metal(p.metal))} is an active metal. Active metals react with acids and give off hydrogen.`,
       why: `In the activity series ${h.metal(p.metal)} stands to the left of hydrogen, so it displaces hydrogen from the acid. Metals to the right of hydrogen cannot do this.`
     }),
-    activeMetalWater: (p, h) => (p.metal === 'K'
+    activeMetalWater: (p, h) => piece(p, h, p.metal === 'K'
       ? {
           title: 'Potassium bursts into flame on water',
           say: `Potassium is lighter than water and reacts so violently that the hydrogen catches fire at once with a lilac flame. The piece darts about and often pops. The alkali ${h.F('KOH')} forms in the solution.`,

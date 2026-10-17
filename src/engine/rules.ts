@@ -14,6 +14,9 @@ import {
   type Ctx, type Donor, type Rule
 } from './ruleKit';
 import { MORE_EARLY, MORE_LATE } from './rulesMore';
+import { ELEMENT_BY_SYMBOL } from '../data/elements';
+
+const ELEMENT_MASS: Record<string, number> = Object.fromEntries(Object.values(ELEMENT_BY_SYMBOL).map((e) => [e.sym, e.mass]));
 import { PHYSICAL_RULES, dissolveSolid } from './physics';
 
 export type { Ctx } from './ruleKit';
@@ -83,6 +86,9 @@ const concMetal: Rule = (v, ctx) => {
 // ---------------------------------------------------------------- active metals
 
 const ALKALI = Object.values(METALS).filter((m) => m.alkali).map((m) => m.id);
+/** How much more metal a vessel takes before it spatters or bursts, compared with a test tube. */
+const SIZE_FACTOR: Record<Vessel['kind'], number> = { tube: 1, flask: 2.5, beaker: 3, beaker250: 4 };
+const molarMassOf = (id: string) => ELEMENT_MASS[id] ?? 23;
 
 const alkaliMetal: Rule = (v, ctx) => {
   for (const m of ALKALI) {
@@ -112,12 +118,25 @@ const alkaliMetal: Rule = (v, ctx) => {
     }
     addGas(v, 'H2', h2, ctx.now);
     const dT = release(v, met.heatWater * consumed);
-    // A pea-sized piece of sodium (about 0.1 g) skates on the water; from about 0.3 g the vessel
-    // bursts. Potassium catches fire at once and bursts from about 0.2 g. Lithium only fizzes.
-    const boom = !!met.boomAt && consumed >= met.boomAt && hasWater;
+    // A pea-sized piece of sodium (about 0.1 g) skates on the water. In a test tube a piece of
+    // about 0.2 g already boils the water and throws hot alkali out; only a big piece (about 1 g
+    // of sodium, 0.8 g of potassium) bursts the tube. Wider vessels with more water take more.
+    // Potassium catches fire at once. Lithium only fizzes.
+    const f = SIZE_FACTOR[v.kind];
+    const boom = !!met.boomAt && hasWater && consumed >= met.boomAt * f;
+    const violent = !boom && !!met.violentAt && hasWater && consumed >= met.violentAt * f;
     if (boom) v.fx.boomAt = ctx.now;
     else if (met.floats) v.fx.runAt = ctx.now;
+    if (violent) {
+      // About a third of the hot liquid is thrown out of the vessel.
+      v.fx.splashAt = ctx.now;
+      for (const id in v.aq) v.aq[id] *= 0.65;
+      for (const k in v.inds) v.inds[k as keyof typeof v.inds] = (v.inds[k as keyof typeof v.inds] || 0) * 0.65;
+      v.volume *= 0.65;
+    }
     if (met.flame && hasWater) v.fx.flame = { at: ctx.now, color: met.flame };
+    const grams = (consumed * molarMassOf(m)) / 1000;
+    const mm = met.density ? Math.round(10 * Math.cbrt(grams / met.density)) : 0;
     const withWater = rest >= fromAcid;
     const signs: ReactionEvent['signs'] = met.flame && hasWater ? ['gas', 'heat', 'light'] : ['gas', 'heat'];
     return ev({
@@ -125,8 +144,8 @@ const alkaliMetal: Rule = (v, ctx) => {
       eq: withWater
         ? { reactants: [m, 'H2O'], products: [base, 'H2'], gas: ['H2'] }
         : { reactants: [m, acid.parent], products: [salt(met.ion, acid.anion).id, 'H2'], gas: ['H2'] },
-      p: { metal: m, acid: acid.parent }, signs,
-      safety: boom ? 'bigSodium' : m === 'Na' ? 'sodiumWater' : m === 'K' ? 'alkaliFire' : undefined, dT,
+      p: { metal: m, acid: acid.parent, g: grams.toFixed(2), mm: String(mm), violent: violent ? '1' : '' }, signs,
+      safety: boom ? 'bigSodium' : violent ? 'alkaliSplash' : m === 'Na' ? 'sodiumWater' : m === 'K' ? 'alkaliFire' : undefined, dT,
       key: withWater ? `metal-water:${m}` : `metal-acid:${m}`
     });
   }

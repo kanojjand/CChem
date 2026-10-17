@@ -162,8 +162,8 @@ describe('content-mvp experiments', () => {
     expect(indicatorColor('phph', phOf(v)!).name).toBe('crimson');
   });
 
-  it('19b. a big piece of sodium explodes and breaks the vessel', () => {
-    const { all, v } = run([['H2O', { ml: 10 }], ['Na', { g: 0.5 }]]);
+  it('19b. a big piece of sodium explodes and breaks the test tube', () => {
+    const { all, v } = run([['H2O', { ml: 10 }], ['Na', { g: 1.2 }]]);
     expect(all.some((e) => e.safety === 'bigSodium')).toBe(true);
     expect(v.broken).toBeDefined();
     expect(v.volume).toBe(0);
@@ -171,9 +171,20 @@ describe('content-mvp experiments', () => {
   });
 
   it('19c. a pea-sized piece of sodium only skates on the water', () => {
-    const { kinds, v } = run([['H2O', { ml: 10 }], ['Na', { g: 0.1 }]]);
+    const { kinds, v, all } = run([['H2O', { ml: 10 }], ['Na', { g: 0.1 }]]);
     expect(kinds).toContain('activeMetalWater');
     expect(v.broken).toBeUndefined();
+    expect(all.find((e) => e.kind === 'activeMetalWater')?.p.violent).toBe('');
+  });
+
+  it('19d. half a gram of sodium spatters alkali out of a test tube but does not break it; a beaker takes it calmly', () => {
+    const tube = run([['H2O', { ml: 10 }], ['Na', { g: 0.5 }]]);
+    expect(tube.v.broken).toBeUndefined();
+    expect(tube.all.find((e) => e.kind === 'activeMetalWater')?.p.violent).toBe('1');
+    expect(tube.v.volume).toBeLessThan(8);
+    const beaker = run([['H2O', { ml: 50 }], ['Na', { g: 0.5 }]], newVessel('b', 'beaker'));
+    expect(beaker.v.broken).toBeUndefined();
+    expect(beaker.all.find((e) => e.kind === 'activeMetalWater')?.p.violent).toBe('');
   });
 
   it('20–21. calcium and quicklime with water give cloudy limewater', () => {

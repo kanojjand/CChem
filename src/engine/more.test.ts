@@ -38,7 +38,10 @@ describe('alkali metals', () => {
     expect(small.kinds).toContain('activeMetalWater');
     expect(small.v.fx.flame).toBeDefined();
     expect(small.v.broken).toBeUndefined();
-    const big = run([['H2O', { ml: 5 }], ['K', { g: 0.3 }]]);
+    const mid = run([['H2O', { ml: 5 }], ['K', { g: 0.3 }]]);
+    expect(mid.v.broken).toBeUndefined();
+    expect(mid.all.some((e) => e.safety === 'alkaliSplash')).toBe(true);
+    const big = run([['H2O', { ml: 5 }], ['K', { g: 1 }]]);
     expect(big.v.broken).toBeDefined();
   });
 
