@@ -20,6 +20,11 @@ export type EventKind =
   | 'metalSulfur' | 'carbonReduce' | 'thermalDecomp' | 'volcano' | 'hardWater' | 'adsorption' | 'leadFilm'
   | 'dissolveHot' | 'flameTest' | 'magnet' | 'magnetNone' | 'filtered'
   | 'iron3Metal' | 'hclPrep' | 'ammoniaPrep' | 'chlorinePrep' | 'metalHotWater' | 'sulfateFilm'
+  // redox of iron, halogens, dissolved gases, nitric acid; aluminate; magnesium with ammonium salts
+  | 'iron2Ox' | 'iron3Reduce' | 'halogenAlkali' | 'halogenThio' | 'halogenReduce' | 'sulfurComprop'
+  | 'carbonicSilicate' | 'aluminateAcid' | 'metalAmmonium' | 'nitricRedox' | 'hydroxideAir'
+  // concentrated acids as oxidisers, dehydration, heating in air, sols, colours that fade on heating
+  | 'concOxidation' | 'dehydration' | 'nitricPrep' | 'heatInAir' | 'solFormation' | 'colorFade'
   // physical processes
   | 'dryOut' | 'crystallize' | 'melting' | 'sublimation' | 'distillation' | 'iceMelt'
   | 'gasOut' | 'floats' | 'dissolveCold' | 'dissolveHotSolid'
@@ -153,7 +158,7 @@ export function waterVolume(v: Vessel): number {
 export function release(v: Vessel, joules: number): number {
   const mass = Math.max(0.5, waterVolume(v) + v.concVol * 1.84);
   const dT = joules / (4.18 * mass);
-  v.temp = Math.max(-25, Math.min(v.volume > 0.01 ? 110 : 350, v.temp + dT));
+  v.temp = Math.max(-25, Math.min(v.volume > 0.01 ? 110 : 600, v.temp + dT));
   return dT;
 }
 

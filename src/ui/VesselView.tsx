@@ -242,7 +242,7 @@ export function VesselSVG({ v, now }: { v: Vessel; now: number }) {
   let yTop = surfaceY(g, v.kind, fill);
   if (hasLiquid) yTop = Math.min(yTop, g.bottom - 5);
   const pH = phOf(v);
-  const colored = hasLiquid ? solutionColor(v.aq, v.volume, v.inds, pH) : null;
+  const colored = hasLiquid ? solutionColor(v.aq, v.volume, v.inds, pH, v.temp) : null;
   const oily = amt(v.aq, 'H2SO4c') > EPS && waterVolume(v) <= 0.05;
   const liquid = colored ?? (oily ? OILY : WATER);
 

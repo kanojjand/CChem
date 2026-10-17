@@ -25,16 +25,19 @@ const FLAME_RU: Record<string, string> = {
   'Ba^2+': 'жёлто-зелёным', 'Cu^2+': 'сине-зелёным'
 };
 
+// Gases that leave a hot solution and need a fume hood.
+const TOXIC_OUT = ['Cl2', 'Br2', 'H2S', 'SO2', 'NH3'];
+
 const DECOMP_RU: Record<string, { title: string; say: string; why: string }> = {
   KMnO4: { title: 'Выделяется кислород', say: 'Кристаллы перманганата калия трещат и рассыпаются в тёмный порошок, выделяется кислород ⟦O2⟧. Внеси тлеющую лучинку — она вспыхнет.', why: 'Так в школе получают кислород: при нагревании перманганат калия разлагается на манганат калия, оксид марганца(IV) и кислород.' },
   NaHCO3: { title: 'Сода разлагается', say: 'При нагревании пищевая сода разлагается: выделяется углекислый газ ⟦CO2⟧, на холодных стенках появляются капли воды, остаётся карбонат натрия ⟦Na2CO3⟧.', why: 'Поэтому сода разрыхляет тесто: в духовке углекислый газ делает его пышным.' },
   '(CuOH)2CO3': { title: 'Зелёный малахит почернел', say: 'Малахит разлагается: зелёный порошок становится чёрным оксидом меди(II) ⟦CuO⟧, выделяются углекислый газ и пары воды.', why: 'Изменение цвета, газ и капли воды — признаки реакции разложения. Из одного вещества получилось три новых.' },
-  NH4Cl: { title: 'Нашатырь «возгоняется»', say: 'Хлорид аммония при нагревании распадается на аммиак и хлороводород. В холодной части пробирки газы снова соединяются, и там появляется белый налёт.', why: 'Это похоже на возгонку, но на самом деле идут две реакции: разложение при нагревании и соединение при охлаждении.' },
+  NH4Cl: { title: 'Нашатырь «возгоняется»', say: 'Хлорид аммония при нагревании распадается на аммиак и хлороводород. В холодной части пробирки газы снова соединяются, и там появляется белый налёт.', why: 'Это похоже на возгонку, но на самом деле идут две реакции: разложение при нагревании и соединение при охлаждении. Пока газы не соединились, чувствуется резкий запах аммиака и хлороводорода.' },
   KNO3: { title: 'Селитра плавится и даёт кислород', say: 'Калийная селитра сначала плавится, а потом разлагается: выделяется кислород ⟦O2⟧, остаётся нитрит калия ⟦KNO2⟧.', why: 'Селитра — источник кислорода, поэтому её добавляют в чёрный порох и составы для фейерверков.' },
   'CuSO4·5H2O': { title: 'Синие кристаллы побелели', say: 'Медный купорос теряет кристаллизационную воду: на стенках появляются капли, синие кристаллы превращаются в белый порошок безводного сульфата меди(II).', why: 'Синий цвет медному купоросу дают молекулы воды, связанные с ионами меди. Капни на белый порошок воды — он снова посинеет.' },
   'CoCl2·6H2O': { title: 'Розовое стало синим', say: 'Розовые кристаллы хлорида кобальта(II) теряют воду и становятся синими.', why: 'На этом основаны «индикаторы влажности»: во влажном воздухе соль розовая, в сухом — синяя.' },
-  'Fe(OH)3': { title: 'Гидроксид разлагается', say: 'Бурый гидроксид железа(III) разлагается на красно-бурый оксид железа(III) ⟦Fe2O3⟧ и воду.', why: 'Нерастворимые основания при нагревании разлагаются на оксид и воду. Ржавчина — это смесь оксида и гидроксида железа(III).' },
-  'Zn(OH)2': { title: 'Гидроксид разлагается', say: 'Гидроксид цинка разлагается на белый оксид цинка ⟦ZnO⟧ и воду.', why: 'Нерастворимые основания при нагревании разлагаются на оксид и воду.' },
+  'Fe(OH)3': { title: 'Гидроксид разлагается', say: 'Бурый гидроксид железа(III) разлагается на красно-бурый оксид железа(III) ⟦Fe2O3⟧ и воду.', why: 'Нерастворимые гидроксиды (основания и амфотерные гидроксиды) при нагревании разлагаются на оксид и воду. Ржавчина — это смесь оксида и гидроксида железа(III).' },
+  'Zn(OH)2': { title: 'Гидроксид разлагается', say: 'Гидроксид цинка разлагается на белый оксид цинка ⟦ZnO⟧ и воду.', why: 'Нерастворимые гидроксиды (основания и амфотерные гидроксиды) при нагревании разлагаются на оксид и воду.' },
   'Mg(OH)2': { title: 'Гидроксид разлагается', say: 'Гидроксид магния разлагается на оксид магния ⟦MgO⟧ и воду.', why: 'Нерастворимые основания при нагревании разлагаются на оксид и воду.' },
   Ag2O: { title: 'Получилось серебро', say: 'Тёмный оксид серебра разлагается на серебро и кислород ⟦O2⟧ — в пробирке появляется серый металлический налёт.', why: 'Оксиды малоактивных металлов разлагаются при нагревании. Похожим опытом с оксидом ртути в XVIII веке открыли кислород.' }
 };
@@ -122,7 +125,7 @@ const RU: Pack = {
   bleach: (p, h) => ({
     title: 'Индикатор обесцветился',
     say: `Хлорная вода разрушила краситель: ${h.ind(p.ind)} потерял окраску.`,
-    why: 'Хлор в воде образует хлорноватистую кислоту — сильный окислитель, который разрушает красители. Поэтому хлор входит в отбеливатели.'
+    why: 'Хлор в воде образует хлорноватистую кислоту — сильный окислитель, который разрушает красители. Поэтому соединения хлора — гипохлорит натрия NaClO — используют в отбеливателях.'
   }),
   permanganateRedox: (p, h) => ({
     title: 'Малиновая окраска исчезла',
@@ -133,7 +136,7 @@ const RU: Pack = {
   dichromateRedox: (p, h) => ({
     title: 'Оранжевый раствор позеленел',
     say: `Дихромат в кислой среде окислил ${p.red === 'H2O2' ? 'пероксид водорода' : p.red === 'I^-' ? 'иодид до иода' : p.red === 'Fe^2+' ? 'ионы железа(II)' : 'сульфит'} и превратился в зелёные ионы хрома(III) ${h.F('Cr^3+')}.`,
-    why: 'Хром меняет степень окисления с +6 до +3. На похожей смене цвета работали первые приборы для проверки водителей на алкоголь.'
+    why: 'Хром меняет степень окисления с +6 до +3. На этой смене цвета работали индикаторные трубки для проверки водителей на алкоголь: спирт восстанавливает оранжевый дихромат до зелёного хрома(III).'
   }),
   sulfideHydrolysis: (p, h) => (p.product === 'FeS'
     ? {
@@ -143,14 +146,16 @@ const RU: Pack = {
       }
     : {
         title: 'Выпал осадок, запахло сероводородом',
-        say: `Сульфид ${p.ion === 'Al^3+' ? 'алюминия' : 'хрома(III)'} в воде не существует: выпадает ${h.NF(p.product)} и выделяется сероводород ${h.F('H2S')}.`,
+        say: `Сульфид ${p.ion === 'Al^3+' ? 'алюминия' : 'хрома(III)'} в воде не существует: выпадает ${h.NF(p.product)} и выделяется ядовитый сероводород ${h.F('H2S')} с запахом тухлых яиц.`,
         why: 'Это совместный гидролиз: вода разлагает соль слабого основания и слабой кислоты.'
       }),
   metalSulfur: (p, h) => ({
     title: 'Смесь раскалилась докрасна',
     say: `${h.cap(h.metal(p.metal))} и сера соединились: смесь вспыхнула и раскалилась, получился ${h.NF(p.product)}.` +
-      (p.metal === 'Fe' ? ' Магнит его уже не притягивает.' : ''),
-    why7: 'До нагревания была смесь, которую можно разделить магнитом. После — новое вещество с новыми свойствами.',
+      (p.metal === 'Fe' ? ' Магнит его уже не притягивает.' : p.metal === 'Zn' ? ' С цинком реакция очень бурная — смесь вспыхивает.' : ''),
+    why7: p.metal === 'Fe'
+      ? 'До нагревания была смесь, которую можно разделить магнитом. После — новое вещество с новыми свойствами.'
+      : 'До нагревания была смесь: в ней видны отдельные крупинки металла и серы. После — новое вещество с новыми свойствами.',
     why: 'Реакция соединения идёт с выделением тепла: начавшись, она продолжается сама. Это главный опыт, который показывает разницу между смесью и химическим соединением.'
   }),
   carbonReduce: (_p, h) => ({
@@ -169,7 +174,7 @@ const RU: Pack = {
   },
   volcano: () => ({
     title: 'Вулкан!',
-    say: 'Оранжевые кристаллы дихромата аммония загорелись сами: летят искры, из пробирки поднимается пышная зелёная «лава» — оксид хрома(III) ⟦Cr2O3⟧, выделяются азот и пар.',
+    say: 'При нагревании оранжевые кристаллы дихромата аммония вспыхнули: летят искры, из пробирки поднимается пышная зелёная «лава» — оксид хрома(III) ⟦Cr2O3⟧, выделяются азот и пар.',
     why7: 'Достаточно поджечь вещество — дальше реакция идёт сама, с огнём и искрами.',
     why: 'Это внутримолекулярная окислительно-восстановительная реакция: азот окисляется, хром восстанавливается. Соединения хрома(VI) ядовиты, этот опыт показывают только под тягой.'
   }),
@@ -187,7 +192,7 @@ const RU: Pack = {
   }),
   leadFilm: (p, h) => ({
     title: 'Свинец почти не растворяется',
-    say: `Свинец стоит левее водорода, но на его поверхности сразу образуется малорастворимый ${h.NF(p.salt)}. Плёнка закрывает металл, и реакция останавливается.`,
+    say: `Свинец стоит левее водорода, но на его поверхности сразу образуется ${p.salt === 'PbSO4' ? 'нерастворимый' : 'малорастворимый'} ${h.NF(p.salt)}. Плёнка закрывает металл, и реакция останавливается.`,
     why: 'Поэтому свинец долго служил в кислотостойком оборудовании. С азотной кислотой, соль которой растворима, он реагирует.'
   }),
   dissolveHot: (p, h) => ({
@@ -246,7 +251,9 @@ const RU: Pack = {
   }),
   melting: (p, h) => ({
     title: `${h.cap(h.N(p.solid))} плавится`,
-    say: `При ${p.mp} °C ${h.N(p.solid)} переходит в жидкое состояние.` + (p.solid === 'S' ? ' Жёлтая сера превращается в оранжевую жидкость, при сильном нагреве она темнеет и густеет.' : ''),
+    say: `При ${p.mp} °C ${h.N(p.solid)} переходит в жидкое состояние.` +
+      (p.solid === 'S' ? ' Жёлтая сера превращается в светло-жёлтую подвижную жидкость; выше 160 °C она темнеет до красно-бурой и густеет.' : '') +
+      (p.solid === 'NH4NO3' ? ' Дальше нагревать нельзя: аммиачная селитра разлагается, а при сильном нагреве может взорваться.' : ''),
     why7: 'Плавление — физическое явление: вещество из твёрдого становится жидким, но остаётся тем же.',
     why: 'У каждого чистого вещества своя температура плавления. По ней проверяют чистоту веществ.'
   }),
@@ -254,7 +261,7 @@ const RU: Pack = {
     title: 'Фиолетовые пары иода',
     say: 'Иод при нагревании сразу превращается в фиолетовый пар, минуя жидкость. На холодных стенках пар снова оседает блестящими кристаллами.',
     why7: 'Переход из твёрдого состояния сразу в газ называется возгонкой.',
-    why: 'Возгонкой очищают иод: примеси остаются на дне, а чистые кристаллы оседают в холодной части.'
+    why: 'Возгонкой очищают иод: примеси остаются на дне, а чистые кристаллы оседают в холодной части. Пары иода ядовиты — опыт проводят под тягой.'
   }),
   distillation: () => ({
     title: 'Собирается дистиллированная вода',
@@ -270,7 +277,8 @@ const RU: Pack = {
   }),
   gasOut: (p, h) => ({
     title: 'Газ уходит из горячего раствора',
-    say: `При нагревании растворённый ${h.N(p.gas)} ${h.F(p.gas)} выходит из раствора.`,
+    say: `При нагревании растворённый ${h.N(p.gas)} ${h.F(p.gas)} выходит из раствора.` +
+      (TOXIC_OUT.includes(p.gas) ? ' Газ ядовит и сильно пахнет — нагревают только под тягой.' : ''),
     why: 'Газы растворяются в горячей воде хуже, чем в холодной. Поэтому тёплая газировка выдыхается быстрее.'
   }),
   floats: () => ({
@@ -294,27 +302,30 @@ const RU: Pack = {
     : {
         title: 'Раствор сильно нагрелся',
         say: `${h.cap(h.N(p.solid))} растворяется с выделением тепла — сосуд стал горячим.` + (p.saturated ? ' Всё не растворилось: раствор насыщен.' : ''),
-        why: 'При растворении щёлочи выделяется много тепла. Поэтому твёрдую щёлочь растворяют понемногу и в холодной воде.'
+        why: p.solid === 'NaOH' || p.solid === 'KOH'
+          ? 'При растворении щёлочи выделяется много тепла. Поэтому твёрдую щёлочь растворяют понемногу и в холодной воде.'
+          : 'Безводные соли, присоединяющие кристаллизационную воду, растворяются с выделением тепла.' +
+            (p.solid === 'CoCl2' ? ' Синий безводный хлорид кобальта(II) даёт розовый раствор.' : '')
       })
 };
 
 // ---------------------------------------------------------------- Kazakh
 
 const FLAME_KK: Record<string, { ion: string; color: string }> = {
-  'Li^+': { ion: 'литий', color: 'қызыл күрең' }, 'Na^+': { ion: 'натрий', color: 'ашық сары' }, 'K^+': { ion: 'калий', color: 'ақшыл күлгін' },
+  'Li^+': { ion: 'литий', color: 'ал қызыл (карминді)' }, 'Na^+': { ion: 'натрий', color: 'ашық сары' }, 'K^+': { ion: 'калий', color: 'ақшыл күлгін' },
   'Ca^2+': { ion: 'кальций', color: 'кірпіш-қызыл' }, 'Ba^2+': { ion: 'барий', color: 'сарғыш жасыл' }, 'Cu^2+': { ion: 'мыс', color: 'көкшіл жасыл' }
 };
 
 const DECOMP_KK: Record<string, { title: string; say: string; why: string }> = {
-  KMnO4: { title: 'Оттек бөлінуде', say: 'Калий перманганатының кристалдары шытырлап, қара ұнтаққа айналады, оттек ⟦O2⟧ бөлінеді. Бықсыған шақпақты енгіз — ол жалындап кетеді.', why: 'Мектепте оттекті осылай алады: қыздырғанда калий перманганаты калий манганатына, марганец(IV) оксидіне және оттекке ыдырайды.' },
+  KMnO4: { title: 'Оттек бөлінуде', say: 'Калий перманганатының кристалдары шытырлап, қара ұнтаққа айналады, оттек ⟦O2⟧ бөлінеді. Бықсыған шырпыны енгіз — ол жалындап кетеді.', why: 'Мектепте оттекті осылай алады: қыздырғанда калий перманганаты калий манганатына, марганец(IV) оксидіне және оттекке ыдырайды.' },
   NaHCO3: { title: 'Ас содасы ыдырайды', say: 'Қыздырғанда ас содасы ыдырайды: көмірқышқыл газ ⟦CO2⟧ бөлінеді, суық қабырғаларда су тамшылары пайда болады, натрий карбонаты ⟦Na2CO3⟧ қалады.', why: 'Сондықтан сода қамырды көпсітеді: пеште бөлінген көмірқышқыл газ оны үлпілдек етеді.' },
   '(CuOH)2CO3': { title: 'Жасыл малахит қарайды', say: 'Малахит ыдырайды: жасыл ұнтақ қара мыс(II) оксидіне ⟦CuO⟧ айналады, көмірқышқыл газ бен су буы бөлінеді.', why: 'Түстің өзгеруі, газ және су тамшылары — айырылу реакциясының белгілері. Бір заттан үш жаңа зат түзілді.' },
-  NH4Cl: { title: 'Нашатыр «айдалады»', say: 'Қыздырғанда аммоний хлориді аммиак пен хлорсутекке ыдырайды. Пробирканың суық бөлігінде газдар қайта қосылып, ақ қабат түзеді.', why: 'Бұл сублимацияға ұқсайды, бірақ шын мәнінде екі реакция жүреді: қыздырғанда айырылу, салқындағанда қосылу.' },
+  NH4Cl: { title: 'Нашатыр «сублимацияланады»', say: 'Қыздырғанда аммоний хлориді аммиак пен хлорсутекке ыдырайды. Пробирканың суық бөлігінде газдар қайта қосылып, ақ қабат түзеді.', why: 'Бұл сублимацияға ұқсайды, бірақ шын мәнінде екі реакция жүреді: қыздырғанда айырылу, салқындағанда қосылу. Газдар қосылғанша аммиак пен хлорсутектің өткір иісі сезіледі.' },
   KNO3: { title: 'Селитра балқып, оттек береді', say: 'Калий селитрасы алдымен балқиды, сосын ыдырайды: оттек ⟦O2⟧ бөлініп, калий нитриті ⟦KNO2⟧ қалады.', why: 'Селитра — оттек көзі, сондықтан оны қара дәріге және отшашу құрамдарына қосады.' },
   'CuSO4·5H2O': { title: 'Көк кристалдар ағарды', say: 'Мыс купоросы кристалдық суын жоғалтады: қабырғаларда тамшылар пайда болып, көк кристалдар сусыз мыс(II) сульфатының ақ ұнтағына айналады.', why: 'Мыс купоросының көк түсін мыс иондарымен байланысқан су молекулалары береді. Ақ ұнтаққа су тамызсаң, ол қайта көгереді.' },
   'CoCl2·6H2O': { title: 'Қызғылт түс көкке айналды', say: 'Кобальт(II) хлоридінің қызғылт кристалдары суын жоғалтып, көк түске боялады.', why: '«Ылғалдылық индикаторлары» осыған негізделген: ылғалды ауада тұз қызғылт, құрғақ ауада көк болады.' },
-  'Fe(OH)3': { title: 'Гидроксид ыдырайды', say: 'Қоңыр темір(III) гидроксиді қызыл-қоңыр темір(III) оксиді ⟦Fe2O3⟧ мен суға ыдырайды.', why: 'Ерімейтін негіздер қыздырғанда оксид пен суға ыдырайды. Тот — темір(III) оксиді мен гидроксидінің қоспасы.' },
-  'Zn(OH)2': { title: 'Гидроксид ыдырайды', say: 'Мырыш гидроксиді ақ мырыш оксиді ⟦ZnO⟧ мен суға ыдырайды.', why: 'Ерімейтін негіздер қыздырғанда оксид пен суға ыдырайды.' },
+  'Fe(OH)3': { title: 'Гидроксид ыдырайды', say: 'Қоңыр темір(III) гидроксиді қызыл-қоңыр темір(III) оксиді ⟦Fe2O3⟧ мен суға ыдырайды.', why: 'Ерімейтін гидроксидтер (негіздер мен амфотерлі гидроксидтер) қыздырғанда оксид пен суға ыдырайды. Тот — темір(III) оксиді мен гидроксидінің қоспасы.' },
+  'Zn(OH)2': { title: 'Гидроксид ыдырайды', say: 'Мырыш гидроксиді ақ мырыш оксиді ⟦ZnO⟧ мен суға ыдырайды.', why: 'Ерімейтін гидроксидтер (негіздер мен амфотерлі гидроксидтер) қыздырғанда оксид пен суға ыдырайды.' },
   'Mg(OH)2': { title: 'Гидроксид ыдырайды', say: 'Магний гидроксиді магний оксиді ⟦MgO⟧ мен суға ыдырайды.', why: 'Ерімейтін негіздер қыздырғанда оксид пен суға ыдырайды.' },
   Ag2O: { title: 'Күміс алынды', say: 'Қара күміс оксиді күміс пен оттекке ⟦O2⟧ ыдырайды — пробиркада сұр металл қабаты пайда болады.', why: 'Белсенділігі төмен металдардың оксидтері қыздырғанда ыдырайды. XVIII ғасырда сынап оксидімен осындай тәжірибе жасап, оттекті ашқан.' }
 };
@@ -362,7 +373,7 @@ const KK: Pack = {
     };
     if (p.red === 'S2O3^2-') return {
       title: 'Йодтың қоңыр түсі жоғалды',
-      say: `Тиосульфат йодты түссіз иодид-иондарға ${h.F('I^-')} айналдырды. Ерітінді түссізденді.`,
+      say: `Тиосульфат йодты түссіз йодид-иондарға ${h.F('I^-')} айналдырды. Ерітінді түссізденді.`,
       why: 'Химиктер бұл реакцияны йодтың мөлшерін дәл өлшеу үшін пайдаланады. Тиосульфатпен матадағы йод дағын да кетіреді.'
     };
     if (p.red === 'SO3^2-') return {
@@ -377,7 +388,7 @@ const KK: Pack = {
     };
     return {
       title: p.product === 'I2' ? 'Ерітінді қоңырқайланды — йод бөлінді' : 'Ерітінді сарғайды — бром бөлінді',
-      say: `${h.cap(h.N(p.ox))} тұздан ${h.N(p.product)} ${h.F(p.product)} ығыстырды. ${p.product === 'I2' ? 'Крахмал қос — ол көгереді.' : 'Бром ерітіндіні сарғыш-қызғылт түске бояйды.'}`,
+      say: `${h.cap(h.N(p.ox))} тұздан ${h.N(p.product)} ${h.F(p.product)} ығыстырды. ${p.product === 'I2' ? 'Крахмал қос — ол көгереді.' : 'Бром ерітіндіні сары-қызғылт сары түске бояйды.'}`,
       why7: 'Белсендірек галоген тұздағы белсенділігі төмен галогеннің орнын алады.',
       why: 'Галогендердің белсенділігі топта жоғарыдан төмен қарай азаяды: фтор, хлор, бром, йод. Белсендірек галоген белсенділігі төмен галогенді оның тұздарынан ығыстырады.'
     };
@@ -385,12 +396,12 @@ const KK: Pack = {
   iodideOx: (p, h) => (p.ion === 'Cu^2+'
     ? {
         title: 'Тұнба түсіп, ерітінді қоңырқайланды',
-        say: `Мыс(II) иондары иодидті тотықтырды: йод ${h.F('I2')} бөлінді, ал мыс(I) ақ иодид ${h.F('CuI')} түрінде тұнбаға түсті, оны йод қоңыр түске бояйды.`,
-        why: 'Бұл тотығу-тотықсыздану реакциясы: мыс(II) электрон қосып алады, иодид-ион оны береді.'
+        say: `Мыс(II) иондары йодидті тотықтырды: йод ${h.F('I2')} бөлінді, ал мыс(I) ақ йодид ${h.F('CuI')} түрінде тұнбаға түсті, оны йод қоңыр түске бояйды.`,
+        why: 'Бұл тотығу-тотықсыздану реакциясы: мыс(II) электрон қосып алады, йодид-ион оны береді.'
       }
     : {
         title: 'Ерітінді қоңырқайланды — йод бөлінді',
-        say: `Темір(III) иондары иодидті йодқа ${h.F('I2')} дейін тотықтырып, өздері темір(II) иондарына айналды.`,
+        say: `Темір(III) иондары йодидті йодқа ${h.F('I2')} дейін тотықтырып, өздері темір(II) иондарына айналды.`,
         why: 'Темір(III) — тотықтырғыш. Йод бөлінгеніне көз жеткізу үшін крахмал қос.'
       }),
   starchIodine: () => ({
@@ -402,18 +413,18 @@ const KK: Pack = {
   bleach: (p, h) => ({
     title: 'Индикатор түссізденді',
     say: `Хлорлы су бояғышты бұзды: ${h.ind(p.ind)} түсін жоғалтты.`,
-    why: 'Хлор суда хлорлылау қышқылын түзеді — ол бояғыштарды бұзатын күшті тотықтырғыш. Сондықтан хлор ағартқыштардың құрамына кіреді.'
+    why: 'Хлор суда хлорлылау қышқылын түзеді — ол бояғыштарды бұзатын күшті тотықтырғыш. Сондықтан хлор қосылыстары — натрий гипохлориті NaClO — ағартқыштардың құрамына кіреді.'
   }),
   permanganateRedox: (p, h) => ({
     title: 'Таңқурай түсі жоғалды',
-    say: `Қышқыл ортада перманганат ${p.red === 'H2O2' ? 'сутек пероксидін тотықтырды — оттек бөлінуде' : p.red === 'I^-' ? 'иодидті тотықтырды — ерітінді йодтан қоңырқайланды' : p.red === 'Fe^2+' ? 'темір(II) иондарын темір(III) иондарына дейін тотықтырды' : 'сульфитті сульфатқа дейін тотықтырды'}, ал өзі дерлік түссіз ${h.F('Mn^2+')} иондарына айналды.`,
+    say: `Қышқыл ортада перманганат ${p.red === 'H2O2' ? 'сутек пероксидін тотықтырды — оттек бөлінуде' : p.red === 'I^-' ? 'йодидті тотықтырды — ерітінді йодтан қоңырқайланды' : p.red === 'Fe^2+' ? 'темір(II) иондарын темір(III) иондарына дейін тотықтырды' : 'сульфитті сульфатқа дейін тотықтырды'}, ал өзі дерлік түссіз ${h.F('Mn^2+')} иондарына айналды.`,
     why7: 'Ерітінді түссізденді — демек, перманганат реакцияға түсті.',
     why: 'Калий перманганаты — күшті тотықтырғыш, әсіресе қышқыл ортада. Марганецтің тотығу дәрежесі +7-ден +2-ге дейін өзгереді.'
   }),
   dichromateRedox: (p, h) => ({
     title: 'Қызғылт сары ерітінді жасылданды',
-    say: `Қышқыл ортада дихромат ${p.red === 'H2O2' ? 'сутек пероксидін' : p.red === 'I^-' ? 'иодидті йодқа дейін' : p.red === 'Fe^2+' ? 'темір(II) иондарын' : 'сульфитті'} тотықтырып, жасыл хром(III) иондарына ${h.F('Cr^3+')} айналды.`,
-    why: 'Хромның тотығу дәрежесі +6-дан +3-ке дейін өзгереді. Жүргізушілерді алкогольге тексеретін алғашқы құралдар осындай түс өзгерісіне негізделген.'
+    say: `Қышқыл ортада дихромат ${p.red === 'H2O2' ? 'сутек пероксидін' : p.red === 'I^-' ? 'йодидті йодқа дейін' : p.red === 'Fe^2+' ? 'темір(II) иондарын' : 'сульфитті'} тотықтырып, жасыл хром(III) иондарына ${h.F('Cr^3+')} айналды.`,
+    why: 'Хромның тотығу дәрежесі +6-дан +3-ке дейін өзгереді. Жүргізушілерді алкогольге тексеретін индикаторлық түтікшелер осы түс өзгерісіне негізделген: спирт қызғылт сары дихроматты жасыл хром(III)-ке дейін тотықсыздандырады.'
   }),
   sulfideHydrolysis: (p, h) => (p.product === 'FeS'
     ? {
@@ -423,14 +434,16 @@ const KK: Pack = {
       }
     : {
         title: 'Тұнба түсіп, күкіртсутек иісі шықты',
-        say: `${p.ion === 'Al^3+' ? 'Алюминий' : 'Хром(III)'} сульфиді суда болмайды: ${h.NF(p.product)} тұнбаға түсіп, күкіртсутек ${h.F('H2S')} бөлінеді.`,
+        say: `${p.ion === 'Al^3+' ? 'Алюминий' : 'Хром(III)'} сульфиді суда болмайды: ${h.NF(p.product)} тұнбаға түсіп, шіріген жұмыртқа иісті улы күкіртсутек ${h.F('H2S')} бөлінеді.`,
         why: 'Бұл бірлескен гидролиз: су әлсіз негіз бен әлсіз қышқылдан түзілген тұзды ыдыратады.'
       }),
   metalSulfur: (p, h) => ({
     title: 'Қоспа қызарып қызды',
     say: `${h.cap(h.metal(p.metal))} күкіртпен қосылды: қоспа жарқ етіп қызып, ${h.NF(p.product)} түзілді.` +
-      (p.metal === 'Fe' ? ' Магнит оны енді тартпайды.' : ''),
-    why7: 'Қыздырғанға дейін магнитпен бөлуге болатын қоспа болды. Қыздырғаннан кейін — жаңа қасиеттері бар жаңа зат.',
+      (p.metal === 'Fe' ? ' Магнит оны енді тартпайды.' : p.metal === 'Zn' ? ' Мырышпен реакция өте қарқынды — қоспа жарқ етеді.' : ''),
+    why7: p.metal === 'Fe'
+      ? 'Қыздырғанға дейін магнитпен бөлуге болатын қоспа болды. Қыздырғаннан кейін — жаңа қасиеттері бар жаңа зат.'
+      : 'Қыздырғанға дейін қоспа болды: металл мен күкірттің жеке түйіршіктері көрінеді. Кейін — жаңа қасиеттері бар жаңа зат.',
     why: 'Қосылу реакциясы жылу бөле жүреді: басталған соң өздігінен жалғасады. Бұл қоспа мен химиялық қосылыстың айырмасын көрсететін басты тәжірибе.'
   }),
   carbonReduce: (_p, h) => ({
@@ -449,7 +462,7 @@ const KK: Pack = {
   },
   volcano: () => ({
     title: 'Жанартау!',
-    say: 'Аммоний дихроматының қызғылт сары кристалдары өздігінен жанып кетті: ұшқындар ұшады, пробиркадан үлпілдек жасыл «лава» — хром(III) оксиді ⟦Cr2O3⟧ көтеріледі, азот пен бу бөлінеді.',
+    say: 'Қыздырғанда аммоний дихроматының қызғылт сары кристалдары тұтанып кетті: ұшқындар ұшады, пробиркадан үлпілдек жасыл «лава» — хром(III) оксиді ⟦Cr2O3⟧ көтеріледі, азот пен бу бөлінеді.',
     why7: 'Затты тұтатса болғаны — реакция ары қарай отпен, ұшқынмен өздігінен жүреді.',
     why: 'Бұл молекулаішілік тотығу-тотықсыздану реакциясы: азот тотығады, хром тотықсызданады. Хром(VI) қосылыстары улы, бұл тәжірибені тек тартпа шкафында көрсетеді.'
   }),
@@ -467,13 +480,13 @@ const KK: Pack = {
   }),
   leadFilm: (p, h) => ({
     title: 'Қорғасын дерлік ерімейді',
-    say: `Қорғасын сутектен сол жақта тұр, бірақ оның бетінде бірден аз еритін ${h.NF(p.salt)} түзіледі. Қабыршақ металды жауып, реакция тоқтайды.`,
+    say: `Қорғасын сутектен сол жақта тұр, бірақ оның бетінде бірден ${p.salt === 'PbSO4' ? 'ерімейтін' : 'аз еритін'} ${h.NF(p.salt)} түзіледі. Қабыршақ металды жауып, реакция тоқтайды.`,
     why: 'Сондықтан қорғасын ұзақ уақыт қышқылға төзімді жабдықтарда қолданылған. Тұзы еритін азот қышқылымен ол әрекеттеседі.'
   }),
   dissolveHot: (p, h) => ({
     title: 'Тұнба ыстық суда еріді',
     say: `${h.cap(h.N(p.solid))} ${h.F(p.solid)} қайнаған суда суық суға қарағанда жақсы ериді. Ерітіндіні суыт — не болатынын көр.`,
-    why: `Көп заттардың ерігіштігі температура артқанда өседі. ${p.solid === 'PbI2' ? 'Суығанда қорғасын иодиді жылтыр алтын қабыршақтар болып түседі — «алтын жаңбыр» тәжірибесі.' : ''}`
+    why: `Көп заттардың ерігіштігі температура артқанда өседі. ${p.solid === 'PbI2' ? 'Суығанда қорғасын йодиді жылтыр алтын қабыршақтар болып түседі — «алтын жаңбыр» тәжірибесі.' : ''}`
   }),
   flameTest: (p) => {
     const f = FLAME_KK[p.ion];
@@ -527,15 +540,17 @@ const KK: Pack = {
   }),
   melting: (p, h) => ({
     title: `${h.cap(h.N(p.solid))} балқып жатыр`,
-    say: `${p.mp} °C-та ${h.N(p.solid)} сұйыққа айналады.` + (p.solid === 'S' ? ' Сары күкірт қызғылт сары сұйықтыққа айналады, қатты қыздырғанда ол қараяды әрі қоюланады.' : ''),
+    say: `${p.mp} °C-та ${h.N(p.solid)} сұйыққа айналады.` +
+      (p.solid === 'S' ? ' Сары күкірт ақшыл сары жылжымалы сұйықтыққа айналады; 160 °C-тан жоғары қызыл-қоңыр болып қоюланады.' : '') +
+      (p.solid === 'NH4NO3' ? ' Әрі қарай қыздыруға болмайды: аммиак селитрасы ыдырайды, ал қатты қыздырғанда жарылуы мүмкін.' : ''),
     why7: 'Балқу — физикалық құбылыс: зат қатты күйден сұйыққа өтеді, бірақ сол зат болып қалады.',
     why: 'Әр таза заттың өз балқу температурасы бар. Заттың тазалығын осы арқылы тексереді.'
   }),
   sublimation: () => ({
     title: 'Йодтың күлгін буы',
     say: 'Йод қыздырғанда сұйыққа айналмай, бірден күлгін буға айналады. Суық қабырғаларда бу қайтадан жылтыр кристалдар болып қонады.',
-    why7: 'Қатты күйден бірден газға өту сублимация (айдау) деп аталады.',
-    why: 'Йодты сублимациямен тазартады: қоспалар түбінде қалады, ал таза кристалдар суық бөлікке қонады.'
+    why7: 'Қатты күйден бірден газға өту сублимация деп аталады.',
+    why: 'Йодты сублимациямен тазартады: қоспалар түбінде қалады, ал таза кристалдар суық бөлікке қонады. Йод булары улы — тәжірибе тартпа шкафта жасалады.'
   }),
   distillation: () => ({
     title: 'Дистилденген су жиналуда',
@@ -551,7 +566,8 @@ const KK: Pack = {
   }),
   gasOut: (p, h) => ({
     title: 'Газ ыстық ерітіндіден шығып жатыр',
-    say: `Қыздырғанда ерітілген ${h.N(p.gas)} ${h.F(p.gas)} ерітіндіден шығады.`,
+    say: `Қыздырғанда ерітілген ${h.N(p.gas)} ${h.F(p.gas)} ерітіндіден шығады.` +
+      (TOXIC_OUT.includes(p.gas) ? ' Газ улы әрі қатты иісті — тек тартпа шкафта қыздырады.' : ''),
     why: 'Газдар ыстық суда суық суға қарағанда нашар ериді. Сондықтан жылы газдалған сусын тез «өшеді».'
   }),
   floats: () => ({
@@ -575,7 +591,10 @@ const KK: Pack = {
     : {
         title: 'Ерітінді қатты қызды',
         say: `${h.cap(h.N(p.solid))} жылу бөле отырып ериді — ыдыс ыстық болды.` + (p.saturated ? ' Бәрі ерімеді: ерітінді қаныққан.' : ''),
-        why: 'Сілті ерігенде көп жылу бөлінеді. Сондықтан қатты сілтіні суық суда аз-аздан ерітеді.'
+        why: p.solid === 'NaOH' || p.solid === 'KOH'
+          ? 'Сілті ерігенде көп жылу бөлінеді. Сондықтан қатты сілтіні суық суда аз-аздан ерітеді.'
+          : 'Кристалдану суын қосып алатын сусыз тұздар жылу бөле ериді.' +
+            (p.solid === 'CoCl2' ? ' Көк сусыз кобальт(II) хлориді қызғылт ерітінді береді.' : '')
       })
 };
 
@@ -589,13 +608,13 @@ const FLAME_EN: Record<string, { ion: string; color: string }> = {
 const DECOMP_EN: Record<string, { title: string; say: string; why: string }> = {
   KMnO4: { title: 'Oxygen is given off', say: 'The potassium permanganate crystals crackle and crumble into a dark powder as oxygen ⟦O2⟧ comes off. Put a glowing splint in — it relights.', why: 'This is how schools make oxygen: on heating, potassium permanganate breaks down into potassium manganate, manganese(IV) oxide and oxygen.' },
   NaHCO3: { title: 'Baking soda breaks down', say: 'On heating, baking soda breaks down: carbon dioxide ⟦CO2⟧ comes off, water droplets appear on the cool walls and sodium carbonate ⟦Na2CO3⟧ is left.', why: 'That is why baking soda makes cakes rise: in the oven the carbon dioxide puffs up the dough.' },
-  '(CuOH)2CO3': { title: 'Green malachite turned black', say: 'Malachite breaks down: the green powder turns into black copper(II) oxide ⟦CuO⟧, and carbon dioxide and water vapour come off.', why: 'A color change, a gas and water droplets are signs of a decomposition reaction. One substance gave three new ones.' },
-  NH4Cl: { title: 'Sal ammoniac seems to sublime', say: 'On heating, ammonium chloride splits into ammonia and hydrogen chloride. In the cool upper part of the tube the gases join again and leave a white coating.', why: 'It looks like sublimation, but two reactions are going on: decomposition when hot and combination when cooled.' },
+  '(CuOH)2CO3': { title: 'Green malachite turned black', say: 'Malachite breaks down: the green powder turns into black copper(II) oxide ⟦CuO⟧, and carbon dioxide and water vapour come off.', why: 'A colour change, a gas and water droplets are signs of a decomposition reaction. One substance gave three new ones.' },
+  NH4Cl: { title: 'Sal ammoniac seems to sublime', say: 'On heating, ammonium chloride splits into ammonia and hydrogen chloride. In the cool upper part of the tube the gases join again and leave a white coating.', why: 'It looks like sublimation, but two reactions are going on: decomposition when hot and combination when cooled. Until the gases recombine there is a sharp smell of ammonia and hydrogen chloride.' },
   KNO3: { title: 'Saltpetre melts and gives oxygen', say: 'Potassium nitrate first melts, then breaks down: oxygen ⟦O2⟧ comes off and potassium nitrite ⟦KNO2⟧ is left.', why: 'Saltpetre is a source of oxygen, which is why it is used in black powder and fireworks.' },
-  'CuSO4·5H2O': { title: 'The blue crystals turned white', say: 'Blue vitriol loses its water of crystallisation: droplets appear on the walls and the blue crystals turn into white powder of anhydrous copper(II) sulfate.', why: 'The blue color comes from water molecules bound to the copper ions. Add a drop of water to the white powder and it turns blue again.' },
+  'CuSO4·5H2O': { title: 'The blue crystals turned white', say: 'Blue vitriol loses its water of crystallisation: droplets appear on the walls and the blue crystals turn into white powder of anhydrous copper(II) sulfate.', why: 'The blue colour comes from water molecules bound to the copper ions. Add a drop of water to the white powder and it turns blue again.' },
   'CoCl2·6H2O': { title: 'Pink turned blue', say: 'Pink cobalt(II) chloride crystals lose their water and turn blue.', why: 'Humidity indicators work this way: the salt is pink in damp air and blue in dry air.' },
-  'Fe(OH)3': { title: 'The hydroxide breaks down', say: 'Brown iron(III) hydroxide breaks down into red-brown iron(III) oxide ⟦Fe2O3⟧ and water.', why: 'Insoluble bases break down into an oxide and water when heated. Rust is a mixture of iron(III) oxide and hydroxide.' },
-  'Zn(OH)2': { title: 'The hydroxide breaks down', say: 'Zinc hydroxide breaks down into white zinc oxide ⟦ZnO⟧ and water.', why: 'Insoluble bases break down into an oxide and water when heated.' },
+  'Fe(OH)3': { title: 'The hydroxide breaks down', say: 'Brown iron(III) hydroxide breaks down into red-brown iron(III) oxide ⟦Fe2O3⟧ and water.', why: 'Insoluble hydroxides (bases and amphoteric hydroxides) break down into an oxide and water when heated. Rust is a mixture of iron(III) oxide and hydroxide.' },
+  'Zn(OH)2': { title: 'The hydroxide breaks down', say: 'Zinc hydroxide breaks down into white zinc oxide ⟦ZnO⟧ and water.', why: 'Insoluble hydroxides (bases and amphoteric hydroxides) break down into an oxide and water when heated.' },
   'Mg(OH)2': { title: 'The hydroxide breaks down', say: 'Magnesium hydroxide breaks down into magnesium oxide ⟦MgO⟧ and water.', why: 'Insoluble bases break down into an oxide and water when heated.' },
   Ag2O: { title: 'Silver appeared', say: 'Dark silver oxide breaks down into silver and oxygen ⟦O2⟧, leaving a grey metallic coating in the tube.', why: 'Oxides of unreactive metals break down on heating. A similar experiment with mercury oxide led to the discovery of oxygen in the 18th century.' }
 };
@@ -627,7 +646,7 @@ const EN: Pack = {
   chromateAcid: (_p, h) => ({
     title: 'The yellow solution turned orange',
     say: `In acid, yellow chromate turned into orange dichromate ${h.F('Cr2O7^2-')}.`,
-    why7: 'The color changed — a different substance is now in the solution.',
+    why7: 'The colour changed — a different substance is now in the solution.',
     why: 'Chromate and dichromate turn into each other: acid gives dichromate, alkali gives chromate again.'
   }),
   dichromateBase: (_p, h) => ({
@@ -638,27 +657,27 @@ const EN: Pack = {
   halogenDisplace: (p, h) => {
     if (p.red === 'S^2-') return {
       title: 'Yellow sulfur appeared',
-      say: `${h.cap(h.N(p.ox))} oxidized the sulfide ions: the solution went cloudy with fine sulfur ${h.F('S')} and the halogen color disappeared.`,
-      why: 'Halogens are strong oxidizers. The sulfide ion gives them electrons and becomes sulfur.'
+      say: `${h.cap(h.N(p.ox))} oxidised the sulfide ions: the solution went cloudy with fine sulfur ${h.F('S')} and the halogen colour disappeared.`,
+      why: 'Halogens are strong oxidisers. The sulfide ion gives them electrons and becomes sulfur.'
     };
     if (p.red === 'S2O3^2-') return {
-      title: 'The brown iodine color disappeared',
-      say: `Thiosulfate turned iodine into colorless iodide ions ${h.F('I^-')}. The solution lost its color.`,
+      title: 'The brown iodine colour disappeared',
+      say: `Thiosulfate turned iodine into colourless iodide ions ${h.F('I^-')}. The solution lost its colour.`,
       why: 'Chemists use this reaction to measure iodine exactly. Thiosulfate also removes iodine stains from cloth.'
     };
     if (p.red === 'SO3^2-') return {
-      title: 'The halogen color disappeared',
-      say: `Sulfite reduced the ${h.N(p.ox)} to colorless ions and was itself oxidized to sulfate ${h.F('SO4^2-')}.`,
+      title: 'The halogen colour disappeared',
+      say: `Sulfite reduced the ${h.N(p.ox)} to colourless ions and was itself oxidised to sulfate ${h.F('SO4^2-')}.`,
       why: 'Sulfite is a reducing agent: it gives electrons to the halogen.'
     };
     if (p.red === 'Fe^2+') return {
       title: 'The solution turned yellow-brown',
-      say: `${h.cap(h.N(p.ox))} oxidized iron(II) ions to iron(III) ${h.F('Fe^3+')}. The pale green solution turned yellow.`,
-      why: 'Chlorine and bromine are strong oxidizers. Check it: potassium thiocyanate turns the new ions blood-red.'
+      say: `${h.cap(h.N(p.ox))} oxidised iron(II) ions to iron(III) ${h.F('Fe^3+')}. The pale green solution turned yellow.`,
+      why: 'Chlorine and bromine are strong oxidisers. Check it: potassium thiocyanate turns the new ions blood-red.'
     };
     return {
       title: p.product === 'I2' ? 'The solution turned brown — iodine formed' : 'The solution turned yellow — bromine formed',
-      say: `${h.cap(h.N(p.ox))} pushed ${h.N(p.product)} ${h.F(p.product)} out of the salt. ${p.product === 'I2' ? 'Add starch — it will turn blue.' : 'Bromine colors the solution yellow-orange.'}`,
+      say: `${h.cap(h.N(p.ox))} pushed ${h.N(p.product)} ${h.F(p.product)} out of the salt. ${p.product === 'I2' ? 'Add starch — it will turn blue.' : 'Bromine colours the solution yellow-orange.'}`,
       why7: 'A more active halogen takes the place of a less active one in a salt.',
       why: 'Halogen activity falls down the group: fluorine, chlorine, bromine, iodine. A more active halogen displaces a less active one from its salts.'
     };
@@ -666,52 +685,54 @@ const EN: Pack = {
   iodideOx: (p, h) => (p.ion === 'Cu^2+'
     ? {
         title: 'A precipitate formed and the solution turned brown',
-        say: `Copper(II) ions oxidized the iodide: iodine ${h.F('I2')} formed, and copper(I) settled out as white iodide ${h.F('CuI')}, colored brown by the iodine.`,
+        say: `Copper(II) ions oxidised the iodide: iodine ${h.F('I2')} formed, and copper(I) settled out as white iodide ${h.F('CuI')}, coloured brown by the iodine.`,
         why: 'This is a redox reaction: copper(II) gains an electron and the iodide ion gives it away.'
       }
     : {
         title: 'The solution turned brown — iodine formed',
-        say: `Iron(III) ions oxidized the iodide to iodine ${h.F('I2')} and became iron(II) ions.`,
-        why: 'Iron(III) is an oxidizer. Add starch to check that iodine has formed.'
+        say: `Iron(III) ions oxidised the iodide to iodine ${h.F('I2')} and became iron(II) ions.`,
+        why: 'Iron(III) is an oxidiser. Add starch to check that iodine has formed.'
       }),
   starchIodine: () => ({
     title: 'The solution turned dark blue',
-    say: 'Starch and iodine give a dark blue color. Even traces of iodine show up at once.',
-    why7: 'The blue color shows that there is iodine in the tube.',
+    say: 'Starch and iodine give a dark blue colour. Even traces of iodine show up at once.',
+    why7: 'The blue colour shows that there is iodine in the tube.',
     why: 'This is the test for iodine (and for starch). It is how you check for starch in potatoes or bread.'
   }),
   bleach: (p, h) => ({
     title: 'The indicator was bleached',
-    say: `Chlorine water destroyed the dye: the ${h.ind(p.ind)} lost its color.`,
-    why: 'In water chlorine forms hypochlorous acid, a strong oxidizer that breaks down dyes. That is why chlorine is used in bleach.'
+    say: `Chlorine water destroyed the dye: the ${h.ind(p.ind)} lost its colour.`,
+    why: 'In water chlorine forms hypochlorous acid, a strong oxidiser that breaks down dyes. That is why chlorine compounds such as sodium hypochlorite NaClO are used in bleach.'
   }),
   permanganateRedox: (p, h) => ({
-    title: 'The purple color disappeared',
-    say: `In acid, permanganate oxidized ${p.red === 'H2O2' ? 'the hydrogen peroxide — oxygen is given off' : p.red === 'I^-' ? 'the iodide — iodine turned the solution brown' : p.red === 'Fe^2+' ? 'iron(II) ions to iron(III)' : 'the sulfite to sulfate'} and itself became almost colorless ${h.F('Mn^2+')} ions.`,
-    why7: 'The solution lost its color, so the permanganate has reacted.',
-    why: 'Potassium permanganate is a strong oxidizer, especially in acid. Manganese goes from oxidation state +7 to +2.'
+    title: 'The purple colour disappeared',
+    say: `In acid, permanganate oxidised ${p.red === 'H2O2' ? 'the hydrogen peroxide — oxygen is given off' : p.red === 'I^-' ? 'the iodide — iodine turned the solution brown' : p.red === 'Fe^2+' ? 'iron(II) ions to iron(III)' : 'the sulfite to sulfate'} and itself became almost colourless ${h.F('Mn^2+')} ions.`,
+    why7: 'The solution lost its colour, so the permanganate has reacted.',
+    why: 'Potassium permanganate is a strong oxidiser, especially in acid. Manganese goes from oxidation state +7 to +2.'
   }),
   dichromateRedox: (p, h) => ({
     title: 'The orange solution turned green',
-    say: `In acid, dichromate oxidized ${p.red === 'H2O2' ? 'the hydrogen peroxide' : p.red === 'I^-' ? 'the iodide to iodine' : p.red === 'Fe^2+' ? 'the iron(II) ions' : 'the sulfite'} and turned into green chromium(III) ions ${h.F('Cr^3+')}.`,
-    why: 'Chromium goes from +6 to +3. The first breathalysers for drivers used a similar color change.'
+    say: `In acid, dichromate oxidised ${p.red === 'H2O2' ? 'the hydrogen peroxide' : p.red === 'I^-' ? 'the iodide to iodine' : p.red === 'Fe^2+' ? 'the iron(II) ions' : 'the sulfite'} and turned into green chromium(III) ions ${h.F('Cr^3+')}.`,
+    why: 'Chromium goes from +6 to +3. Breath-test indicator tubes for drivers used this colour change: alcohol reduces orange dichromate to green chromium(III).'
   }),
   sulfideHydrolysis: (p, h) => (p.product === 'FeS'
     ? {
         title: 'A black precipitate formed',
-        say: `Iron(III) sulfide does not form: iron(III) ions oxidize the sulfide, and black ${h.NF('FeS')} and sulfur settle out.`,
+        say: `Iron(III) sulfide does not form: iron(III) ions oxidise the sulfide, and black ${h.NF('FeS')} and sulfur settle out.`,
         why: 'The solubility table shows a dash for this salt. Instead of an exchange, a redox reaction happens.'
       }
     : {
         title: 'A precipitate formed with a smell of hydrogen sulfide',
-        say: `${p.ion === 'Al^3+' ? 'Aluminium' : 'Chromium(III)'} sulfide does not exist in water: ${h.NF(p.product)} settles out and hydrogen sulfide ${h.F('H2S')} is given off.`,
+        say: `${p.ion === 'Al^3+' ? 'Aluminium' : 'Chromium(III)'} sulfide does not exist in water: ${h.NF(p.product)} settles out and toxic, rotten-egg-smelling hydrogen sulfide ${h.F('H2S')} is given off.`,
         why: 'This is joint hydrolysis: water breaks down a salt of a weak base and a weak acid.'
       }),
   metalSulfur: (p, h) => ({
     title: 'The mixture glowed red-hot',
     say: `${h.cap(h.metal(p.metal))} combined with sulfur: the mixture flared up and glowed, forming ${h.NF(p.product)}.` +
-      (p.metal === 'Fe' ? ' A magnet no longer pulls it.' : ''),
-    why7: 'Before heating it was a mixture you could separate with a magnet. After heating it is a new substance with new properties.',
+      (p.metal === 'Fe' ? ' A magnet no longer pulls it.' : p.metal === 'Zn' ? ' With zinc the reaction is very violent — the mixture flashes.' : ''),
+    why7: p.metal === 'Fe'
+      ? 'Before heating it was a mixture you could separate with a magnet. After heating it is a new substance with new properties.'
+      : 'Before heating it was a mixture with separate grains of metal and sulfur. After heating it is a new substance with new properties.',
     why: 'This combination reaction gives out heat, so once started it keeps going by itself. It is the key experiment showing the difference between a mixture and a compound.'
   }),
   carbonReduce: (_p, h) => ({
@@ -730,9 +751,9 @@ const EN: Pack = {
   },
   volcano: () => ({
     title: 'Volcano!',
-    say: 'The orange crystals of ammonium dichromate caught fire by themselves: sparks fly and fluffy green "lava" of chromium(III) oxide ⟦Cr2O3⟧ rises from the tube, while nitrogen and steam come off.',
+    say: 'When heated, the orange crystals of ammonium dichromate flared up: sparks fly and fluffy green "lava" of chromium(III) oxide ⟦Cr2O3⟧ rises from the tube, while nitrogen and steam come off.',
     why7: 'Once the substance is lit, the reaction carries on by itself with fire and sparks.',
-    why: 'This is an internal redox reaction: nitrogen is oxidized and chromium is reduced. Chromium(VI) compounds are toxic, so this is shown only in a fume hood.'
+    why: 'This is an internal redox reaction: nitrogen is oxidised and chromium is reduced. Chromium(VI) compounds are toxic, so this is shown only in a fume hood.'
   }),
   hardWater: (_p, h) => ({
     title: 'Scale formed on boiling',
@@ -741,14 +762,14 @@ const EN: Pack = {
     why: 'This kind of hardness is called temporary hardness: boiling removes it.'
   }),
   adsorption: () => ({
-    title: 'The charcoal soaks up the color',
-    say: 'Activated charcoal collects dye molecules on its surface. Wait or speed up time — the solution will slowly lose its color.',
+    title: 'The charcoal soaks up the colour',
+    say: 'Activated charcoal collects dye molecules on its surface. Wait or speed up time — the solution will slowly lose its colour.',
     why7: 'The substance did not vanish — it stuck to the charcoal. This is a physical change.',
     why: 'Activated charcoal is full of tiny pores, so one gram has a surface of hundreds of square metres. That is why it is taken for poisoning and used in water filters.'
   }),
   leadFilm: (p, h) => ({
     title: 'Lead hardly dissolves',
-    say: `Lead stands before hydrogen, but slightly soluble ${h.NF(p.salt)} forms on its surface at once. The film covers the metal and the reaction stops.`,
+    say: `Lead stands before hydrogen, but ${p.salt === 'PbSO4' ? 'insoluble' : 'slightly soluble'} ${h.NF(p.salt)} forms on its surface at once. The film covers the metal and the reaction stops.`,
     why: 'That is why lead was long used in acid-proof equipment. With nitric acid, whose lead salt is soluble, it does react.'
   }),
   dissolveHot: (p, h) => ({
@@ -759,16 +780,16 @@ const EN: Pack = {
   flameTest: (p) => {
     const f = FLAME_EN[p.ion];
     if (!f) return {
-      title: 'The flame did not change color',
-      say: 'There are no metal ions here that color a flame.',
-      why: 'Lithium, sodium, potassium, calcium, barium, copper and a few other metal ions color a flame.'
+      title: 'The flame did not change colour',
+      say: 'There are no metal ions here that colour a flame.',
+      why: 'Lithium, sodium, potassium, calcium, barium, copper and a few other metal ions colour a flame.'
     };
     return {
       title: `The flame turned ${f.color}`,
-      say: `${f.ion} ions color the flame ${f.color}.` +
-        (p.ion === 'Na^+' && p.others ? ' The bright yellow of sodium hides the other colors: potassium can only be seen through blue cobalt glass.' : ''),
-      why7: 'The color of the flame tells you which metal is in the substance.',
-      why: 'In the flame, electrons in the metal atoms take up energy and then give it out as light of a particular color. This is where firework colors come from.'
+      say: `${f.ion} ions colour the flame ${f.color}.` +
+        (p.ion === 'Na^+' && p.others ? ' The bright yellow of sodium hides the other colours: potassium can only be seen through blue cobalt glass.' : ''),
+      why7: 'The colour of the flame tells you which metal is in the substance.',
+      why: 'In the flame, electrons in the metal atoms take up energy and then give it out as light of a particular colour. This is where firework colours come from.'
     };
   },
   magnet: (p, h) => ({
@@ -808,7 +829,9 @@ const EN: Pack = {
   }),
   melting: (p, h) => ({
     title: `${h.cap(h.N(p.solid))} is melting`,
-    say: `At ${p.mp} °C the ${h.N(p.solid)} turns liquid.` + (p.solid === 'S' ? ' Yellow sulfur becomes an orange liquid; with strong heating it darkens and thickens.' : ''),
+    say: `At ${p.mp} °C the ${h.N(p.solid)} turns liquid.` +
+      (p.solid === 'S' ? ' Yellow sulfur becomes a pale yellow runny liquid; above 160 °C it turns red-brown and thick.' : '') +
+      (p.solid === 'NH4NO3' ? ' Do not heat it further: ammonium nitrate decomposes and can explode when strongly heated.' : ''),
     why7: 'Melting is a physical change: the substance turns from solid to liquid but stays the same substance.',
     why: 'Every pure substance has its own melting point, which is used to check how pure it is.'
   }),
@@ -816,7 +839,7 @@ const EN: Pack = {
     title: 'Violet iodine vapour',
     say: 'On heating, iodine turns straight into violet vapour without melting. On the cold walls the vapour settles again as shiny crystals.',
     why7: 'Going straight from solid to gas is called sublimation.',
-    why: 'Iodine is purified by sublimation: impurities stay at the bottom while pure crystals settle in the cool part.'
+    why: 'Iodine is purified by sublimation: impurities stay at the bottom while pure crystals settle in the cool part. Iodine vapour is harmful — use a fume hood.'
   }),
   distillation: () => ({
     title: 'Distilled water is collecting',
@@ -832,7 +855,8 @@ const EN: Pack = {
   }),
   gasOut: (p, h) => ({
     title: 'Gas leaves the hot solution',
-    say: `On heating, the dissolved ${h.N(p.gas)} ${h.F(p.gas)} comes out of the solution.`,
+    say: `On heating, the dissolved ${h.N(p.gas)} ${h.F(p.gas)} comes out of the solution.` +
+      (TOXIC_OUT.includes(p.gas) ? ' The gas is toxic and has a strong smell — heat only in a fume hood.' : ''),
     why: 'Gases dissolve worse in hot water than in cold. That is why a warm fizzy drink goes flat faster.'
   }),
   floats: () => ({
@@ -856,7 +880,10 @@ const EN: Pack = {
     : {
         title: 'The solution got very hot',
         say: `${h.cap(h.N(p.solid))} gives out heat as it dissolves — the vessel turned hot.` + (p.saturated ? ' Not all of it dissolved: the solution is saturated.' : ''),
-        why: 'Dissolving an alkali gives out a lot of heat. That is why solid alkali is dissolved a little at a time in cold water.'
+        why: p.solid === 'NaOH' || p.solid === 'KOH'
+          ? 'Dissolving an alkali gives out a lot of heat. That is why solid alkali is dissolved a little at a time in cold water.'
+          : 'Anhydrous salts that take up water of crystallisation give out heat as they dissolve.' +
+            (p.solid === 'CoCl2' ? ' Blue anhydrous cobalt(II) chloride gives a pink solution.' : '')
       })
 };
 

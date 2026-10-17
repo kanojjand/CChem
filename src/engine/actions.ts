@@ -35,7 +35,7 @@ export interface ActionResult {
 /** Millimoles in one gram of a solid. */
 export const mmolPerGram = (formula: string) => 1000 / molarMass(formula);
 
-export const phOf = (v: Vessel) => solvePH(v.aq, v.volume);
+export const phOf = (v: Vessel) => solvePH(v.aq, v.volume, v.solids);
 
 function indicatorState(v: Vessel): { id: IndicatorId; color: ColorName } | null {
   const pH = phOf(v);
@@ -232,14 +232,25 @@ export function tick(v: Vessel, dt: number, now: number): ReactionEvent[] {
   const before = snapshot(v);
   const physical = heatStep(v, dt, now);
 
-  // Iron(II) and manganese(II) hydroxides slowly turn brown in air.
+  // Iron(II) and manganese(II) hydroxides slowly turn brown in air, starting from the surface:
+  // 4Fe(OH)2 + O2 + 2H2O -> 4Fe(OH)3, 2Mn(OH)2 + O2 -> 2MnO(OH)2. It takes minutes.
   for (const [from, to] of [['Fe(OH)2', 'Fe(OH)3'], ['Mn(OH)2', 'MnO(OH)2']]) {
     const n = amt(v.solids, from);
     if (n <= EPS || !v.fx.precipAt || now - v.fx.precipAt < 8000) continue;
-    const e = Math.min(n, n * 0.03 * dt + 0.002);
+    const e = Math.min(n, n * 0.004 * dt + 0.0002 * dt);
     v.solids[from] = n - e;
     if (v.solids[from] <= EPS) delete v.solids[from];
     put(v.solids, to, e);
+    const key = `air:${from}`;
+    if (!v.seen.includes(key) && amt(v.solids, to) > 0.15 * (amt(v.solids, to) + amt(v.solids, from))) {
+      physical.push({
+        kind: 'hydroxideAir', importance: 2, type: 'redox', signs: ['color'], key,
+        eq: from === 'Fe(OH)2'
+          ? { reactants: ['Fe(OH)2', 'O2', 'H2O'], products: ['Fe(OH)3'] }
+          : { reactants: ['Mn(OH)2', 'O2'], products: ['MnO(OH)2'] },
+        p: { solid: from, product: to }
+      });
+    }
   }
 
   const ctx: Ctx = { now, aqueousAddedToConc: false, limited: new Set(), dt };
@@ -277,7 +288,10 @@ export interface ExplainCtx {
 function notModeled(v: Vessel): string | null {
   const has = (id: string) => amt(v.aq, id) > EPS;
   const solid = (id: string) => amt(v.solids, id) > EPS;
-  if (has('MnO4^-') && !has('H^+') && (has('Fe^2+') || has('I^-') || has('H2O2') || has('SO3^2-'))) return 'permanganate';
+  if (has('MnO4^-') && !has('H^+') && has('Fe^2+')) return 'permanganate';
+  // Copper(II) with sulfite or thiosulfate: a mixture of copper(I) compounds, not shown here.
+  if (has('Cu^2+') && has('SO3^2-')) return 'cuSulfite';
+  if (has('Cu^2+') && has('S2O3^2-')) return 'cuThiosulfate';
   if (amt(v.aq, 'H2SO4c') > EPS && waterVolume(v) <= 0.05 && ['Na', 'Ca', 'K', 'Li', 'Ba'].some(solid)) return 'concActive';
   return null;
 }
@@ -317,7 +331,7 @@ function explain(v: Vessel, before: Before, events: ReactionEvent[], x: ExplainC
     const filmed = metals.find((m) => METALS[m].film);
     const hp = v.parent['H^+'] || 'HCl';
     const acidAnion = hasCompound(hp) ? compound(hp).anion : undefined;
-    if (filmed && (acidAnion === 'Cl^-' || acidAnion === 'SO4^2-') && !has('NO3^-')) {
+    if (filmed && (acidAnion === 'Cl^-' || acidAnion === 'SO4^2-' || acidAnion === 'PO4^3-') && !has('NO3^-')) {
       return { kind: 'leadFilm', importance: 2, p: { metal: filmed, acid: v.parent['H^+'] || 'HCl', salt: salt(METALS[filmed].ion, acidAnion).id }, signs: [] };
     }
     const precious = metals.find((m) => NOBLE_METALS.has(m));
@@ -332,10 +346,15 @@ function explain(v: Vessel, before: Before, events: ReactionEvent[], x: ExplainC
     }
   }
 
-  if (solid('Al') && has('Cu^2+') && !has('Cl^-')) return { kind: 'aluminumFilm', importance: 2, p: { metal: 'Al' }, signs: [] };
+  // Aluminium is covered by an oxide film: without chloride ions it does not touch salt solutions
+  // or weak acids, though it stands before those metals in the activity series.
+  const lessActive = Object.keys(v.aq).some((c) => IONS[c]?.metal && METALS[IONS[c].metal!] && amt(v.aq, c) > EPS && activity(IONS[c].metal!) > activity('Al'));
+  if (solid('Al') && !has('Cl^-') && (lessActive || has('CH3COOH'))) return { kind: 'aluminumFilm', importance: 2, p: { metal: 'Al', acid: has('CH3COOH') ? 'CH3COOH' : '' }, signs: [] };
 
   if (metals.length) {
-    const cations = Object.keys(v.aq).filter((c) => IONS[c]?.metal && amt(v.aq, c) > EPS && !c.startsWith('['));
+    // Only salts of heavy metals are worth explaining "does not displace": with K+, Na+ or Ca2+ the
+    // point of an experiment is the anion (KSCN with iron(II), for example).
+    const cations = Object.keys(v.aq).filter((c) => IONS[c]?.metal && amt(v.aq, c) > EPS && !c.startsWith('[') && !METALS[IONS[c].metal!]?.alkali && c !== 'Mg^2+');
     const preferred = r?.parent && hasCompound(r.parent) ? compound(r.parent).cation : undefined;
     for (const m of r?.cat === 'metal' ? [r.id] : metals) {
       if (!solid(m)) continue;
@@ -348,7 +367,13 @@ function explain(v: Vessel, before: Before, events: ReactionEvent[], x: ExplainC
           return { kind: 'metalSaltNone', importance: 2, p: { metal: m, ion: c, salt: cParent }, signs: [], eq: { reactants: [m, cParent], products: [], noReaction: true } };
         }
       }
-      if (waterVolume(v) > 0.05 && (r?.cat === 'metal' || before.empty === false)) {
+      // A weak acid does not dissolve metals after hydrogen either.
+      if (has('CH3COOH') && activity(m) > activity('H2')) {
+        return { kind: 'metalAcidNone', importance: 2, p: { metal: m, acid: 'CH3COOH', noble: NOBLE_METALS.has(m) ? '1' : '' }, signs: [], eq: { reactants: [m, 'CH3COOH'], products: [], noReaction: true } };
+      }
+      // "Does not react with water" only when there really is nothing but water around the metal.
+      const onlyWater = !has('H^+') && !has('CH3COOH') && !has('OH^-') && !cations.length;
+      if (onlyWater && waterVolume(v) > 0.05 && (r?.cat === 'metal' || before.empty === false)) {
         return { kind: 'metalWaterNone', importance: 1, p: { metal: m }, signs: [] };
       }
     }
@@ -384,9 +409,13 @@ function explain(v: Vessel, before: Before, events: ReactionEvent[], x: ExplainC
       if (IONS[id].charge < 0 && !before.anions.includes(id)) newAnions.push(id);
     }
   }
+  // Salts that cannot exist because their ions react with each other (a reducer with an oxidiser).
+  const OXIDISERS = ['MnO4^-', 'MnO4^2-', 'Cr2O7^2-', 'CrO4^2-', 'ClO^-', 'BrO^-', 'IO3^-'];
+  const REDUCING = ['Fe^2+', 'Sn^2+', 'Mn^2+', 'Cr^3+'];
+  const ok = (c: string, a: string) => c !== 'H^+' && solubility(c, a).s === 'R' && !(OXIDISERS.includes(a) && REDUCING.includes(c));
   const pairs: string[] = [];
-  for (const c of newCations) for (const a of before.anions) if (c !== 'H^+' && solubility(c, a).s === 'R') pairs.push(salt(c, a).id);
-  for (const c of before.cations) for (const a of newAnions) if (c !== 'H^+' && solubility(c, a).s === 'R') pairs.push(salt(c, a).id);
+  for (const c of newCations) for (const a of before.anions) if (ok(c, a)) pairs.push(salt(c, a).id);
+  for (const c of before.cations) for (const a of newAnions) if (ok(c, a)) pairs.push(salt(c, a).id);
   const unique = [...new Set(pairs)].filter((f) => !(r?.parent && f === r.parent));
   if ((newCations.length || newAnions.length) && (before.cations.length || before.anions.length)) {
     return { kind: 'exchangeNone', importance: 2, p: { a: unique[0] || '', b: unique[1] || '' }, signs: [] };

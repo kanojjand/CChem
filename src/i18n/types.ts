@@ -99,6 +99,8 @@ export interface Strings {
     solLegend: { R: string; M: string; N: string; D: string };
     activityNote: string;
     indicatorRows: { acid: string; neutral: string; alkaline: string };
+    /** Note under the indicator table (methyl orange in neutral solution). */
+    indicatorNote: string;
     massLabel: string;
     categories: Record<string, string>;
   };

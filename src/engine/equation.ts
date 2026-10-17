@@ -1,5 +1,5 @@
 import { balance } from './balance';
-import { compound, hasCompound, IONS } from './data';
+import { compound, hasCompound, IONS, METALS } from './data';
 
 export type Cond = 't' | 'MnO2' | 'H2SO4c' | 'el';
 
@@ -13,6 +13,8 @@ export interface EqSpec {
   noReaction?: boolean;
   k?: number[];           // coefficients given by hand when the balancer has more than one answer
   dry?: boolean;          // between solids, without water: no ionic equations
+  solid?: string[];       // reactants taken as a solid or a suspension: written whole in ionic equations
+  colloid?: string[];     // products that stay in the liquid as a sol: no precipitate arrow
 }
 
 export interface Term { f: string; k: number; mark?: '↓' | '↑'; conc?: boolean }
@@ -25,19 +27,40 @@ export interface Equations {
 
 function gcd(a: number, b: number): number { return b ? gcd(b, a % b) : Math.abs(a); }
 
-/** Ions a compound splits into in a school ionic equation, or null when it is written whole. */
+/**
+ * Ions a compound splits into in a school ionic equation, or null when it is written whole.
+ * Only concentrated sulfuric acid stays a molecule: concentrated hydrochloric and nitric acids
+ * are still fully dissociated and are written as ions.
+ */
 function ionsOf(id: string, eq: EqSpec): { ion: string; n: number }[] | null {
-  if (eq.precip?.includes(id) || eq.gas?.includes(id)) return null;
-  if (eq.conc === id) return null;
+  if (eq.precip?.includes(id) || eq.gas?.includes(id) || eq.solid?.includes(id)) return null;
+  if (eq.conc === id && id === 'H2SO4') return null;
   if (!hasCompound(id)) return null;
   const def = compound(id);
   if (def.electrolyte !== 'strong' || !def.cation || !def.anion) return null;
   return [{ ion: def.cation, n: def.nCat || 1 }, { ion: def.anion, n: def.nAn || 1 }];
 }
 
+/** Does the reaction run in solution: at least one reactant is dissolved (or is water itself)? */
+function inSolution(eq: EqSpec): boolean {
+  if (eq.dry) return false;
+  return eq.reactants.some((f) => f === 'H2O' || (hasCompound(f) && compound(f).phase === 'aq' && !eq.solid?.includes(f)));
+}
+
+/**
+ * Insoluble product of a reaction in solution: it comes out as a precipitate (↓).
+ * Metals deposited on another metal or on an electrode are written without an arrow.
+ */
+const isMetal = (f: string) => !!METALS[f] || f === 'Co' || f === 'Cr' || f === 'Hg';
+
+function precipitates(f: string, eq: EqSpec): boolean {
+  if (eq.reactants.includes(f) || eq.colloid?.includes(f) || isMetal(f) || f === 'H2O(s)' || !hasCompound(f)) return false;
+  return compound(f).phase === 's' && inSolution(eq);
+}
+
 export function buildEquations(eq: EqSpec): Equations | null {
   const mark = (f: string): Term['mark'] =>
-    eq.precip?.includes(f) ? '↓' : eq.gas?.includes(f) ? '↑' : undefined;
+    eq.precip?.includes(f) ? '↓' : eq.gas?.includes(f) ? '↑' : precipitates(f, eq) ? '↓' : undefined;
 
   if (eq.noReaction) {
     return {
@@ -50,7 +73,8 @@ export function buildEquations(eq: EqSpec): Equations | null {
     };
   }
 
-  const k = eq.k ?? balance(eq.reactants, eq.products);
+  let k: number[] | null;
+  try { k = eq.k ?? balance(eq.reactants, eq.products); } catch { return null; }
   if (!k) return null;
   const nr = eq.reactants.length;
   const molecular: Equations['molecular'] = {

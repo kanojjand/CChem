@@ -25,8 +25,8 @@ export const LAB_MORE: Record<Lang, LabMore> = {
     sep: {
       title: 'Разделение и пробы', hint: 'Фильтрование, магнит и окрашивание пламени — способы разделить смесь и узнать, что в ней.',
       filter: 'Профильтровать в…', filterHint: 'Через фильтр проходит только жидкость, твёрдые частицы остаются на бумаге.', filterInto: 'Фильтрат в',
-      magnet: 'Поднести магнит', magnetHint: 'Магнит притягивает железо и никель.',
-      flame: 'Внести в пламя', flameHint: 'Проволочку смачивают раствором и вносят в пламя: ионы металлов окрашивают его.', flameNone: 'Пламя не изменилось'
+      magnet: 'Поднести магнит', magnetHint: 'Магнит притягивает железо, никель и кобальт.',
+      flame: 'Внести в пламя', flameHint: 'Чистую (прокалённую) нихромовую проволочку смачивают раствором и вносят в пламя: ионы металлов окрашивают его.', flameNone: 'Пламя не изменилось'
     },
     state: { boiling: 'кипит', bp: (t) => `кипит при ${t} °C`, dry: 'вода выкипела', melted: 'расплав', ice: 'лёд', steam: 'пар' },
     inVessel: 'В сосуде',
@@ -43,15 +43,15 @@ export const LAB_MORE: Record<Lang, LabMore> = {
     sep: {
       title: 'Бөлу және сынамалар', hint: 'Сүзу, магнит және жалынның боялуы — қоспаны бөлу және оның құрамын анықтау тәсілдері.',
       filter: 'Сүзіп құю…', filterHint: 'Сүзгіден тек сұйықтық өтеді, қатты бөлшектер қағазда қалады.', filterInto: 'Фильтрат',
-      magnet: 'Магнит жақындату', magnetHint: 'Магнит темір мен никельді тартады.',
-      flame: 'Жалынға енгізу', flameHint: 'Сымды ерітіндіге малып, жалынға енгізеді: металл иондары жалынды бояйды.', flameNone: 'Жалын өзгерген жоқ'
+      magnet: 'Магнит жақындату', magnetHint: 'Магнит темірді, никельді және кобальтты тартады.',
+      flame: 'Жалынға енгізу', flameHint: 'Таза (қыздырылған) нихром сымды ерітіндіге малып, жалынға енгізеді: металл иондары жалынды бояйды.', flameNone: 'Жалын өзгерген жоқ'
     },
     state: { boiling: 'қайнап жатыр', bp: (t) => `${t} °C-та қайнайды`, dry: 'су буланып кетті', melted: 'балқыма', ice: 'мұз', steam: 'бу' },
     inVessel: 'Ыдыста',
     ui: {
       reset: 'Басынан бастау', resetDone: 'Үстел бос — ыдыс таңда. Ойыңнан қайттың ба? «Болдырмау» бас.', nothingToReset: 'Үстел онсыз да бос',
       pickTitle: 'Ыдыс таңда', pickHint: 'Үстелге қою үшін бас. Бірнешеуін қоюға болады.', capacity: (ml) => `${ml} мл-ге дейін`,
-      placedTube: 'Үстелге сынауық қойылды',
+      placedTube: 'Үстелге пробирка қойылды',
       focus: 'Ірі', focusHint: 'Таңдалған ыдысты ортада ірі көрсету (немесе ыдысты екі рет шерту)', overview: 'Бүкіл үстел',
       ionic: 'Иондық теңдеулер', amountHint: 'Банкаға бір басқанда қанша құйылады және себіледі. Индикатор — 2 тамшы.'
     },
@@ -59,10 +59,10 @@ export const LAB_MORE: Record<Lang, LabMore> = {
   },
   en: {
     sep: {
-      title: 'Separation and tests', hint: 'Filtering, a magnet and flame colors: ways to separate a mixture and find out what is in it.',
+      title: 'Separation and tests', hint: 'Filtering, a magnet and flame colours: ways to separate a mixture and find out what is in it.',
       filter: 'Filter into…', filterHint: 'Only the liquid passes through the filter; solid bits stay on the paper.', filterInto: 'Filtrate into',
-      magnet: 'Hold a magnet', magnetHint: 'A magnet pulls iron and nickel.',
-      flame: 'Flame test', flameHint: 'A wire loop is dipped into the solution and held in the flame: metal ions color it.', flameNone: 'The flame did not change'
+      magnet: 'Hold a magnet', magnetHint: 'A magnet pulls iron, nickel and cobalt.',
+      flame: 'Flame test', flameHint: 'A clean (flamed) nichrome wire loop is dipped into the solution and held in the flame: metal ions colour it.', flameNone: 'The flame did not change'
     },
     state: { boiling: 'boiling', bp: (t) => `boils at ${t} °C`, dry: 'boiled dry', melted: 'melt', ice: 'ice', steam: 'steam' },
     inVessel: 'In the vessel',

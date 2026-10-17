@@ -6,6 +6,9 @@
 import type { Lang } from '../engine/data';
 import type { EventText, EventTexts, H } from './types';
 
+/** Amphoteric oxides and hydroxides among the solids that dissolve in acids. */
+export const AMPHOTERIC = ['ZnO', 'Zn(OH)2', 'Al(OH)3', 'Pb(OH)2', 'Sn(OH)2', 'Cr(OH)3'];
+
 type NewKinds = 'iron3Metal' | 'hclPrep' | 'ammoniaPrep' | 'chlorinePrep' | 'metalHotWater' | 'sulfateFilm';
 type Fn = (p: Record<string, string>, h: H) => EventText;
 
@@ -18,9 +21,9 @@ const RU: Record<NewKinds, Fn> = {
     why7: 'Соль железа(III) отнимает у металла электроны, и металл растворяется.',
     why: 'Ионы Fe³⁺ — окислитель: Fe³⁺ + e⁻ → Fe²⁺. Раствором хлорида железа(III) травят медные дорожки печатных плат.'
   }),
-  hclPrep: (_p, h) => ({
+  hclPrep: (p, h) => ({
     title: 'Выделяется хлороводород',
-    say: `Концентрированная серная кислота вытесняет из соли хлороводород ${h.F('HCl')} — бесцветный газ с резким запахом. Во влажном воздухе он «дымит»: образуется туман из капелек соляной кислоты. Остаётся гидросульфат натрия.`,
+    say: `Концентрированная серная кислота вытесняет из соли хлороводород ${h.F('HCl')} — бесцветный газ с резким запахом. Во влажном воздухе он «дымит»: образуется туман из капелек соляной кислоты. Остаётся гидросульфат ${p.salt === 'KCl' ? 'калия' : 'натрия'}.`,
     why7: 'Из поваренной соли и серной кислоты получают газ, а из него — соляную кислоту.',
     why: 'Нелетучая серная кислота вытесняет летучую соляную кислоту из её солей. Хлороводород очень хорошо растворяется в воде (около 450 объёмов в одном объёме): над водой его не собирают, а растворив в воде, получают соляную кислоту.'
   }),
@@ -45,31 +48,31 @@ const RU: Record<NewKinds, Fn> = {
     title: p.again ? 'Реакция не идёт' : 'Реакция быстро прекратилась',
     say: p.again
       ? `Кусочки ${h.N(p.solid)} покрыты коркой ${h.N(p.crust)} ${h.F(p.crust)}, и кислота до карбоната больше не достаёт.`
-      : `Сначала появились пузырьки углекислого газа, но реакция почти сразу остановилась: кусочки покрылись коркой малорастворимого ${h.N(p.crust)} ${h.F(p.crust)}.`,
+      : `Сначала появились пузырьки углекислого газа, но реакция почти сразу остановилась: кусочки покрылись коркой ${p.crust === 'CaSO4' ? 'малорастворимого' : 'нерастворимого'} ${h.N(p.crust)} ${h.F(p.crust)}.`,
     why: 'Поэтому углекислый газ в лаборатории получают из мрамора и соляной кислоты, а не серной.'
   })
 };
 
 const KK: Record<NewKinds, Fn> = {
   iron3Metal: (p, h) => ({
-    title: p.metal === 'Cu' ? 'Мыс темір(III) ерітіндісінде ериді' : `${h.cap(h.metal(p.metal))} ериді, ерітінді ағарады`,
+    title: p.metal === 'Cu' ? 'Мыс темір(III) ерітіндісінде ериді' : `${h.cap(h.metal(p.metal))} ериді, ерітіндінің түсі ашықтайды`,
     say: p.metal === 'Cu'
       ? 'Темір(III) иондары мысты тотықтырады: мыс ерітіндіге өтеді, ал сары-қоңыр ерітінді жасылдау-көгілдір болады — темір(II) және мыс(II) тұздары түзіледі.'
       : `Темір(III) иондары ${h.metal(p.metal)} металын тотықтырады. Темір(III)-тің сары-қоңыр түсі темір(II) иондарының ${h.F('Fe^2+')} ақшыл жасыл түсіне ауысады.`,
     why7: 'Темір(III) тұзы металдан электрон тартып алады, сондықтан металл ериді.',
     why: 'Fe³⁺ иондары — тотықтырғыш: Fe³⁺ + e⁻ → Fe²⁺. Темір(III) хлоридінің ерітіндісімен баспа платаларының мыс жолақтарын өңдейді.'
   }),
-  hclPrep: (_p, h) => ({
+  hclPrep: (p, h) => ({
     title: 'Хлорсутек бөлінеді',
-    say: `Концентрлі күкірт қышқылы тұздан хлорсутекті ${h.F('HCl')} ығыстырады — өткір иісті түссіз газ. Дымқыл ауада ол «түтіндейді»: тұз қышқылының тамшыларынан тұман түзіледі. Натрий гидросульфаты қалады.`,
+    say: `Концентрлі күкірт қышқылы тұздан хлорсутекті ${h.F('HCl')} ығыстырады — өткір иісті түссіз газ. Дымқыл ауада ол «түтіндейді»: тұз қышқылының тамшыларынан тұман түзіледі. ${p.salt === 'KCl' ? 'Калий' : 'Натрий'} гидросульфаты қалады.`,
     why7: 'Ас тұзы мен күкірт қышқылынан газ алады, ал одан — тұз қышқылын.',
     why: 'Ұшпайтын күкірт қышқылы ұшқыш тұз қышқылын оның тұздарынан ығыстырады. Хлорсутек суда өте жақсы ериді (бір көлем суда шамамен 450 көлем): оны су үстінде жинамайды, ал суда ерітіп, тұз қышқылын алады.'
   }),
   ammoniaPrep: (_p, h) => ({
     title: 'Аммиак бөлінеді',
-    say: `Аммоний тұзы мен сілті қоспасын қыздырғанда нашатырдың өткір иісі бар аммиак ${h.F('NH3')} бөлінеді. Сынауықтың суық қабырғаларында су тамшылары пайда болады.`,
+    say: `Аммоний тұзы мен сілті қоспасын қыздырғанда нашатырдың өткір иісі бар аммиак ${h.F('NH3')} бөлінеді. Пробирканың суық қабырғаларында су тамшылары пайда болады.`,
     why7: 'Зертханада аммиакты осылай алады.',
-    why: 'Сілті аммоний тұздарынан аммиакты ығыстырады. Аммиак ауадан жеңіл және суда өте жақсы ериді, сондықтан оны төңкерілген сынауыққа жинайды. Ауызындағы дымқыл лакмус қағазы көгереді.'
+    why: 'Сілті аммоний тұздарынан аммиакты ығыстырады. Аммиак ауадан жеңіл және суда өте жақсы ериді, сондықтан оны төңкерілген пробиркаға жинайды. Аузындағы дымқыл лакмус қағазы көгереді.'
   }),
   chlorinePrep: (_p, h) => ({
     title: 'Сары-жасыл хлор бөлінеді',
@@ -86,7 +89,7 @@ const KK: Record<NewKinds, Fn> = {
     title: p.again ? 'Реакция жүрмейді' : 'Реакция тез тоқтады',
     say: p.again
       ? `${h.cap(h.N(p.solid))} кесектері ${h.N(p.crust)} ${h.F(p.crust)} қабықшасымен қапталған, қышқыл карбонатқа енді жете алмайды.`
-      : `Алдымен көмірқышқыл газының көпіршіктері шықты, бірақ реакция бірден дерлік тоқтады: кесектер аз еритін ${h.N(p.crust)} ${h.F(p.crust)} қабықшасымен қапталды.`,
+      : `Алдымен көмірқышқыл газының көпіршіктері шықты, бірақ реакция бірден дерлік тоқтады: кесектер ${p.crust === 'CaSO4' ? 'аз еритін' : 'ерімейтін'} ${h.N(p.crust)} ${h.F(p.crust)} қабықшасымен қапталды.`,
     why: 'Сондықтан зертханада көмірқышқыл газын мәрмәр мен күкірт қышқылынан емес, тұз қышқылынан алады.'
   })
 };
@@ -100,9 +103,9 @@ const EN: Record<NewKinds, Fn> = {
     why7: 'The iron(III) salt takes electrons from the metal, so the metal dissolves.',
     why: 'Fe³⁺ ions are an oxidiser: Fe³⁺ + e⁻ → Fe²⁺. Iron(III) chloride solution is used to etch the copper tracks of circuit boards.'
   }),
-  hclPrep: (_p, h) => ({
+  hclPrep: (p, h) => ({
     title: 'Hydrogen chloride is given off',
-    say: `Concentrated sulfuric acid drives hydrogen chloride ${h.F('HCl')} out of the salt: a colourless gas with a sharp smell. In moist air it fumes, forming a mist of hydrochloric acid droplets. Sodium hydrogen sulfate is left behind.`,
+    say: `Concentrated sulfuric acid drives hydrogen chloride ${h.F('HCl')} out of the salt: a colourless gas with a sharp smell. In moist air it fumes, forming a mist of hydrochloric acid droplets. ${p.salt === 'KCl' ? 'Potassium' : 'Sodium'} hydrogen sulfate is left behind.`,
     why7: 'Salt and sulfuric acid give this gas, and the gas dissolved in water gives hydrochloric acid.',
     why: 'Non-volatile sulfuric acid drives the volatile hydrochloric acid out of its salts. Hydrogen chloride dissolves extremely well in water (about 450 volumes in one): it is never collected over water, and dissolving it in water gives hydrochloric acid.'
   }),
@@ -127,7 +130,7 @@ const EN: Record<NewKinds, Fn> = {
     title: p.again ? 'No reaction' : 'The reaction soon stopped',
     say: p.again
       ? `The pieces of ${h.N(p.solid)} are covered with a crust of ${h.N(p.crust)} ${h.F(p.crust)}, so the acid can no longer reach the carbonate.`
-      : `At first bubbles of carbon dioxide appeared, but the reaction stopped almost at once: the pieces got covered with a crust of slightly soluble ${h.N(p.crust)} ${h.F(p.crust)}.`,
+      : `At first bubbles of carbon dioxide appeared, but the reaction stopped almost at once: the pieces got covered with a crust of ${p.crust === 'CaSO4' ? 'slightly soluble' : 'insoluble'} ${h.N(p.crust)} ${h.F(p.crust)}.`,
     why: 'That is why carbon dioxide is made in the lab from marble and hydrochloric acid, not sulfuric acid.'
   })
 };
@@ -161,7 +164,9 @@ const VARIANTS: Record<Lang, Partial<Record<keyof EventTexts, Variant>>> = {
     passivation: (p, h) => p.acid === 'HNO3'
       ? { title: `${h.cap(h.metal(p.metal))} не растворяется`, say: 'Холодная концентрированная азотная кислота покрывает этот металл прочной оксидной плёнкой, и реакция прекращается.', why: 'Это пассивация. Поэтому концентрированную азотную кислоту можно перевозить в алюминиевых цистернах.' }
       : null,
-    cuConcAcid: (p, h) => p.metal === 'Zn' || p.metal === 'Mg'
+    cuConcAcid: (p, h) => p.metal === 'Fe'
+      ? { title: 'Железо растворяется в горячей серной кислоте', say: `На холоде железо пассивируется, но при нагревании концентрированная серная кислота окисляет его до сульфата железа(III) ${h.F('Fe2(SO4)3')}, и раствор желтеет. Водород не выделяется: выходит сернистый газ ${h.F('SO2')} с запахом горелой спички.`, why: 'При нагревании защитная плёнка разрушается. Концентрированная серная кислота — сильный окислитель, поэтому железо переходит сразу в степень окисления +3, а сера(+6) восстанавливается до SO₂. Опыт — только под тягой.' }
+      : p.metal === 'Zn' || p.metal === 'Mg'
       ? { title: `${h.cap(h.metal(p.metal))} растворяется в концентрированной серной кислоте`, say: `Концентрированная серная кислота окисляет ${h.metal(p.metal)} даже без нагревания. Водород не выделяется: выделяется сернистый газ ${h.F('SO2')} с запахом горелой спички, смесь разогревается.`, why: 'Концентрированная серная кислота — окислитель за счёт серы(+6). С активными металлами она восстанавливается до SO₂, а при большом избытке металла — даже до серы или сероводорода.' }
       : null
   },
@@ -169,7 +174,7 @@ const VARIANTS: Record<Lang, Partial<Record<keyof EventTexts, Variant>>> = {
     permanganateRedox: (p, h) => p.red === 'Cl^-'
       ? { title: 'Хлор бөлінеді', say: `Калий перманганаты концентрлі тұз қышқылын тотықтырады: өткір, тұншықтырғыш иісті сары-жасыл хлор ${h.F('Cl2')} бөлінеді, таңқурай түс жоғалады.`, why: 'Зертханада хлорды қыздырмай осылай алады. Тек тартпа шкафта: хлор өте улы.' }
       : p.medium === 'neutral'
-      ? { title: 'Қоңыр тұнба түсті', say: `Бейтарап ортада перманганат түссіз марганец(II) иондарына дейін емес, марганец(IV) оксидінің ${h.F('MnO2')} қоңыр тұнбасына дейін тотықсызданады. ${p.red === 'I^-' ? 'Иодид йодқа дейін тотығады.' : p.red === 'H2O2' ? 'Сутек пероксиді тотығады — оттек бөлінеді.' : 'Сульфит сульфатқа дейін тотығады.'}`, why7: 'Түс жоғалып, қоңыр тұнба түсті — реакция белгілері.', why: 'Өнім ортаға байланысты: қышқылдық ортада — Mn²⁺ иондары (ерітінді түссізденеді), бейтарап ортада — қоңыр MnO₂, сілтілік ортада — жасыл манганат MnO₄²⁻.' }
+      ? { title: 'Қоңыр тұнба түсті', say: `Бейтарап ортада перманганат түссіз марганец(II) иондарына дейін емес, марганец(IV) оксидінің ${h.F('MnO2')} қоңыр тұнбасына дейін тотықсызданады. ${p.red === 'I^-' ? 'Йодид йодқа дейін тотығады.' : p.red === 'H2O2' ? 'Сутек пероксиді тотығады — оттек бөлінеді.' : 'Сульфит сульфатқа дейін тотығады.'}`, why7: 'Түс жоғалып, қоңыр тұнба түсті — реакция белгілері.', why: 'Өнім ортаға байланысты: қышқылдық ортада — Mn²⁺ иондары (ерітінді түссізденеді), бейтарап ортада — қоңыр MnO₂, сілтілік ортада — жасыл манганат MnO₄²⁻.' }
       : p.medium === 'alkaline'
       ? { title: 'Ерітінді жасыл түске енді', say: `Сілтілік ортада перманганат манганатқа ${h.F('MnO4^2-')} дейін тотықсызданады — ерітінді таңқурай түстен жасылға ауысады. Сульфит сульфатқа дейін тотығады.`, why: 'Өнім ортаға байланысты: қышқылдық ортада — Mn²⁺ (түссіз ерітінді), бейтарап ортада — қоңыр MnO₂ тұнбасы, сілтілік ортада — жасыл манганат.' }
       : null,
@@ -177,7 +182,7 @@ const VARIANTS: Record<Lang, Partial<Record<keyof EventTexts, Variant>>> = {
       ? { title: 'Хлор бөлінеді, ерітінді жасылданды', say: `Дихромат концентрлі тұз қышқылын хлорға ${h.F('Cl2')} дейін тотықтырады — өткір иісті газ, ал өзі жасыл хром(III) иондарына айналады.`, why: 'Хромның тотығу дәрежесі +6-дан +3-ке өзгереді. Тәжірибе — тек тартпа шкафта.' }
       : null,
     iodideOx: (p, h) => p.ion === 'H2O2'
-      ? { title: 'Ерітінді қоңырқайланды — йод бөлінді', say: `Сутек пероксиді иодид-иондарды йодқа ${h.F('I2')} дейін тотықтырады: ерітінді сарғайып, кейін қоңырқайланады. Қышқылдық ортада реакция тезірек жүреді.`, why: 'Сутек пероксиді — тотықтырғыш. Крахмал қос — ерітінді қою көк түске енеді.' }
+      ? { title: 'Ерітінді қоңырқайланды — йод бөлінді', say: `Сутек пероксиді йодид-иондарды йодқа ${h.F('I2')} дейін тотықтырады: ерітінді сарғайып, кейін қоңырқайланады. Қышқылдық ортада реакция тезірек жүреді.`, why: 'Сутек пероксиді — тотықтырғыш. Крахмал қос — ерітінді қою көк түске енеді.' }
       : null,
     metalNitric: (p, h) => p.conc
       ? { title: 'Қоңыр газ бөлінеді', say: `Концентрлі азот қышқылы ${h.metal(p.metal)} металын тотықтырады; өткір иісті улы қоңыр газ — азот(IV) оксиді ${h.F('NO2')} бөлінеді. Сутек бөлінбейді.`, why: 'Азот қышқылы неғұрлым концентрлі болса, соғұрлым аз тотықсызданады: концентрлісі NO₂, сұйылтылғаны NO береді.' }
@@ -185,7 +190,9 @@ const VARIANTS: Record<Lang, Partial<Record<keyof EventTexts, Variant>>> = {
     passivation: (p, h) => p.acid === 'HNO3'
       ? { title: `${h.cap(h.metal(p.metal))} ерімейді`, say: 'Суық концентрлі азот қышқылы бұл металды берік оксид қабықшасымен қаптайды да, реакция тоқтайды.', why: 'Бұл — пассивация. Сондықтан концентрлі азот қышқылын алюминий цистерналарда тасымалдауға болады.' }
       : null,
-    cuConcAcid: (p, h) => p.metal === 'Zn' || p.metal === 'Mg'
+    cuConcAcid: (p, h) => p.metal === 'Fe'
+      ? { title: 'Темір ыстық күкірт қышқылында ериді', say: `Суықта темір пассивтенеді, бірақ қыздырғанда концентрлі күкірт қышқылы оны темір(III) сульфатына ${h.F('Fe2(SO4)3')} дейін тотықтырады, ерітінді сарғаяды. Сутек бөлінбейді: жанған сіріңке иісті күкірт(IV) оксиді ${h.F('SO2')} шығады.`, why: 'Қыздырғанда қорғаныш қабықша бұзылады. Концентрлі күкірт қышқылы — күшті тотықтырғыш, сондықтан темір бірден +3 тотығу дәрежесіне өтеді, ал күкірт(+6) SO₂-ге дейін тотықсызданады. Тәжірибе — тек тартпа шкафта.' }
+      : p.metal === 'Zn' || p.metal === 'Mg'
       ? { title: `${h.cap(h.metal(p.metal))} концентрлі күкірт қышқылында ериді`, say: `Концентрлі күкірт қышқылы ${h.metal(p.metal)} металын қыздырмай-ақ тотықтырады. Сутек бөлінбейді: жанған сіріңке иісті күкірт(IV) оксиді ${h.F('SO2')} бөлінеді, қоспа қызады.`, why: 'Концентрлі күкірт қышқылы күкірт(+6) есебінен тотықтырғыш. Белсенді металдармен ол SO₂-ге дейін, металл көп болса — күкіртке не күкіртсутекке дейін тотықсызданады.' }
       : null
   },
@@ -209,7 +216,9 @@ const VARIANTS: Record<Lang, Partial<Record<keyof EventTexts, Variant>>> = {
     passivation: (p, h) => p.acid === 'HNO3'
       ? { title: `${h.cap(h.metal(p.metal))} does not dissolve`, say: 'Cold concentrated nitric acid covers this metal with a tough oxide film and the reaction stops.', why: 'This is passivation. That is why concentrated nitric acid can be carried in aluminium tanks.' }
       : null,
-    cuConcAcid: (p, h) => p.metal === 'Zn' || p.metal === 'Mg'
+    cuConcAcid: (p, h) => p.metal === 'Fe'
+      ? { title: 'Iron dissolves in hot sulfuric acid', say: `In the cold iron is passivated, but on heating concentrated sulfuric acid oxidises it to iron(III) sulfate ${h.F('Fe2(SO4)3')} and the solution turns yellow. No hydrogen forms: sulfur dioxide ${h.F('SO2')}, smelling of a struck match, comes off.`, why: 'Heating breaks down the protective film. Concentrated sulfuric acid is a strong oxidiser, so iron goes straight to oxidation state +3 while sulfur(+6) is reduced to SO₂. Fume hood only.' }
+      : p.metal === 'Zn' || p.metal === 'Mg'
       ? { title: `${h.cap(h.metal(p.metal))} dissolves in concentrated sulfuric acid`, say: `Concentrated sulfuric acid oxidises ${h.metal(p.metal)} even without heating. No hydrogen forms: sulfur dioxide ${h.F('SO2')}, smelling of a struck match, is given off, and the mixture gets hot.`, why: 'Concentrated sulfuric acid is an oxidiser because of sulfur(+6). With active metals it is reduced to SO₂, and with a lot of metal even to sulfur or hydrogen sulfide.' }
       : null
   }

@@ -1,12 +1,18 @@
 import { COLORS, IONS, ION_METAL_FORMS, METALS, REAGENT_BY_ID, compound, hasCompound, type Lang } from '../engine/data';
 import type { H, Strings } from './types';
 import { patchEvents } from './chemTexts';
+import { auditPatch } from './auditTexts';
+import { extraPatch } from './extraTexts';
 import { kk } from './kk';
 import { ru } from './ru';
 import { en } from './en';
 
 export const STRINGS: Record<Lang, Strings> = { kk, ru, en };
-for (const l of ['kk', 'ru', 'en'] as Lang[]) patchEvents(STRINGS[l].events, l);
+for (const l of ['kk', 'ru', 'en'] as Lang[]) {
+  patchEvents(STRINGS[l].events, l);
+  extraPatch(STRINGS[l].events, l);
+  auditPatch(STRINGS[l].events, l);
+}
 export const LANGS: { id: Lang; short: string }[] = [
   { id: 'kk', short: 'ҚАЗ' },
   { id: 'ru', short: 'РУС' },

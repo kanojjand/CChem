@@ -72,9 +72,9 @@ const ION_LIST: IonDef[] = [
   { id: 'Fe^2+', charge: 2, part: 'Fe', metal: 'Fe', hydrolysisPKa: 9.5, color: '#B9DDA2', refC: 0.5, name: { kk: 'темір(II)', ru: 'железа(II)', en: 'iron(II)' } },
   { id: 'Fe^3+', charge: 3, part: 'Fe', metal: 'Fe', hydrolysisPKa: 2.2, color: '#D99A1F', refC: 0.5, name: { kk: 'темір(III)', ru: 'железа(III)', en: 'iron(III)' } },
   { id: 'Al^3+', charge: 3, part: 'Al', metal: 'Al', hydrolysisPKa: 5.0, name: { kk: 'алюминий', ru: 'алюминия', en: 'aluminium' } },
-  { id: 'Pb^2+', charge: 2, part: 'Pb', metal: 'Pb', hydrolysisPKa: 7.7, name: { kk: 'қорғасын', ru: 'свинца', en: 'lead' } },
-  { id: 'Ni^2+', charge: 2, part: 'Ni', metal: 'Ni', hydrolysisPKa: 9.9, color: '#5FBF72', refC: 0.4, name: { kk: 'никель', ru: 'никеля', en: 'nickel' } },
-  { id: 'Co^2+', charge: 2, part: 'Co', metal: 'Co', hydrolysisPKa: 9.7, color: '#E07A9C', refC: 0.4, name: { kk: 'кобальт', ru: 'кобальта', en: 'cobalt' } },
+  { id: 'Pb^2+', charge: 2, part: 'Pb', metal: 'Pb', hydrolysisPKa: 7.7, name: { kk: 'қорғасын(II)', ru: 'свинца(II)', en: 'lead(II)' } },
+  { id: 'Ni^2+', charge: 2, part: 'Ni', metal: 'Ni', hydrolysisPKa: 9.9, color: '#5FBF72', refC: 0.4, name: { kk: 'никель(II)', ru: 'никеля(II)', en: 'nickel(II)' } },
+  { id: 'Co^2+', charge: 2, part: 'Co', metal: 'Co', hydrolysisPKa: 9.7, color: '#E07A9C', refC: 0.4, name: { kk: 'кобальт(II)', ru: 'кобальта(II)', en: 'cobalt(II)' } },
   { id: 'Mn^2+', charge: 2, part: 'Mn', metal: 'Mn', hydrolysisPKa: 10.6, color: '#F0C8D4', refC: 1.5, name: { kk: 'марганец(II)', ru: 'марганца(II)', en: 'manganese(II)' } },
   { id: 'Cr^3+', charge: 3, part: 'Cr', metal: 'Cr', hydrolysisPKa: 4.0, color: '#4E8A62', refC: 0.25, name: { kk: 'хром(III)', ru: 'хрома(III)', en: 'chromium(III)' } },
   { id: 'Sn^2+', charge: 2, part: 'Sn', metal: 'Sn', hydrolysisPKa: 3.4, name: { kk: 'қалайы(II)', ru: 'олова(II)', en: 'tin(II)' } },
@@ -86,7 +86,7 @@ const ION_LIST: IonDef[] = [
   // anions
   { id: 'OH^-', charge: -1, part: 'OH', poly: true, name: { kk: 'гидроксиді', ru: 'гидроксид', en: 'hydroxide' } },
   { id: 'Cl^-', charge: -1, part: 'Cl', name: { kk: 'хлориді', ru: 'хлорид', en: 'chloride' }, acidName: { kk: 'тұз қышқылы', ru: 'соляная кислота', en: 'hydrochloric acid' } },
-  { id: 'I^-', charge: -1, part: 'I', name: { kk: 'иодиді', ru: 'иодид', en: 'iodide' }, acidName: { kk: 'иодсутек қышқылы', ru: 'иодоводородная кислота', en: 'hydroiodic acid' } },
+  { id: 'I^-', charge: -1, part: 'I', name: { kk: 'йодиді', ru: 'иодид', en: 'iodide' }, acidName: { kk: 'йодсутек қышқылы', ru: 'иодоводородная кислота', en: 'hydroiodic acid' } },
   { id: 'NO3^-', charge: -1, part: 'NO3', poly: true, name: { kk: 'нитраты', ru: 'нитрат', en: 'nitrate' }, acidName: { kk: 'азот қышқылы', ru: 'азотная кислота', en: 'nitric acid' } },
   { id: 'SO4^2-', charge: -2, part: 'SO4', poly: true, name: { kk: 'сульфаты', ru: 'сульфат', en: 'sulfate' }, acidName: { kk: 'күкірт қышқылы', ru: 'серная кислота', en: 'sulfuric acid' } },
   { id: 'CO3^2-', charge: -2, part: 'CO3', poly: true, weakConj: true, name: { kk: 'карбонаты', ru: 'карбонат', en: 'carbonate' }, acidName: { kk: 'көмір қышқылы', ru: 'угольная кислота', en: 'carbonic acid' } },
@@ -108,9 +108,12 @@ const ION_LIST: IonDef[] = [
   { id: 'Cr2O7^2-', charge: -2, part: 'Cr2O7', poly: true, color: '#E8700C', refC: 0.025, name: { kk: 'дихроматы', ru: 'дихромат', en: 'dichromate' } },
   { id: 'S2O3^2-', charge: -2, part: 'S2O3', poly: true, name: { kk: 'тиосульфаты', ru: 'тиосульфат', en: 'thiosulfate' } },
   { id: 'S4O6^2-', charge: -2, part: 'S4O6', poly: true, name: { kk: 'тетратионаты', ru: 'тетратионат', en: 'tetrathionate' } },
-  { id: '[Pb(OH)4]^2-', charge: -2, part: '[Pb(OH)4]', name: { kk: 'тетрагидроксоплюмбаты', ru: 'тетрагидроксоплюмбат', en: 'tetrahydroxoplumbate' } },
-  { id: '[Sn(OH)4]^2-', charge: -2, part: '[Sn(OH)4]', name: { kk: 'тетрагидроксостаннаты', ru: 'тетрагидроксостаннат', en: 'tetrahydroxostannate' } },
-  { id: '[Cr(OH)6]^3-', charge: -3, part: '[Cr(OH)6]', color: '#3F8F4E', refC: 0.12, name: { kk: 'гексагидроксохроматы', ru: 'гексагидроксохромат(III)', en: 'hexahydroxochromate(III)' } }
+  { id: '[Pb(OH)4]^2-', charge: -2, part: '[Pb(OH)4]', name: { kk: 'тетрагидроксоплюмбаты(II)', ru: 'тетрагидроксоплюмбат(II)', en: 'tetrahydroxoplumbate(II)' } },
+  { id: '[Sn(OH)4]^2-', charge: -2, part: '[Sn(OH)4]', name: { kk: 'тетрагидроксостаннаты(II)', ru: 'тетрагидроксостаннат(II)', en: 'tetrahydroxostannate(II)' } },
+  { id: 'ClO^-', charge: -1, part: 'ClO', poly: true, name: { kk: 'гипохлориті', ru: 'гипохлорит', en: 'hypochlorite' } },
+  { id: 'BrO^-', charge: -1, part: 'BrO', poly: true, name: { kk: 'гипобромиті', ru: 'гипобромит', en: 'hypobromite' } },
+  { id: 'IO3^-', charge: -1, part: 'IO3', poly: true, name: { kk: 'йодаты', ru: 'иодат', en: 'iodate' } },
+  { id: '[Cr(OH)6]^3-', charge: -3, part: '[Cr(OH)6]', color: '#3F8F4E', refC: 0.12, name: { kk: 'гексагидроксохроматы(III)', ru: 'гексагидроксохромат(III)', en: 'hexahydroxochromate(III)' } }
 ];
 
 export const IONS: Record<string, IonDef> = Object.fromEntries(ION_LIST.map((i) => [i.id, i]));
@@ -147,13 +150,16 @@ const COMPOUND_LIST: CompoundDef[] = [
   C('SO2', 'күкірт(IV) оксиді', 'оксид серы(IV)', 'sulfur dioxide', 'g'),
   C('NH3', 'аммиак', 'аммиак', 'ammonia', 'g'),
   C('Cl2', 'хлор', 'хлор', 'chlorine', 'g'),
-  C('I2', 'иод', 'иод', 'iodine', 'aq', { color: 'greyViolet' }),
+  C('I2', 'йод', 'иод', 'iodine', 'aq', { color: 'greyViolet' }),
   C('NH3·H2O', 'аммиак ерітіндісі', 'гидрат аммиака', 'aqueous ammonia', 'aq', { electrolyte: 'weak' }),
   C('CH3COOH', 'сірке қышқылы', 'уксусная кислота', 'acetic acid', 'aq', { electrolyte: 'weak', cation: 'H^+', anion: 'CH3COO^-', nCat: 1, nAn: 1 }),
   C('H3PO4', 'фосфор қышқылы', 'фосфорная кислота', 'phosphoric acid', 'aq', { electrolyte: 'weak', cation: 'H^+', anion: 'PO4^3-', nCat: 3, nAn: 1 }),
   C('H2SiO3', 'кремний қышқылы', 'кремниевая кислота', 'silicic acid', 's', { color: 'clearGel' }),
   C('H2SO4', 'күкірт қышқылы', 'серная кислота', 'sulfuric acid', 'aq', { electrolyte: 'strong', cation: 'H^+', anion: 'SO4^2-', nCat: 2, nAn: 1 }),
   C('H2O2', 'сутек пероксиді', 'пероксид водорода', 'hydrogen peroxide', 'aq'),
+  C('H2SnO3', 'метақалайы қышқылы', 'метаоловянная кислота', 'metastannic acid', 's', { color: 'white' }),
+  C('HClO', 'хлорлылау қышқыл', 'хлорноватистая кислота', 'hypochlorous acid', 'aq', { electrolyte: 'weak' }),
+  C('N2O', 'азот(I) оксиді', 'оксид азота(I)', 'nitrogen(I) oxide', 'g'),
   C('C12H22O11', 'қант (сахароза)', 'сахар (сахароза)', 'sugar (sucrose)', 's', { color: 'white' }),
   C('C', 'көмір', 'уголь', 'carbon', 's', { color: 'black' }),
   C('CuO', 'мыс(II) оксиді', 'оксид меди(II)', 'copper(II) oxide', 's', { color: 'black' }),
@@ -182,6 +188,8 @@ const COMPOUND_LIST: CompoundDef[] = [
   C('Mn', 'марганец', 'марганец', 'manganese', 's'),
   C('Au', 'алтын', 'золото', 'gold', 's'),
   C('Pt', 'платина', 'платина', 'platinum', 's'),
+  C('Co', 'кобальт', 'кобальт', 'cobalt', 's', { color: 'greyMetal' }),
+  C('Cr', 'хром', 'хром', 'chromium', 's', { color: 'silver' }),
   // simple substances of nonmetals and their companions
   C('S', 'күкірт', 'сера', 'sulfur', 's', { color: 'yellow' }),
   C('Si', 'кремний', 'кремний', 'silicon', 's', { color: 'greyMetal' }),
@@ -193,7 +201,7 @@ const COMPOUND_LIST: CompoundDef[] = [
   C('starch', 'крахмал', 'крахмал', 'starch', 'aq'),
   C('Cr2O3', 'хром(III) оксиді', 'оксид хрома(III)', 'chromium(III) oxide', 's', { color: 'darkGreen' }),
   C('KNO2', 'калий нитриті', 'нитрит калия', 'potassium nitrite', 's', { color: 'white' }),
-  C('CuI', 'мыс(I) иодиді', 'иодид меди(I)', 'copper(I) iodide', 's', { color: 'white' }),
+  C('CuI', 'мыс(I) йодиді', 'иодид меди(I)', 'copper(I) iodide', 's', { color: 'white' }),
   C('Cu2S', 'мыс(I) сульфиді', 'сульфид меди(I)', 'copper(I) sulfide', 's', { color: 'black' }),
   C('CuSO4·5H2O', 'мыс купоросы', 'медный купорос', 'blue vitriol (copper sulfate crystals)', 's', { color: 'lightBlue' }),
   C('CoCl2·6H2O', 'кобальт(II) хлоридінің кристалгидраты', 'кристаллогидрат хлорида кобальта(II)', 'cobalt(II) chloride hexahydrate', 's', { color: 'pink' }),
@@ -223,20 +231,25 @@ const D: SolEntry = { s: 'D' };
 // M:S slightly soluble with solubility S in mol/L, optionally followed by a color.
 const SOL_ROWS_RAW: Record<string, string> = {
   //            H    Li       K  Na NH4 Ba        Ca         Mg  Al       Cr          Fe2         Fe3          Ni          Co          Mn          Zn         Ag             Hg       Pb                  Sn          Cu
-  'OH^-':     'R    R        R  R  D   R         M:0.021    N   N:gel    N:greyGreen N:greyGreen N:brown      N:green     N:pink      N           N          D              D        N                   N           N:lightBlue',
-  'F^-':      'R    M:0.05   R  R  R   M:0.007   N          N   M:0.06   M:0.05:green M:0.05     M:0.05       M:0.04:green M:0.1:pink M:0.1       M:0.1      R              D        M:0.003             R           M:0.05:lightBlue',
+  'OH^-':     'R    R        R  R  R   R         M:0.021    N   N:gel    N:greyGreen N:greyGreen N:brown      N:green     N:pink      N           N          D              D        N                   N           N:lightBlue',
+  'F^-':      'R    M:0.05   R  R  R   M:0.007   N          N   M:0.06   M:0.05:green M:0.05     M:0.05       R           R           R           R          R              D        M:0.003             R           R',
   'Cl^-':     'R    R        R  R  R   R         R          R   R        R           R           R            R           R           R           R          N:curdy        R        M:0.036             R           R',
   'Br^-':     'R    R        R  R  R   R         R          R   R        R           R           R            R           R           R           R          N:paleYellow   M:0.017  M:0.026             R           R',
   'I^-':      'R    R        R  R  R   R         R          R   R        R           R           D            R           R           R           R          N:yellow       N:red    M:0.0016:goldYellow M:0.03:orange D',
-  'S^2-':     'M:0.1 R       R  R  R   R         M:0.2      D   D        D           N:black     D            N:black     N:black     N:pink      N          N:black        N:black  N:black             N:brown     N:black',
-  'SO3^2-':   'D    R        R  R  R   N         N          M:0.05 D     D           N           D            N:green     N:pink      N           M:0.01     N              D        N                   D           D',
+  'S^2-':     'M:0.1 R       R  R  R   R         D          D   D        D           N:black     D            N:black     N:black     N:pink      N          N:black        N:black  N:black             N:brown     N:black',
+  'SO3^2-':   'R    R        R  R  R   N         N          M:0.05 D     D           N           D            N:green     N:pink      N           M:0.01     N              D        N                   D           D',
   'SO4^2-':   'R    R        R  R  R   N         M:0.015    R   R        R           R           R            R           R           R           R          M:0.027        R        N                   R           R',
   'NO3^-':    'R    R        R  R  R   R         R          R   R        R           R           R            R           R           R           R          R              R        R                   R           R',
   'PO4^3-':   'R    N        R  R  R   N         N          N   N        N:green     N           N:paleYellow N:green     N:pink      N           N          N:yellow       N        N                   N           N:lightBlue',
-  'CO3^2-':   'D    R        R  R  R   N         N          N   D        D           N           D            N:green     N:pink      N           N          N:paleYellow   D        N                   D           D',
-  'SiO3^2-':  'D    R        R  R  D   N         N          N   N        D           N           N:brown      N:green     N:pink      N           N          N:paleYellow   D        N                   D           N:lightBlue',
-  'CrO4^2-':  'R    R        R  R  R   N:yellow  M:0.1:yellow R  D        D           D           D            D           D           D           N:yellow   N:brickRed     D        N:yellow            D           D',
-  'CH3COO^-': 'R    R        R  R  R   R         R          R   R        R           R           R            R           R           R           R          M:0.06         R        R                   D           R'
+  'CO3^2-':   'R    R        R  R  R   N         N          M:0.013 D        D           N           D            N:green     N:pink      N           N          N:paleYellow   D        N                   D           D',
+  'SiO3^2-':  'N:clearGel R   R  R  D   N         N          N   D        D           N           D            N:green     N:pink      N           N          N:paleYellow   D        N                   D           N:lightBlue',
+  'CrO4^2-':  'R    R        R  R  R   N:yellow  M:0.1:yellow R  D        D           D           D            N:brown     N:brown     N:brown     N:yellow   N:brickRed     N:red    N:yellow            D           N:brown',
+  'CH3COO^-': 'R    R        R  R  R   R         R          R   R        R           R           R            R           R           R           R          M:0.06         R        R                   D           R',
+  // Not shown in the school table, but needed for qualitative reactions.
+  'SCN^-':    'R    R        R  R  R   R         R          R   R        R           R           R            R           R           R           R          N              M:0.002  M:0.0015            R           N:black',
+  'S2O3^2-':  'D    R        R  R  R   M:0.008   R          R   D        D           R           D            R           R           R           R          N              D        N                   D           D',
+  // Ba2+ and Pb2+ take chromate out of a dichromate solution (BaCrO4, PbCrO4): marked D here.
+  'Cr2O7^2-': 'R    R        R  R  R   D         R          R   R        R           D           R            R           R           R           R          N:brickRed     R        D                   D           R'
 };
 
 function parseCell(t: string): SolEntry {
@@ -375,6 +388,7 @@ export const METALS: Record<string, MetalDef> = {
   Mn: { id: 'Mn', ion: 'Mn^2+', nitricIon: 'Mn^2+', alkali: false, heatWater: 220, look: 'granules', color: '#A7A79E', forms: F('марганец', 'марганца', 'марганец', 'марганецтен', 'manganese') },
   Zn: { id: 'Zn', ion: 'Zn^2+', nitricIon: 'Zn^2+', alkali: false, heatWater: 153, look: 'granules', color: '#A9B3BD', forms: F('цинк', 'цинка', 'мырыш', 'мырыштан', 'zinc') },
   Fe: { id: 'Fe', ion: 'Fe^2+', nitricIon: 'Fe^3+', alkali: false, heatWater: 89, look: 'filings', color: '#6E747A', magnetic: true, forms: F('железо', 'железа', 'темір', 'темірден', 'iron') },
+  Co: { id: 'Co', ion: 'Co^2+', nitricIon: 'Co^2+', alkali: false, heatWater: 58, look: 'granules', color: '#9DA3AE', slow: true, magnetic: true, forms: F('кобальт', 'кобальта', 'кобальт', 'кобальттан', 'cobalt') },
   Ni: { id: 'Ni', ion: 'Ni^2+', nitricIon: 'Ni^2+', alkali: false, heatWater: 54, look: 'granules', color: '#B9B6A9', slow: true, magnetic: true, forms: F('никель', 'никеля', 'никель', 'никельден', 'nickel') },
   Sn: { id: 'Sn', ion: 'Sn^2+', nitricIon: 'Sn^2+', alkali: false, heatWater: 10, look: 'granules', color: '#C9CED3', slow: true, forms: F('олово', 'олова', 'қалайы', 'қалайыдан', 'tin') },
   Pb: { id: 'Pb', ion: 'Pb^2+', nitricIon: 'Pb^2+', alkali: false, heatWater: 2, look: 'granules', color: '#7D838A', slow: true, film: true, forms: F('свинец', 'свинца', 'қорғасын', 'қорғасыннан', 'lead') },
@@ -465,7 +479,7 @@ export const REAGENTS: Reagent[] = [
   { id: 'NaCl', formula: 'NaCl', cat: 'salt', kind: 'liquid', name: L('Натрий хлориді', 'Хлорид натрия', 'Sodium chloride'), note: M1, aq: { 'Na^+': 1, 'Cl^-': 1 }, parent: 'NaCl', bottle: CLEAR, grade: 7 },
   { id: 'NaCls', formula: 'NaCl', cat: 'salt', kind: 'solid', name: L('Ас тұзы', 'Поваренная соль', 'Table salt'), note: L('кристалдар', 'кристаллы', 'crystals'), solid: { 'NaCl': 17 }, bottle: '#FFFFFF', grade: 7 },
   { id: 'KCl', formula: 'KCl', cat: 'salt', kind: 'liquid', name: L('Калий хлориді', 'Хлорид калия', 'Potassium chloride'), note: M1, aq: { 'K^+': 1, 'Cl^-': 1 }, parent: 'KCl', bottle: CLEAR, grade: 9 },
-  { id: 'KI', formula: 'KI', cat: 'salt', kind: 'liquid', name: L('Калий иодиді', 'Иодид калия', 'Potassium iodide'), note: M05, aq: { 'K^+': 0.5, 'I^-': 0.5 }, parent: 'KI', bottle: CLEAR, grade: 9 },
+  { id: 'KI', formula: 'KI', cat: 'salt', kind: 'liquid', name: L('Калий йодиді', 'Иодид калия', 'Potassium iodide'), note: M05, aq: { 'K^+': 0.5, 'I^-': 0.5 }, parent: 'KI', bottle: CLEAR, grade: 9 },
   { id: 'CuSO4', formula: 'CuSO4', cat: 'salt', kind: 'liquid', name: L('Мыс(II) сульфаты', 'Сульфат меди(II)', 'Copper(II) sulfate'), note: M05, aq: { 'Cu^2+': 0.5, 'SO4^2-': 0.5 }, parent: 'CuSO4', bottle: '#4FA6E6', grade: 8 },
   { id: 'CuCl2', formula: 'CuCl2', cat: 'salt', kind: 'liquid', name: L('Мыс(II) хлориді', 'Хлорид меди(II)', 'Copper(II) chloride'), note: M05, aq: { 'Cu^2+': 0.5, 'Cl^-': 1 }, parent: 'CuCl2', bottle: '#4FB8C9', grade: 9 },
   { id: 'FeCl3', formula: 'FeCl3', cat: 'salt', kind: 'liquid', name: L('Темір(III) хлориді', 'Хлорид железа(III)', 'Iron(III) chloride'), note: M05, aq: { 'Fe^3+': 0.5, 'Cl^-': 1.5 }, parent: 'FeCl3', bottle: '#D99A1F', grade: 9 },
@@ -492,8 +506,8 @@ export const REAGENTS: Reagent[] = [
   { id: 'Na2S2O3', formula: 'Na2S2O3', cat: 'salt', kind: 'liquid', name: L('Натрий тиосульфаты', 'Тиосульфат натрия', 'Sodium thiosulfate'), note: M05, aq: { 'Na^+': 1, 'S2O3^2-': 0.5 }, parent: 'Na2S2O3', bottle: CLEAR, grade: 9 },
   { id: 'K2CrO4', formula: 'K2CrO4', cat: 'salt', kind: 'liquid', name: L('Калий хроматы', 'Хромат калия', 'Potassium chromate'), note: L('0,1 М', '0,1 М', '0.1 M'), aq: { 'K^+': 0.2, 'CrO4^2-': 0.1 }, parent: 'K2CrO4', bottle: '#F2C200', grade: 9 },
   { id: 'K2Cr2O7', formula: 'K2Cr2O7', cat: 'salt', kind: 'liquid', name: L('Калий дихроматы', 'Дихромат калия', 'Potassium dichromate'), note: L('0,1 М', '0,1 М', '0.1 M'), aq: { 'K^+': 0.2, 'Cr2O7^2-': 0.1 }, parent: 'K2Cr2O7', bottle: '#E8700C', grade: 9 },
-  { id: 'PbNO32', formula: 'Pb(NO3)2', cat: 'salt', kind: 'liquid', name: L('Қорғасын нитраты', 'Нитрат свинца(II)', 'Lead(II) nitrate'), note: M05, aq: { 'Pb^2+': 0.5, 'NO3^-': 1 }, parent: 'Pb(NO3)2', bottle: CLEAR, grade: 9 },
-  { id: 'NiSO4', formula: 'NiSO4', cat: 'salt', kind: 'liquid', name: L('Никель сульфаты', 'Сульфат никеля(II)', 'Nickel(II) sulfate'), note: M05, aq: { 'Ni^2+': 0.5, 'SO4^2-': 0.5 }, parent: 'NiSO4', bottle: '#5FBF72', grade: 9 },
+  { id: 'PbNO32', formula: 'Pb(NO3)2', cat: 'salt', kind: 'liquid', name: L('Қорғасын(II) нитраты', 'Нитрат свинца(II)', 'Lead(II) nitrate'), note: M05, aq: { 'Pb^2+': 0.5, 'NO3^-': 1 }, parent: 'Pb(NO3)2', bottle: CLEAR, grade: 9 },
+  { id: 'NiSO4', formula: 'NiSO4', cat: 'salt', kind: 'liquid', name: L('Никель(II) сульфаты', 'Сульфат никеля(II)', 'Nickel(II) sulfate'), note: M05, aq: { 'Ni^2+': 0.5, 'SO4^2-': 0.5 }, parent: 'NiSO4', bottle: '#5FBF72', grade: 9 },
   { id: 'CoCl2', formula: 'CoCl2', cat: 'salt', kind: 'liquid', name: L('Кобальт(II) хлориді', 'Хлорид кобальта(II)', 'Cobalt(II) chloride'), note: M05, aq: { 'Co^2+': 0.5, 'Cl^-': 1 }, parent: 'CoCl2', bottle: '#E07A9C', grade: 9 },
   { id: 'MnSO4', formula: 'MnSO4', cat: 'salt', kind: 'liquid', name: L('Марганец(II) сульфаты', 'Сульфат марганца(II)', 'Manganese(II) sulfate'), note: M05, aq: { 'Mn^2+': 0.5, 'SO4^2-': 0.5 }, parent: 'MnSO4', bottle: '#F3DCE2', grade: 9 },
   { id: 'CrCl3', formula: 'CrCl3', cat: 'salt', kind: 'liquid', name: L('Хром(III) хлориді', 'Хлорид хрома(III)', 'Chromium(III) chloride'), note: M05, aq: { 'Cr^3+': 0.5, 'Cl^-': 1.5 }, parent: 'CrCl3', bottle: '#4E8A62', grade: 9 },
@@ -561,7 +575,7 @@ export interface SolubleSolid { ions: Record<string, number>; S: number; S100?: 
 export const SOLUBLE_SOLIDS: Record<string, SolubleSolid> = {
   NaCl: { ions: { 'Na^+': 1, 'Cl^-': 1 }, S: 6.1, S100: 6.7, heat: -3.9 },
   KCl: { ions: { 'K^+': 1, 'Cl^-': 1 }, S: 4.6, S100: 7.6, heat: -17.2 },
-  NaHCO3: { ions: { 'Na^+': 1, 'HCO3^-': 1 }, S: 1.1, S100: 2.8, heat: -16.7 },
+  NaHCO3: { ions: { 'Na^+': 1, 'HCO3^-': 1 }, S: 1.1, S100: 2.8, heat: -18.7 },
   KNO3: { ions: { 'K^+': 1, 'NO3^-': 1 }, S: 3.1, S100: 24.3, heat: -34.9 },
   NH4NO3: { ions: { 'NH4^+': 1, 'NO3^-': 1 }, S: 24, S100: 120, heat: -25.7 },
   NH4Cl: { ions: { 'NH4^+': 1, 'Cl^-': 1 }, S: 7.0, S100: 14.4, heat: -14.8 },
@@ -571,7 +585,7 @@ export const SOLUBLE_SOLIDS: Record<string, SolubleSolid> = {
   CoCl2: { ions: { 'Co^2+': 1, 'Cl^-': 2 }, S: 4.1, S100: 8.1, heat: 79 },
   'CoCl2·6H2O': { ions: { 'Co^2+': 1, 'Cl^-': 2 }, S: 4.1, S100: 8.1, heat: -8, water: 6 },
   KMnO4: { ions: { 'K^+': 1, 'MnO4^-': 1 }, S: 0.4, S100: 2.4, heat: -43.6 },
-  '(NH4)2Cr2O7': { ions: { 'NH4^+': 2, 'Cr2O7^2-': 1 }, S: 1.4, S100: 6, heat: -20 },
+  '(NH4)2Cr2O7': { ions: { 'NH4^+': 2, 'Cr2O7^2-': 1 }, S: 1.4, S100: 6, heat: -51 },
   K2Cr2O7: { ions: { 'K^+': 2, 'Cr2O7^2-': 1 }, S: 0.4, S100: 3.4, heat: -70 },
   Na2CO3: { ions: { 'Na^+': 2, 'CO3^2-': 1 }, S: 2.0, S100: 4.2, heat: 26.7 }
 };

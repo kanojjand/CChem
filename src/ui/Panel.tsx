@@ -3,7 +3,7 @@ import { ACTIVITY, IONS, METALS, REAGENTS, REAGENT_BY_ID, type Lang } from '../e
 import { buildEquations } from '../engine/equation';
 import { mainEvent, phOf } from '../engine/actions';
 import { GAS_TOOLS, ML_PER_MMOL, conductivity, type GasTool } from '../engine/apparatus';
-import { GASES, airDensity, type CollectMethod } from '../engine/gases';
+import { GASES, airDensity, collectShare, type CollectMethod } from '../engine/gases';
 import { GAS_TEXTS } from '../i18n/gasTexts';
 import { molarMass } from '../engine/formula';
 import { medium } from '../engine/ph';
@@ -298,7 +298,7 @@ function GasCard({ ids, lang }: { ids: string[]; lang: Lang }) {
               <dt>{t.color}</dt><dd>{gt.color}</dd>
               <dt>{t.smell}</dt><dd>{gt.smell}</dd>
               <dt>{t.density}</dt><dd>{fmt(d, lang, 2)} — {d < 0.93 ? t.lighter : d > 1.07 ? t.heavier : t.same}</dd>
-              <dt>{t.solubility}</dt><dd>{t.sol(g.solubility)}</dd>
+              <dt>{t.solubility}</dt><dd>{t.sol(g.solubility, id)}</dd>
               <dt>{t.test}</dt><dd>{gt.test}</dd>
               {gt.hazard && <><dt>{t.hazard}</dt><dd className="bad-text">{gt.hazard}</dd></>}
             </dl>
@@ -335,8 +335,8 @@ function CollectorPanel({ lab, s, x, lang, onTest }: { lab: Lab; s: Strings; x: 
           {lab.collector.lost && Date.now() - lab.collector.lost.at < 60000 && (
             <div className="safety-card" role="status">
               <p>{lab.collector.lost.why === 'dissolved'
-                ? GAS_TEXTS[lang].lost.dissolved(h.cap(substanceName(lab.collector.lost.gas, lang) ?? lab.collector.lost.gas))
-                : GAS_TEXTS[lang].lost.escaped(h.cap(substanceName(lab.collector.lost.gas, lang) ?? lab.collector.lost.gas), airDensity(lab.collector.lost.gas) < 1)}</p>
+                ? GAS_TEXTS[lang].lost.dissolved(h.cap(substanceName(lab.collector.lost.gas, lang) ?? lab.collector.lost.gas), collectShare(lab.collector.lost.gas, 'water') > 0)
+                : GAS_TEXTS[lang].lost.escaped(h.cap(substanceName(lab.collector.lost.gas, lang) ?? lab.collector.lost.gas), airDensity(lab.collector.lost.gas))}</p>
             </div>
           )}
         </div>
@@ -541,7 +541,9 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
 
   const txt = main ? s.events[main.kind](main.p, h, main) : null;
   const status = main ? statusOf(main, s, h.cap) : null;
-  const eqs = main?.eq ? buildEquations(main.eq) : null;
+  // A formula the parser cannot read must not take the whole panel down.
+  let eqs: ReturnType<typeof buildEquations> = null;
+  try { eqs = main?.eq ? buildEquations(main.eq) : null; } catch { eqs = null; }
   const why = txt ? (grade === 7 ? txt.why7 ?? txt.why : txt.why ?? txt.why7) : undefined;
   const isNone = main ? NONE.has(main.kind) : false;
   const showSeries = main && ['metalAcid', 'metalAcidNone', 'metalSalt', 'metalSaltNone'].includes(main.kind);

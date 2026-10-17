@@ -24,7 +24,16 @@ const GLASS: Record<VesselKind, number> = { tube: 8, beaker: 40, beaker250: 80, 
 /** Heat flow from the liquid into floating ice per degree, W/K. */
 const ICE_CONTACT: Record<VesselKind, number> = { tube: 1, beaker: 4, beaker250: 6, flask: 6 };
 
-export const MAX_T = 350;
+/** Hottest a dry vessel gets over the flame, °C: glass softens above about 600 °C. */
+export const MAX_T = 600;
+/**
+ * A spirit-lamp flame is about 900 °C. With nothing inside to boil, the glass and a dry solid
+ * in it heat far above 100 °C (500–600 °C at the bottom of a test tube), so a dry vessel over
+ * the flame loses less heat per degree than one cooled by evaporating liquid.
+ */
+const DRY_LOSS = 0.58;
+/** Below this much water (mL) a solution has boiled dry: the hydrate water left is part of the crystals. */
+const DRY_ML = 0.05;
 const ICE = 'H2O(s)';
 const ICE_G_PER_MMOL = 0.018;
 const FUSION = 334;        // J/g to melt ice
@@ -195,9 +204,12 @@ const VOLATILE: Record<string, number> = { Cl2: 40, Br2: 50, H2S: 45, SO2: 50 };
 const gasOut: Rule = (v, ctx) => {
   const dt = ctx.dt ?? 0;
   if (dt <= 0 || !once(ctx, 'gas-out')) return null;
+  const alkaline = amt(v.aq, 'OH^-') > EPS;
   for (const gas in VOLATILE) {
     const n = amt(v.aq, gas);
     if (n <= EPS || v.temp < VOLATILE[gas]) continue;
+    // In alkali halogens, H2S and SO2 are bound as salts: nothing boils out.
+    if (alkaline) continue;
     const e = n < 1e-4 ? n : n * (1 - Math.exp(-0.15 * dt));
     take(v.aq, gas, e);
     addGas(v, gas, e, ctx.now);
@@ -240,7 +252,9 @@ export function dryOut(v: Vessel, now: number): string | null {
   // Volatile molecules escape; hydrogen peroxide falls apart.
   for (const gas of ['NH3', 'Cl2', 'Br2', 'H2S', 'SO2']) if (aq[gas] > EPS) addGas(v, gas === 'NH3' ? 'NH3' : gas, aq[gas], now);
   if (aq.H2O2 > EPS) addGas(v, 'O2', aq.H2O2 / 2, now);
-  for (const mol of ['C12H22O11', 'I2', 'Fe(SCN)3', 'starch']) if (aq[mol] > EPS) put(v.solids, mol, aq[mol]);
+  for (const mol of ['C12H22O11', 'I2', 'Fe(SCN)3', 'starch', 'Fe(OH)3']) if (aq[mol] > EPS) put(v.solids, mol, aq[mol]);
+  // Dissolved carbon dioxide leaves with the steam.
+  if (aq.CO2 > EPS) addGas(v, 'CO2', aq.CO2, now);
   if (aq.H2SO4c > EPS) put(v.aq, 'H2SO4c', aq.H2SO4c);
 
   const eq: Record<string, number> = {};
@@ -293,7 +307,9 @@ export function heatStep(v: Vessel, dt: number, now: number): ReactionEvent[] {
   const wasBoiling = !!v.boiling;
   const C = heatCapacity(v);
   const power = v.heating ? POWER[v.kind] : 0;
-  let T = v.temp + ((power - LOSS[v.kind] * (v.temp - ROOM_T)) * dt) / C;
+  const dryHeated = v.heating && waterVolume(v) <= DRY_ML && v.concVol <= 0.01;
+  const loss = LOSS[v.kind] * (dryHeated ? DRY_LOSS : 1);
+  let T = v.temp + ((power - loss * (v.temp - ROOM_T)) * dt) / C;
 
   // Ice keeps the contents at 0 °C until it has melted.
   // Heat reaches the ice through its surface, so a cube melts over minutes, not at once.
@@ -314,7 +330,7 @@ export function heatStep(v: Vessel, dt: number, now: number): ReactionEvent[] {
   const water = waterVolume(v);
   const bp = boilingPoint(v);
   v.boiling = false;
-  if (water > 0.02 && T >= bp) {
+  if (water > DRY_ML && T >= bp) {
     const evap = Math.min(water, ((T - bp) * C) / VAPOUR);
     T = bp;
     v.volume = Math.max(v.concVol, v.volume - evap);
@@ -323,18 +339,28 @@ export function heatStep(v: Vessel, dt: number, now: number): ReactionEvent[] {
     if (v.boiling && !wasBoiling) {
       events.push(ev({ kind: 'boiling', importance: 1, type: 'physical', p: { bp: bp.toFixed(1) }, signs: ['gas'], key: 'boiling' }));
     }
-    if (waterVolume(v) <= 0.02) {
+    if (waterVolume(v) <= DRY_ML) {
       const residue = dryOut(v, now);
       v.boiling = false;
       events.push(ev({ kind: 'dryOut', importance: 2, type: 'physical', p: { residue: residue ?? '' }, signs: residue ? ['deposit'] : [], key: 'dry-out' }));
     }
-  } else if (water > 0.02 && v.heating && T > bp - 15) {
+  } else if (water > DRY_ML && v.heating && T > bp - 15) {
     // Close to boiling the water already evaporates noticeably.
     const evap = Math.min(water, 0.0002 * (T - (bp - 15)) * dt);
     v.volume = Math.max(v.concVol, v.volume - evap);
   }
-  const liquid = waterVolume(v) > 0.02;
-  v.temp = Math.max(-25, Math.min(liquid ? bp : MAX_T, T));
+  // A film of water left in the vessel still boils away: it does not let the solid overheat
+  // while ions are dissolved in it. Concentrated sulfuric acid is a liquid of its own: what is
+  // dissolved in it stays there.
+  if (waterVolume(v) <= DRY_ML && v.concVol <= 0.01 && Object.keys(v.aq).some((id) => id !== 'H2SO4c') && T >= bp) {
+    const residue = dryOut(v, now);
+    v.boiling = false;
+    events.push(ev({ kind: 'dryOut', importance: 2, type: 'physical', p: { residue: residue ?? '' }, signs: residue ? ['deposit'] : [], key: 'dry-out' }));
+  }
+  const liquid = waterVolume(v) > DRY_ML;
+  // Concentrated sulfuric acid boils at about 337 °C.
+  const cap = liquid ? bp : v.concVol > 0.01 ? 330 : MAX_T;
+  v.temp = Math.max(-25, Math.min(cap, T));
   return events;
 }
 
@@ -346,6 +372,9 @@ export function needsTick(v: Vessel): boolean {
   const a = (id: string) => amt(v.aq, id) > EPS;
   if (s('Fe(OH)2') || s('Mn(OH)2') || s(ICE)) return true;
   if (a('S2O3^2-') && a('H^+')) return true;
+  if (a('H2O2') && a('I^-') && !a('H^+')) return true;
+  if (s('Al') && a('H^+') && !a('Cl^-')) return true;
+  if ((s('Zn') || s('Si')) && a('OH^-')) return true;
   if ((a('H^+') || a('CH3COOH')) && Object.values(METALS).some((m) => m.slow && s(m.id))) return true;
   if (s('C') && v.volume > 0.05 && (a('I2') || a('Br2') || a('Fe(SCN)3') || Object.keys(v.inds).length > 0)) return true;
   return false;

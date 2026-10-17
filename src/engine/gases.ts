@@ -31,6 +31,8 @@ export const GASES: Record<string, GasProps> = {
   H2S: { id: 'H2S', M: 34, smell: 'rottenEggs', solubility: 2.6, toxic: true, flammable: true },
   Cl2: { id: 'Cl2', M: 71, hex: '#C9DD5A', smell: 'chlorine', solubility: 2.3, toxic: true },
   NO: { id: 'NO', M: 30, smell: 'none', solubility: 0.047, toxic: true },
+  // Laughing gas from heating ammonium nitrate: a glowing splint relights in it, like in oxygen.
+  N2O: { id: 'N2O', M: 44, smell: 'none', solubility: 0.6, supportsBurning: true },
   NO2: { id: 'NO2', M: 46, hex: '#B5542A', smell: 'nitrogenDioxide', solubility: 0, toxic: true, reactsWithWater: true },
   Br2: { id: 'Br2', M: 160, hex: '#A8401E', smell: 'bromine', solubility: 0, toxic: true },
   I2: { id: 'I2', M: 254, hex: '#8A3FB8', smell: 'iodine', solubility: 0, toxic: true }

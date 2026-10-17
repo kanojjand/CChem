@@ -68,20 +68,24 @@ export function indicatorColor(id: IndicatorId, pH: number): { hex: string; name
  * transmits (color/255)^(c/refC) of each channel.
  * Returns null when the solution is effectively colorless.
  */
+/** Above this temperature the blue starch–iodine complex falls apart; it comes back on cooling. */
+export const STARCH_FADE_T = 70;
+
 export function solutionColor(
   aq: Record<string, number>,
   volumeMl: number,
   inds: Partial<Record<IndicatorId, number>>,
-  pH: number | null
+  pH: number | null,
+  temp = 20
 ): string | null {
   if (volumeMl < 0.01) return null;
   const T: RGB = [1, 1, 1];
   let any = false;
-  const apply = (hex: string, strength: number) => {
+  const apply = (hex: string, strength: number, max = 3) => {
     if (strength <= 0.002 || hex.toLowerCase() === '#ffffff') return;
     any = true;
     const c = hexToRgb(hex);
-    const s = Math.min(strength, 3);
+    const s = Math.min(strength, max);
     for (let i = 0; i < 3; i++) T[i] *= Math.pow(Math.max(c[i], 8) / 255, s);
   };
 
@@ -91,11 +95,18 @@ export function solutionColor(
     const ion = IONS[id];
     if (ion?.color && ion.refC) apply(ion.color, amt / volumeMl / ion.refC);
     if (id === 'Fe(SCN)3') apply('#8E0A16', amt / volumeMl / 0.004);
-    // Iodine is yellow-brown; with starch even a trace of it is deep blue.
+    // Iodine is yellow-brown; with starch even a trace of it is deep blue (but still blue, not black).
+    // A hot solution loses the blue: the complex falls apart and comes back on cooling.
     if (id === 'I2') {
-      if ((aq.starch || 0) > 1e-6) apply('#1B2370', amt / volumeMl / 0.0004);
-      else apply('#8A4A12', amt / volumeMl / 0.01);
+      const c = amt / volumeMl;
+      const fade = Math.max(0, Math.min(1, (temp - (STARCH_FADE_T - 10)) / 20));
+      if ((aq.starch || 0) > 1e-6) {
+        apply('#2340B8', (c / 0.0004) * (1 - fade), 1.6);
+        if (fade > 0) apply('#8A4A12', (c / 0.01) * fade);
+      } else apply('#8A4A12', c / 0.01);
     }
+    // Iron(III) hydroxide sol from boiled iron(III) chloride: dark red-brown, like strong tea.
+    if (id === 'Fe(OH)3') apply('#9A3A12', amt / volumeMl / 0.02, 2);
     if (id === 'Br2') apply('#E0861F', amt / volumeMl / 0.03);
     if (id === 'Cl2') apply('#D6E58A', amt / volumeMl / 0.06);
   }

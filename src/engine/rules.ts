@@ -10,10 +10,12 @@ import {
   type ReactionEvent, type Vessel
 } from './vessel';
 import {
-  acidOf, baseOf, colorOf, consume, counterIon, donors, ev, once, parentOf, setParent,
+  acidOf, baseOf, colorOf, consume, counterIon, donors, ev, once, parentOf, setParent, warmth,
   type Ctx, type Donor, type Rule
 } from './ruleKit';
 import { MORE_EARLY, MORE_LATE, MORE_PREP } from './rulesMore';
+import { EXTRA_LATE, EXTRA_PREP } from './rulesExtra';
+import type { EqSpec } from './equation';
 import { ELEMENT_BY_SYMBOL } from '../data/elements';
 
 const ELEMENT_MASS: Record<string, number> = Object.fromEntries(Object.values(ELEMENT_BY_SYMBOL).map((e) => [e.sym, e.mass]));
@@ -59,22 +61,24 @@ const concSugar: Rule = (v, ctx) => {
 const concMetal: Rule = (v, ctx) => {
   const acid = amt(v.aq, 'H2SO4c');
   if (acid <= EPS || waterVolume(v) > 0.05 || ctx.limited.has('concMetal')) return null;
-  // Zinc and magnesium react with concentrated sulfuric acid without heating; copper and silver only when hot.
-  for (const [m, minT] of [['Zn', 0], ['Mg', 0], ['Cu', 80], ['Ag', 80]] as [string, number][]) {
+  // Zinc and magnesium react with concentrated sulfuric acid without heating; copper and silver only
+  // when hot. Iron and aluminium are passivated in the cold and react only when strongly heated,
+  // and then iron goes to iron(III): 2Fe + 6H2SO4 -> Fe2(SO4)3 + 3SO2 + 6H2O.
+  for (const [m, minT] of [['Zn', 0], ['Mg', 0], ['Cu', 80], ['Ag', 80], ['Fe', 80], ['Al', 80]] as [string, number][]) {
     const n = amt(v.solids, m);
     if (n <= EPS || v.temp < minT) continue;
-    const perMetal = m === 'Ag' ? 1 : 2;
-    const e = Math.min(n, 0.4, acid / perMetal);
+    const ion = m === 'Fe' ? 'Fe^3+' : METALS[m].ion;
+    const z = IONS[ion].charge;
+    const e = Math.min(n, 0.4, acid / z);
     if (e <= EPS) continue;
     ctx.limited.add('concMetal');
-    const ion = METALS[m].ion;
     const s = salt(ion, 'SO4^2-').id;
     take(v.solids, m, e);
-    take(v.aq, 'H2SO4c', perMetal * e);
+    take(v.aq, 'H2SO4c', z * e);
     putIon(v, ion, e, s);
-    putIon(v, 'SO4^2-', m === 'Ag' ? e / 2 : e, s);
-    addGas(v, 'SO2', m === 'Ag' ? e / 2 : e, ctx.now);
-    if (m === 'Zn' || m === 'Mg') release(v, 150 * e);
+    putIon(v, 'SO4^2-', (z * e) / 2, s);
+    addGas(v, 'SO2', (z * e) / 2, ctx.now);
+    if (m === 'Zn' || m === 'Mg' || m === 'Al') release(v, 150 * e);
     v.fx.smellAt = ctx.now;
     return ev({
       kind: 'cuConcAcid', importance: 2, type: 'redox',
@@ -102,14 +106,23 @@ const alkaliMetal: Rule = (v, ctx) => {
     const met = METALS[m];
     const z = IONS[met.ion].charge;
     const acid = acidOf(v);
-    const fromAcid = Math.min(n, h / z);
+    // Nitric acid never gives hydrogen: very active metals reduce the nitrate as far as ammonium
+    // (dilute acid: 8Na + 10HNO3 -> 8NaNO3 + NH4NO3 + 3H2O) or N2O (concentrated acid).
+    const no3 = amt(v.aq, 'NO3^-');
+    const nitric = h > EPS && no3 > EPS && acid.anion === 'NO3^-';
+    const concNitric = nitric && v.volume > 0.01 && h / v.volume >= 6;
+    // H+ used per electron: NO3- + 10H+ + 8e -> NH4+ + 3H2O; 2NO3- + 10H+ + 8e -> N2O + 5H2O.
+    const hPerE = nitric ? 10 / 8 : 1;
+    const fromAcid = Math.min(n, h / (z * hPerE), nitric ? (no3 * 8) / (z * (concNitric ? 2 : 1)) : Infinity);
     const consumed = hasWater ? n : fromAcid;
     take(v.solids, m, consumed);
     let h2 = 0;
     if (fromAcid > EPS) {
-      take(v.aq, 'H^+', fromAcid * z);
+      take(v.aq, 'H^+', fromAcid * z * hPerE);
       putIon(v, met.ion, fromAcid, salt(met.ion, acid.anion).id);
-      h2 += (fromAcid * z) / 2;
+      if (!nitric) h2 += (fromAcid * z) / 2;
+      else if (concNitric) { take(v.aq, 'NO3^-', (fromAcid * z) / 4); addGas(v, 'N2O', (fromAcid * z) / 8, ctx.now); }
+      else { take(v.aq, 'NO3^-', (fromAcid * z) / 8); putIon(v, 'NH4^+', (fromAcid * z) / 8, 'NH4NO3'); }
     }
     const rest = n - fromAcid;
     const base = salt(met.ion, 'OH^-').id;
@@ -141,12 +154,15 @@ const alkaliMetal: Rule = (v, ctx) => {
     const mm = met.density ? Math.round(10 * Math.cbrt(grams / met.density)) : 0;
     const withWater = rest >= fromAcid;
     const signs: ReactionEvent['signs'] = met.flame && hasWater ? ['gas', 'heat', 'light'] : ['gas', 'heat'];
+    const acidEq: EqSpec = !nitric
+      ? { reactants: [m, acid.parent], products: [salt(met.ion, acid.anion).id, 'H2'], gas: ['H2'] }
+      : concNitric
+        ? { reactants: [m, 'HNO3'], products: [salt(met.ion, 'NO3^-').id, 'N2O', 'H2O'], gas: ['N2O'], conc: 'HNO3' }
+        : { reactants: [m, 'HNO3'], products: [salt(met.ion, 'NO3^-').id, 'NH4NO3', 'H2O'] };
     return ev({
-      kind: withWater ? 'activeMetalWater' : 'metalAcid', importance: boom ? 3 : 2, type: 'substitution',
-      eq: withWater
-        ? { reactants: [m, 'H2O'], products: [base, 'H2'], gas: ['H2'] }
-        : { reactants: [m, acid.parent], products: [salt(met.ion, acid.anion).id, 'H2'], gas: ['H2'] },
-      p: { metal: m, acid: acid.parent, g: grams.toFixed(2), mm: String(mm), violent: violent ? '1' : '' }, signs,
+      kind: withWater ? 'activeMetalWater' : nitric ? 'metalNitric' : 'metalAcid', importance: boom ? 3 : 2, type: nitric ? 'redox' : 'substitution',
+      eq: withWater ? { reactants: [m, 'H2O'], products: [base, 'H2'], gas: ['H2'] } : acidEq,
+      p: { metal: m, acid: acid.parent, g: grams.toFixed(2), mm: String(mm), violent: violent ? '1' : '', conc: concNitric ? '1' : '', product: nitric ? (concNitric ? 'N2O' : 'NH4NO3') : '' }, signs,
       safety: boom ? 'bigSodium' : violent ? 'alkaliSplash' : m === 'Na' ? 'sodiumWater' : m === 'K' ? 'alkaliFire' : undefined, dT,
       key: withWater ? `metal-water:${m}` : `metal-acid:${m}`
     });
@@ -380,7 +396,7 @@ const complexAcid: Rule = (v, ctx) => {
   ];
   for (const [cx, hyd, need] of hydroxo) {
     const n = Math.min(amt(v.aq, cx), h / need);
-    if (n <= EPS) continue;
+    if (n <= 1e-4) continue;
     const cxParent = parentOf(v, cx, salt('Na^+', cx).id);
     const cat = counterIon(cxParent, cx) || 'Na^+';
     const s = salt(cat, acid.anion).id;
@@ -502,7 +518,8 @@ const solidAcid: Rule = (v, ctx) => {
       if (e <= EPS) continue;
       // Marble, barium and lead carbonate with sulfuric acid: an insoluble sulfate crust covers the
       // pieces and the reaction soon stops. That is why CO2 is made with hydrochloric acid.
-      const film = info.kind === 'carbonate' && d.anion === 'SO4^2-' && ['Ca^2+', 'Ba^2+', 'Pb^2+'].includes(info.cation);
+      // Only lumps of marble get crusted; a fine precipitate of carbonate is converted right through.
+      const film = s === 'CaCO3' && d.anion === 'SO4^2-' && !v.seen.includes('precip:CaCO3');
       if (film) {
         if (v.seen.includes(`sulfate-film:${s}`)) continue;
         v.seen.push(`sulfate-film:${s}`);
@@ -529,7 +546,9 @@ const solidAcid: Rule = (v, ctx) => {
         addGas(v, gas, (info.co2 ?? 1) * e, ctx.now);
         if (gas !== 'CO2') v.fx.smellAt = ctx.now;
       }
-      const dT = release(v, 40 * e * info.h);
+      // Heat per H+ (J/mmol): carbonates give little (about 8), bases about as much as neutralisation.
+      const heatPerH = info.kind === 'carbonate' ? 8 : info.kind === 'hydroxide' ? 57 : info.kind === 'oxide' ? 60 : 20;
+      const dT = release(v, heatPerH * e * info.h);
       v.fx.dissolveAt = ctx.now;
       const signs: ReactionEvent['signs'] = ['dissolve'];
       if (IONS[info.cation].color) signs.push('color');
@@ -584,12 +603,89 @@ const amphotericBase: Rule = (v, ctx) => {
   return null;
 };
 
+/**
+ * Hydroxo complex meeting the free metal ion gives back the hydroxide:
+ * AlCl3 + 3Na[Al(OH)4] -> 4Al(OH)3 + 3NaCl, ZnSO4 + Na2[Zn(OH)4] -> 2Zn(OH)2 + Na2SO4.
+ */
+const amphotericBack: Rule = (v, ctx) => {
+  for (const [ion, cx, k, hyd] of [['Al^3+', '[Al(OH)4]^-', 3, 'Al(OH)3'], ['Zn^2+', '[Zn(OH)4]^2-', 1, 'Zn(OH)2'], ['Cr^3+', '[Cr(OH)6]^3-', 1, 'Cr(OH)3'], ['Pb^2+', '[Pb(OH)4]^2-', 1, 'Pb(OH)2'], ['Sn^2+', '[Sn(OH)4]^2-', 1, 'Sn(OH)2']] as [string, string, number, string][]) {
+    const u = Math.min(amt(v.aq, ion), amt(v.aq, cx) / k);
+    if (u <= 1e-4) continue;
+    const iParent = parentOf(v, ion, salt(ion, 'Cl^-').id);
+    const cParent = parentOf(v, cx, salt('Na^+', cx).id);
+    const anion = counterIon(iParent, ion) || 'Cl^-';
+    const cat = counterIon(cParent, cx) || 'Na^+';
+    take(v.aq, ion, u); take(v.aq, cx, k * u);
+    put(v.solids, hyd, u + k * u);
+    setParent(v, [anion, cat], salt(cat, anion).id);
+    v.fx.precipAt = ctx.now;
+    return ev({
+      kind: 'precip', importance: 2, type: 'exchange',
+      eq: { reactants: [iParent, cParent], products: [hyd, salt(cat, anion).id], precip: [hyd] },
+      p: { product: hyd, color: colorOf(hyd) }, signs: ['precip'], key: `precip:${hyd}`
+    });
+  }
+  return null;
+};
+
+/** Iron(III) thiocyanate is destroyed by alkali: the blood-red colour goes, brown Fe(OH)3 settles. */
+const thiocyanateBase: Rule = (v, ctx) => {
+  const u = Math.min(amt(v.aq, 'Fe(SCN)3'), amt(v.aq, 'OH^-') / 3);
+  // Free iron(III) ions take the alkali first.
+  if (u <= 1e-4 || amt(v.aq, 'Fe^3+') > 1e-4) return null;
+  const base = baseOf(v);
+  const s = salt(base.cation, 'SCN^-').id;
+  take(v.aq, 'Fe(SCN)3', u); take(v.aq, 'OH^-', 3 * u);
+  put(v.solids, 'Fe(OH)3', u);
+  putIon(v, 'SCN^-', 3 * u, s);
+  setParent(v, [base.cation], s);
+  v.fx.precipAt = ctx.now;
+  return ev({
+    kind: 'precip', importance: 2, type: 'exchange',
+    eq: { reactants: ['Fe(SCN)3', base.parent], products: ['Fe(OH)3', s], precip: ['Fe(OH)3'] },
+    p: { product: 'Fe(OH)3', color: 'brown', special: 'scnFade' }, signs: ['precip', 'color'], key: 'precip:Fe(OH)3:scn'
+  });
+};
+
+/** Hydrogen carbonate precipitates carbonates of heavy metals, giving off CO2: M2+ + 2HCO3- -> MCO3 + CO2 + H2O. */
+const bicarbonatePrecip: Rule = (v, ctx) => {
+  const hco3 = amt(v.aq, 'HCO3^-');
+  if (hco3 <= EPS || amt(v.aq, 'H^+') > EPS) return null;
+  for (const m of ['Fe^2+', 'Zn^2+', 'Ni^2+', 'Co^2+', 'Mn^2+', 'Pb^2+', 'Ag^+']) {
+    const a = amt(v.aq, m);
+    const z = IONS[m].charge;
+    const def = salt(m, 'CO3^2-');
+    const nCat = def.nCat || 1;
+    const u = Math.min(a / nCat, hco3 / 2);
+    if (u <= 2e-4) continue;
+    const mParent = parentOf(v, m, salt(m, 'NO3^-').id);
+    const hParent = parentOf(v, 'HCO3^-', 'NaHCO3');
+    const anion = counterIon(mParent, m) || 'NO3^-';
+    const cat = counterIon(hParent, 'HCO3^-') || 'Na^+';
+    take(v.aq, m, u * nCat); take(v.aq, 'HCO3^-', 2 * u);
+    put(v.solids, def.id, u);
+    addGas(v, 'CO2', u, ctx.now);
+    setParent(v, [anion, cat], salt(cat, anion).id);
+    v.fx.precipAt = ctx.now;
+    void z;
+    return ev({
+      kind: 'precip', importance: 2, type: 'exchange',
+      eq: { reactants: [mParent, hParent], products: [def.id, salt(cat, anion).id, 'CO2', 'H2O'], precip: [def.id], gas: ['CO2'] },
+      p: { product: def.id, color: def.color || 'white', sol: 'N', gas: 'CO2' }, signs: ['precip', 'gas'], key: `precip:${def.id}:HCO3`
+    });
+  }
+  return null;
+};
+
 // ---------------------------------------------------------------- metals
 
 /** Metals that dissolve in nitric acid and displace other metals from salts (not the alkali ones). */
 const HEAVY = Object.values(METALS).filter((m) => !m.alkali && !NOBLE_METALS.has(m.id)).map((m) => m.id);
 /** Metals before hydrogen that are not alkali: they give hydrogen with dilute acids. */
 const ACID_METALS = HEAVY.filter((m) => activity(m) < activity('H2') && !METALS[m].film);
+/** Concentration in mol/L. */
+const molar = (v: Vessel, id: string) => (v.volume > 0.01 ? amt(v.aq, id) / v.volume : 0);
+
 /** Slow metals react a little at every step of time instead of all at once. */
 const SLOW_RATE = 0.004;
 
@@ -606,7 +702,24 @@ const metalNitric: Rule = (v, ctx) => {
     const ion = METALS[m].nitricIon;
     const z = IONS[ion].charge;
     if (conc) {
-      if ((m === 'Fe' || m === 'Al') && v.temp < 60) continue;
+      if ((m === 'Fe' || m === 'Al' || m === 'Ni' || m === 'Co') && v.temp < 60) continue;
+      if (m === 'Sn') {
+        // Tin is oxidised to tin(IV): a white precipitate of metastannic acid, not a salt.
+        // Sn + 4HNO3 -> H2SnO3 + 4NO2 + H2O
+        const e = Math.min(n, h / 4, no3 / 4);
+        if (e <= EPS) continue;
+        take(v.solids, 'Sn', e);
+        take(v.aq, 'H^+', 4 * e);
+        take(v.aq, 'NO3^-', 4 * e);
+        put(v.solids, 'H2SnO3', e);
+        addGas(v, 'NO2', 4 * e, ctx.now);
+        v.fx.brownAt = ctx.now; v.fx.smellAt = ctx.now; v.fx.precipAt = ctx.now;
+        return ev({
+          kind: 'metalNitric', importance: 2, type: 'redox',
+          eq: { reactants: ['Sn', 'HNO3'], products: ['H2SnO3', 'NO2', 'H2O'], gas: ['NO2'], precip: ['H2SnO3'], conc: 'HNO3' },
+          p: { metal: m, conc: '1', product: 'H2SnO3' }, signs: ['gas', 'color', 'smell', 'precip'], safety: 'fumeHood', dT: release(v, 150 * e), key: 'metal-nitric-conc:Sn'
+        });
+      }
       const e = Math.min(n, h / (2 * z), no3 / (2 * z));
       if (e <= EPS) continue;
       const s = salt(ion, 'NO3^-').id;
@@ -655,9 +768,12 @@ const metalAcid: Rule = (v, ctx) => {
       if (e <= EPS) continue;
       // Nitric acid never gives hydrogen with metals (its nitrate is reduced instead).
       if (d.id === 'H^+' && amt(v.aq, 'NO3^-') > EPS) continue;
-      if (met.slow) {
+      // Aluminium dissolves in dilute sulfuric acid much more slowly than in hydrochloric acid
+      // (chloride ions break its oxide film).
+      const slow = met.slow || (m === 'Al' && d.anion !== 'Cl^-');
+      if (slow) {
         if (!once(ctx, `slow:${m}`)) continue;
-        e = Math.min(e, Math.max(0.002, SLOW_RATE * (ctx.dt ?? 0)));
+        e = Math.min(e, Math.max(0.002, SLOW_RATE * (ctx.dt ?? 0) * warmth(v.temp)));
       }
       const s = salt(ion, d.anion).id;
       take(v.solids, m, e);
@@ -668,7 +784,7 @@ const metalAcid: Rule = (v, ctx) => {
       return ev({
         kind: 'metalAcid', importance: 2, type: 'substitution',
         eq: { reactants: [m, d.parent], products: [s, 'H2'], gas: ['H2'] },
-        p: { metal: m, acid: d.parent, salt: s, slow: met.slow ? '1' : '' }, signs: dT > 3 ? ['gas', 'heat'] : ['gas'], dT, key: `metal-acid:${m}`
+        p: { metal: m, acid: d.parent, salt: s, slow: slow ? '1' : '' }, signs: dT > 3 ? ['gas', 'heat'] : ['gas'], dT, key: `metal-acid:${m}`
       });
     }
   }
@@ -678,10 +794,20 @@ const metalAcid: Rule = (v, ctx) => {
 const metalAlkali: Rule = (v, ctx) => {
   const oh = amt(v.aq, 'OH^-');
   if (oh <= EPS) return null;
-  for (const [m, per, cx, h2] of [['Zn', 2, '[Zn(OH)4]^2-', 1], ['Al', 1, '[Al(OH)4]^-', 1.5], ['Si', 2, 'SiO3^2-', 2]] as [string, number, string, number][]) {
+  // [metal, OH- per atom, product, H2 per atom, heat J/mmol]
+  for (const [m, per, cx, h2, heat] of [['Zn', 2, '[Zn(OH)4]^2-', 1, 50], ['Al', 1, '[Al(OH)4]^-', 1.5, 415], ['Si', 2, 'SiO3^2-', 2, 200]] as [string, number, string, number, number][]) {
     const n = amt(v.solids, m);
-    const e = Math.min(n, oh / per);
+    let e = Math.min(n, oh / per);
     if (e <= EPS) continue;
+    // Zinc and silicon need concentrated, hot alkali; in dilute alkali in the cold they react slowly.
+    if (m !== 'Al') {
+      const strong = molar(v, 'OH^-') >= 2;
+      if (m === 'Si' && molar(v, 'OH^-') < 0.5 && v.temp < 60) continue;
+      if (!strong || v.temp < 60) {
+        if (!once(ctx, `slow-alkali:${m}`)) continue;
+        e = Math.min(e, Math.max(0.001, SLOW_RATE * (ctx.dt ?? 0) * warmth(v.temp)));
+      }
+    }
     const base = baseOf(v);
     const s = salt(base.cation, cx).id;
     take(v.solids, m, e);
@@ -689,10 +815,56 @@ const metalAlkali: Rule = (v, ctx) => {
     putIon(v, cx, e, s);
     setParent(v, [base.cation], s);
     addGas(v, 'H2', h2 * e, ctx.now);
+    const dT = release(v, heat * e);
     return ev({
       kind: 'metalAlkali', importance: 2, type: 'redox',
       eq: { reactants: [m, base.parent, 'H2O'], products: [s, 'H2'], gas: ['H2'] },
-      p: { metal: m }, signs: ['gas'], key: `metal-alkali:${m}`
+      p: { metal: m }, signs: dT > 3 ? ['gas', 'heat'] : ['gas'], dT, key: `metal-alkali:${m}`
+    });
+  }
+  return null;
+};
+
+/**
+ * Magnesium in solutions of salts that hydrolyse to acid: it takes the hydrogen ions and hydrogen
+ * comes off. Mg + 2NH4Cl -> MgCl2 + 2NH3 + H2; 3Mg + 2AlCl3 + 6H2O -> 3MgCl2 + 2Al(OH)3 + 3H2.
+ */
+const metalAmmonium: Rule = (v, ctx) => {
+  const n = amt(v.solids, 'Mg');
+  if (n <= EPS || amt(v.aq, 'H^+') > EPS || waterVolume(v) <= 0.05) return null;
+  for (const c of ['NH4^+', 'Al^3+', 'Cr^3+']) {
+    const a = amt(v.aq, c);
+    if (a <= EPS) continue;
+    const z = IONS[c].charge;
+    const cParent = parentOf(v, c, salt(c, 'Cl^-').id);
+    const anion = counterIon(cParent, c) || 'Cl^-';
+    const mg = salt('Mg^2+', anion).id;
+    // Mg gives 2 electrons = 2 H+; NH4+ gives one H+, Al3+ (as Al(OH)3) three.
+    const e = Math.min(n, (a * z) / 2);
+    if (e <= EPS) continue;
+    take(v.solids, 'Mg', e);
+    take(v.aq, c, (2 * e) / z);
+    putIon(v, 'Mg^2+', e, mg);
+    setParent(v, [anion], mg);
+    addGas(v, 'H2', e, ctx.now);
+    const dT = release(v, 300 * e);
+    if (c === 'NH4^+') {
+      put(v.aq, 'NH3', 2 * e);
+      v.parent['NH3'] = 'NH3·H2O';
+      v.fx.smellAt = ctx.now;
+      return ev({
+        kind: 'metalAmmonium', importance: 2, type: 'redox',
+        eq: { reactants: ['Mg', cParent], products: [mg, 'NH3', 'H2'], gas: ['NH3', 'H2'] },
+        p: { metal: 'Mg', ion: c }, signs: ['gas', 'smell'], dT, key: 'metal-ammonium:NH4'
+      });
+    }
+    const hyd = salt(c, 'OH^-').id;
+    put(v.solids, hyd, (2 * e) / z);
+    v.fx.precipAt = ctx.now;
+    return ev({
+      kind: 'metalAmmonium', importance: 2, type: 'redox',
+      eq: { reactants: ['Mg', cParent, 'H2O'], products: [mg, hyd, 'H2'], gas: ['H2'], precip: [hyd] },
+      p: { metal: 'Mg', ion: c, product: hyd }, signs: ['gas', 'precip'], dT, key: `metal-ammonium:${c}`
     });
   }
   return null;
@@ -705,6 +877,8 @@ const metalSalt: Rule = (v, ctx) => {
     for (const c of Object.keys(v.aq)) {
       const ion = IONS[c];
       if (!ion?.metal || !METALS[ion.metal] || c === 'Fe^3+' || c.startsWith('[') || ion.metal === m) continue;
+      // Aluminium, manganese and magnesium cannot be reduced out of water: hydrogen comes instead.
+      if (['Al', 'Mn', 'Mg'].includes(ion.metal)) continue;
       if (activity(m) >= activity(ion.metal)) continue;
       if (m === 'Al' && amt(v.aq, 'Cl^-') <= EPS) continue;
       const myIon = METALS[m].ion;
@@ -757,7 +931,9 @@ const ammoniaPrecip: Rule = (v, ctx) => {
   if (nh3 <= EPS) return null;
   for (const c of AMMONIA_PRECIP) {
     const a = amt(v.aq, c);
-    if (a <= EPS) continue;
+    if (a <= 2e-4) continue;
+    // Ammonium salts keep magnesium in solution (they dissolve Mg(OH)2 themselves).
+    if (c === 'Mg^2+' && amt(v.aq, 'NH4^+') >= a) continue;
     const cParent = parentOf(v, c, salt(c, 'NO3^-').id);
     const anion = counterIon(cParent, c) || 'NO3^-';
     const ammSalt = salt('NH4^+', anion).id;
@@ -808,6 +984,10 @@ const ammineComplex: Rule = (v, ctx) => {
     const n = amt(v.solids, a.solid);
     const e = Math.min(n, nh3 / a.need);
     if (e <= EPS) continue;
+    // The complex forms only in excess ammonia: while free metal ions are left, they take the ammonia
+    // to make more hydroxide.
+    const metalIon = hasCompound(a.solid) ? compound(a.solid).cation : undefined;
+    if (metalIon && amt(v.aq, metalIon) > 1e-4) continue;
     const counter = a.released!;
     const cxSalt = salt(a.complex, counter).id;
     take(v.solids, a.solid, e);
@@ -854,55 +1034,103 @@ const fe3scn: Rule = (v) => {
   });
 };
 
+/**
+ * Salts of weak bases and weak acids hydrolyse each other: the hydroxide precipitates and the
+ * weak acid leaves as gas (CO2, SO2, H2S) or settles as silicic acid gel.
+ * 2AlCl3 + 3Na2CO3 + 3H2O -> 2Al(OH)3 + 6NaCl + 3CO2.
+ */
+const JOINT: Record<string, { metals: string[]; gas?: string; gel?: boolean }> = {
+  'CO3^2-': { metals: ['Fe^3+', 'Al^3+', 'Cr^3+', 'Cu^2+', 'Sn^2+'], gas: 'CO2' },
+  'HCO3^-': { metals: ['Fe^3+', 'Al^3+', 'Cr^3+', 'Cu^2+', 'Sn^2+'], gas: 'CO2' },
+  'SO3^2-': { metals: ['Al^3+', 'Cr^3+', 'Sn^2+'], gas: 'SO2' },
+  'SiO3^2-': { metals: ['Fe^3+', 'Al^3+', 'Cr^3+', 'Sn^2+'], gel: true },
+  'S^2-': { metals: ['Mg^2+'], gas: 'H2S' }
+};
+
 const jointHydrolysis: Rule = (v, ctx) => {
-  for (const m of ['Fe^3+', 'Al^3+', 'Cr^3+', 'Cu^2+']) {
-    const a = amt(v.aq, m);
-    if (a <= EPS) continue;
-    for (const carb of ['CO3^2-', 'HCO3^-']) {
-      const c = amt(v.aq, carb);
-      if (c <= EPS) continue;
+  for (const [anion, info] of Object.entries(JOINT)) {
+    const c = amt(v.aq, anion);
+    if (c <= 2e-4) continue;
+    const qa = -IONS[anion].charge;
+    for (const m of info.metals) {
+      const a = amt(v.aq, m);
+      if (a <= 2e-4) continue;
+      const z = IONS[m].charge;
       const mParent = parentOf(v, m, salt(m, 'Cl^-').id);
-      const cParent = parentOf(v, carb, carb === 'CO3^2-' ? 'Na2CO3' : 'NaHCO3');
+      const cParent = parentOf(v, anion, salt('Na^+', anion).id);
       const mAnion = counterIon(mParent, m) || 'Cl^-';
-      const cCat = counterIon(cParent, carb) || 'Na^+';
-      const s = salt(cCat, mAnion).id;
-      let product: string;
-      let takeM: number, takeC: number, solid: number, co2: number;
-      let reactants: string[];
-      let products: string[];
+      const cCat = counterIon(cParent, anion) || 'Na^+';
+      const spectator = salt(cCat, mAnion).id;
+      const gas = info.gas;
+      const products: string[] = [];
+      const precip: string[] = [];
+      let usedM: number, usedA: number;
       if (m === 'Cu^2+') {
-        product = '(CuOH)2CO3';
-        const u = carb === 'CO3^2-' ? Math.min(a / 2, c / 2) : Math.min(a / 2, c / 4);
-        takeM = 2 * u; takeC = carb === 'CO3^2-' ? 2 * u : 4 * u; solid = u; co2 = carb === 'CO3^2-' ? u : 3 * u;
-        reactants = carb === 'CO3^2-' ? [mParent, cParent, 'H2O'] : [mParent, cParent];
-        products = carb === 'CO3^2-' ? [product, s, 'CO2'] : [product, s, 'CO2', 'H2O'];
+        // Copper gives the basic carbonate (malachite): 2CuSO4 + 2Na2CO3 + H2O -> (CuOH)2CO3 + 2Na2SO4 + CO2.
+        const u = anion === 'CO3^2-' ? Math.min(a / 2, c / 2) : Math.min(a / 2, c / 4);
+        usedM = 2 * u; usedA = anion === 'CO3^2-' ? 2 * u : 4 * u;
+        put(v.solids, '(CuOH)2CO3', u);
+        addGas(v, 'CO2', anion === 'CO3^2-' ? u : 3 * u, ctx.now);
+        products.push('(CuOH)2CO3', spectator, 'CO2');
+        if (anion === 'HCO3^-') products.push('H2O');
+        precip.push('(CuOH)2CO3');
       } else {
-        product = salt(m, 'OH^-').id;
-        const u = carb === 'CO3^2-' ? Math.min(a / 2, c / 3) : Math.min(a, c / 3);
-        takeM = carb === 'CO3^2-' ? 2 * u : u; takeC = 3 * u; solid = takeM; co2 = 3 * u;
-        reactants = carb === 'CO3^2-' ? [mParent, cParent, 'H2O'] : [mParent, cParent];
-        products = [product, s, 'CO2'];
+        // Charges: z metal ions per qa anions; every anion takes qa H+ from water.
+        const u = Math.min(a / qa, c / z);
+        usedM = qa * u; usedA = z * u;
+        const hyd = salt(m, 'OH^-').id;
+        put(v.solids, hyd, usedM);
+        products.push(hyd, spectator);
+        precip.push(hyd);
+        // One CO2, SO2, H2S or H2SiO3 per anion.
+        if (info.gel) { put(v.solids, 'H2SiO3', usedA); products.push('H2SiO3'); precip.push('H2SiO3'); }
+        else if (gas) { addGas(v, gas, usedA, ctx.now); products.push(gas); }
       }
-      if (solid <= EPS) continue;
-      take(v.aq, m, takeM);
-      take(v.aq, carb, takeC);
-      put(v.solids, product, solid);
-      addGas(v, 'CO2', co2, ctx.now);
-      setParent(v, [mAnion, cCat], s);
+      if (usedM <= EPS) continue;
+      take(v.aq, m, usedM);
+      take(v.aq, anion, usedA);
+      setParent(v, [mAnion, cCat], spectator);
       v.fx.precipAt = ctx.now;
+      if (gas && gas !== 'CO2') v.fx.smellAt = ctx.now;
+      const reactants = anion === 'HCO3^-' ? [mParent, cParent] : [mParent, cParent, 'H2O'];
+      const product = precip[0];
+      const signs: ReactionEvent['signs'] = info.gel ? ['precip'] : gas === 'CO2' ? ['precip', 'gas'] : ['precip', 'gas', 'smell'];
       return ev({
         kind: 'jointHydrolysis', importance: 2, type: 'exchange',
-        eq: { reactants, products, precip: [product], gas: ['CO2'] },
-        p: { product, color: colorOf(product) }, signs: ['precip', 'gas'], key: `joint-hydrolysis:${product}`
+        eq: { reactants, products, precip, gas: gas && !info.gel ? [gas] : undefined },
+        p: { product, color: colorOf(product), gas: info.gel ? 'H2SiO3' : gas ?? '', ion: m, anion }, signs,
+        safety: gas === 'SO2' || gas === 'H2S' ? 'fumeHood' : undefined, key: `joint-hydrolysis:${product}:${anion}`
       });
     }
+  }
+  // Ammonium silicate does not exist in water: 2NH4Cl + Na2SiO3 -> H2SiO3 + 2NaCl + 2NH3.
+  const nh4 = amt(v.aq, 'NH4^+');
+  const si = amt(v.aq, 'SiO3^2-');
+  const u = Math.min(nh4 / 2, si);
+  if (u > 2e-4 && amt(v.aq, 'OH^-') <= EPS) {
+    const nParent = parentOf(v, 'NH4^+', 'NH4Cl');
+    const sParent = parentOf(v, 'SiO3^2-', 'Na2SiO3');
+    const anion = counterIon(nParent, 'NH4^+') || 'Cl^-';
+    const cat = counterIon(sParent, 'SiO3^2-') || 'Na^+';
+    take(v.aq, 'NH4^+', 2 * u); take(v.aq, 'SiO3^2-', u);
+    put(v.solids, 'H2SiO3', u);
+    put(v.aq, 'NH3', 2 * u);
+    v.parent['NH3'] = 'NH3·H2O';
+    setParent(v, [anion, cat], salt(cat, anion).id);
+    v.fx.precipAt = ctx.now; v.fx.smellAt = ctx.now;
+    return ev({
+      kind: 'jointHydrolysis', importance: 2, type: 'exchange',
+      eq: { reactants: [nParent, sParent], products: ['H2SiO3', salt(cat, anion).id, 'NH3'], precip: ['H2SiO3'] },
+      p: { product: 'H2SiO3', color: 'clearGel', gas: 'NH3' }, signs: ['precip', 'smell'], key: 'joint-hydrolysis:H2SiO3:NH4'
+    });
   }
   return null;
 };
 
 const silverOxide: Rule = (v, ctx) => {
   const e = Math.min(amt(v.aq, 'Ag^+'), amt(v.aq, 'OH^-')) / 2;
-  if (e <= EPS) return null;
+  // Traces left over by an insoluble silver salt do not make a visible precipitate.
+  if (e <= 1e-4) return null;
   const agParent = parentOf(v, 'Ag^+', 'AgNO3');
   const base = baseOf(v);
   const agAnion = counterIon(agParent, 'Ag^+') || 'NO3^-';
@@ -918,6 +1146,35 @@ const silverOxide: Rule = (v, ctx) => {
     p: { product: 'Ag2O', color: 'darkBrown', special: 'ag2o' }, signs: ['precip'], key: 'precip:Ag2O'
   });
 };
+
+/**
+ * Units of salt CnAm that come out of solution (> 0) or can still dissolve (< 0) so that the
+ * ion product [C]^n[A]^m equals the solubility product. Ksp is built from the solubility S of
+ * the salt in pure water, so an excess of either ion (common-ion effect) lowers solubility.
+ * Amounts are mmol, volume mL (mmol/mL = mol/L); at most `solid` units can dissolve.
+ */
+export function kspShift(cAmt: number, aAmt: number, n: number, m: number, S: number, vol: number, solid = 0): number {
+  const logKsp = n * Math.log(n * S) + m * Math.log(m * S);
+  const logQ = (x: number) => {
+    const c = (cAmt - n * x) / vol;
+    const a = (aAmt - m * x) / vol;
+    return c <= 0 || a <= 0 ? -Infinity : n * Math.log(c) + m * Math.log(a);
+  };
+  let lo: number;
+  let hi: number;
+  if (logQ(0) > logKsp) { lo = 0; hi = Math.min(cAmt / n, aAmt / m); }
+  else {
+    if (solid <= 0) return 0;
+    if (logQ(-solid) <= logKsp) return -solid;
+    lo = -solid; hi = 0;
+  }
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (logQ(mid) > logKsp) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
 
 const precipitation: Rule = (v, ctx) => {
   const vol = Math.max(v.volume, 0.01);
@@ -939,8 +1196,7 @@ const precipitation: Rule = (v, ctx) => {
     const def = salt(c, a);
     const nCat = def.nCat || 1;
     const nAn = def.nAn || 1;
-    const units = Math.min(amt(v.aq, c) / nCat, amt(v.aq, a) / nAn);
-    const p = units - S * vol;
+    const p = kspShift(amt(v.aq, c), amt(v.aq, a), nCat, nAn, S, vol);
     if (p <= EPS) continue;
     const cParent = parentOf(v, c, def.id);
     const aParent = parentOf(v, a, def.id);
@@ -983,15 +1239,14 @@ const redissolve: Rule = (v, ctx) => {
     if (!def.cation || !def.anion) continue;
     const sol = solubility(def.cation, def.anion);
     if (sol.s !== 'M' || !sol.S) continue;
-    const dissolved = Math.min(amt(v.aq, def.cation) / (def.nCat || 1), amt(v.aq, def.anion) / (def.nAn || 1));
-    const room = solubilityAt(def.cation, def.anion, v.temp) * vol - dissolved;
-    const e = Math.min(amt(v.solids, s), room);
+    const S = solubilityAt(def.cation, def.anion, v.temp);
+    const e = -kspShift(amt(v.aq, def.cation), amt(v.aq, def.anion), def.nCat || 1, def.nAn || 1, S, vol, amt(v.solids, s));
     if (e <= 1e-4) continue;
     take(v.solids, s, e);
     putIon(v, def.cation, (def.nCat || 1) * e, s);
     putIon(v, def.anion, (def.nAn || 1) * e, s);
     // A precipitate that dissolves completely in hot water is worth telling about (lead iodide).
-    if (amt(v.solids, s) <= EPS && v.temp > 50) {
+    if (amt(v.solids, s) <= EPS && v.temp > 50 && S > 1.2 * solubilityAt(def.cation, def.anion, 20)) {
       v.fx.dissolveAt = ctx.now;
       return ev({ kind: 'dissolveHot', importance: 2, type: 'physical', p: { solid: s }, signs: ['dissolve'], key: `dissolve-hot:${s}` });
     }
@@ -1058,15 +1313,15 @@ const heatRules: Rule = (v, ctx) => {
 };
 
 export const RULES: Rule[] = [
-  concDilution, concSugar, concMetal, ...MORE_PREP, alkaliMetal,
+  concDilution, concSugar, concMetal, ...EXTRA_PREP, ...MORE_PREP, alkaliMetal,
   neutralization, weakAcidBase, ammoniumBase, ammoniaAcid, bicarbonateBase,
   carbonateStrong, bicarbonateStrong, carbonateWeak, bicarbonateWeak, silicateAcid, acetateStrong, phosphateStrong,
   ...MORE_EARLY,
-  complexAcid, solidAcid, amphotericBase,
-  metalNitric, metalAcid, metalAlkali, metalSalt,
+  complexAcid, solidAcid, amphotericBase, amphotericBack, thiocyanateBase,
+  metalNitric, metalAcid, metalAlkali, metalSalt, metalAmmonium,
   oxideWater, dissolveSolid,
-  ammoniaPrecip, ammineComplex, fe3scn, jointHydrolysis, silverOxide, precipitation, redissolve,
-  peroxide, heatRules, ...MORE_LATE, ...PHYSICAL_RULES
+  ammoniaPrecip, ammineComplex, fe3scn, jointHydrolysis, bicarbonatePrecip, silverOxide, precipitation, redissolve,
+  peroxide, heatRules, ...MORE_LATE, ...EXTRA_LATE, ...PHYSICAL_RULES
 ];
 
 export function settle(v: Vessel, ctx: Ctx): ReactionEvent[] {
@@ -1078,6 +1333,8 @@ export function settle(v: Vessel, ctx: Ctx): ReactionEvent[] {
       if (fired) break;
     }
     if (!fired) break;
+    // A reaction that goes in several steps is reported once.
+    if (fired.key && events.some((e) => e.key === fired!.key && e.kind === fired!.kind)) continue;
     events.push(fired);
   }
   return events;

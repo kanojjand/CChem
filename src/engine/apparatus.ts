@@ -6,13 +6,16 @@ import { IONS, METALS, compound, hasCompound, salt } from './data';
 import { GASES, SOLUTE_SMELLS, type Smell } from './gases';
 import { finish, snapshot, type ActionResult } from './actions';
 import { settle, type Ctx } from './rules';
+import { counterIon } from './ruleKit';
 import { EPS, addGas, amt, put, putIon, take, waterVolume, type ReactionEvent, type Vessel } from './vessel';
 import type { EqSpec } from './equation';
 
 /** Millilitres of gas in one millimole at room temperature (24 L/mol at 20 °C). */
 export const ML_PER_MMOL = 24;
-/** CO2 that stays dissolved in water, mmol per mL (about 1.5 g/L). */
-const CO2_SOLUBILITY = 0.033;
+/** CO2 that stays dissolved in water, mmol per mL (0.88 volume of gas in one volume of water). */
+const CO2_SOLUBILITY = 0.036;
+/** Hydrogen sulfide (2.6 volumes) and sulfur dioxide (40 volumes) a millilitre of water holds, mmol. */
+const GAS_SOLUBILITY: Record<string, number> = { H2S: 0.1, SO2: 1.6 };
 
 const ev = (e: Omit<ReactionEvent, 'p' | 'signs'> & Partial<Pick<ReactionEvent, 'p' | 'signs'>>): ReactionEvent =>
   ({ p: {}, signs: [], ...e });
@@ -34,6 +37,7 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
   if (gas === 'CO2') {
     const caBefore = amt(v.solids, 'CaCO3') + amt(v.solids, 'BaCO3');
     let left = mmol;
+    let alkali = false;
     // CO2 + 2OH- -> CO3^2- + H2O
     const oh = amt(v.aq, 'OH^-');
     const toCarbonate = Math.min(left, oh / 2);
@@ -41,18 +45,21 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
       take(v.aq, 'OH^-', toCarbonate * 2);
       putIon(v, 'CO3^2-', toCarbonate);
       left -= toCarbonate;
+      alkali = true;
     }
     events.push(...settle(v, ctx));
     // Excess CO2 turns carbonate into soluble hydrogen carbonate: the cloudy limewater clears.
+    // Marble chips from the shelf are another matter: they dissolve in carbonic acid only very slowly.
     if (left > EPS) {
       const solid = amt(v.solids, 'CaCO3');
-      const back = Math.min(left, solid);
+      const chips = v.added.includes('CaCO3');
+      const back = chips ? Math.min(left * 0.1, solid * 0.01) : Math.min(left, solid);
       if (back > EPS) {
         take(v.solids, 'CaCO3', back);
         putIon(v, 'Ca^2+', back, 'Ca(HCO3)2');
         putIon(v, 'HCO3^-', back * 2, 'Ca(HCO3)2');
         left -= back;
-        if (amt(v.solids, 'CaCO3') <= EPS) {
+        if (!chips && amt(v.solids, 'CaCO3') <= EPS) {
           events.push(ev({ kind: 'limewaterClears', importance: 2, type: 'combination',
             eq: { reactants: ['CaCO3', 'CO2', 'H2O'], products: ['Ca(HCO3)2'] }, signs: ['dissolve'], key: 'co2:clears' }));
         }
@@ -63,12 +70,16 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
         take(v.aq, 'CO3^2-', toHco3);
         putIon(v, 'HCO3^-', toHco3 * 2);
         left -= toHco3;
+        alkali = true;
       }
-      // What is left dissolves as carbonic acid up to saturation, the rest escapes.
-      const room = Math.max(0, CO2_SOLUBILITY * water - amt(v.aq, 'HCO3^-'));
+      // What is left dissolves as carbon dioxide (carbonic acid) up to saturation, the rest escapes.
+      // Acids keep it from dissolving.
+      const room = amt(v.aq, 'H^+') > EPS ? 0 : Math.max(0, CO2_SOLUBILITY * water - amt(v.aq, 'CO2'));
       const dissolve = Math.min(left, room);
-      if (dissolve > EPS) { put(v.aq, 'HCO3^-', dissolve); left -= dissolve; }
+      if (dissolve > EPS) { put(v.aq, 'CO2', dissolve); left -= dissolve; }
       if (left > EPS) addGas(v, 'CO2', left, now);
+      // Carbonic acid is weak, but it is stronger than silicic acid and takes aluminium hydroxide out of aluminate.
+      events.push(...settle(v, ctx));
     }
     const caAfter = amt(v.solids, 'CaCO3') + amt(v.solids, 'BaCO3');
     if (caAfter > caBefore + EPS) {
@@ -81,7 +92,7 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
         p: { product: s }, signs: ['precip'], key: 'co2:limewater' }));
       v.fx.precipAt = now;
     } else if (!events.some((e) => e.importance >= 2)) {
-      events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: `absorb:${gas}` }));
+      events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas, alkali: alkali ? '1' : '' }, signs: [], key: `absorb:${gas}${alkali ? ':alkali' : ''}` }));
     }
   } else if (gas === 'NH3') {
     // Ammonia dissolves very well and makes the solution alkaline.
@@ -93,7 +104,8 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
     put(v.solids, 'I2', mmol);
     events.push(...settle(v, ctx));
   } else if (gas === 'H2S' || gas === 'SO2') {
-    // Both dissolve fairly well; with alkali they form salts.
+    // Both dissolve fairly well as weak acids (H2S, SO2·H2O); with alkali they form salts.
+    // What the water cannot hold any more escapes.
     const oh = amt(v.aq, 'OH^-');
     const n = Math.min(mmol, oh / 2);
     const anion = gas === 'H2S' ? 'S^2-' : 'SO3^2-';
@@ -103,7 +115,9 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
       putIon(v, anion, n, salt(cat, anion).id);
     }
     const rest = mmol - n;
-    if (rest > EPS) put(v.aq, gas, rest);
+    const dissolve = Math.min(rest, Math.max(0, GAS_SOLUBILITY[gas] * water - amt(v.aq, gas)));
+    if (dissolve > EPS) put(v.aq, gas, dissolve);
+    if (rest - dissolve > EPS) { addGas(v, gas, rest - dissolve, now); v.fx.smellAt = now; }
     events.push(...settle(v, ctx));
     if (!events.some((e) => e.importance >= 2)) events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: `absorb:${gas}` }));
   } else if (gas === 'HCl') {
@@ -120,10 +134,16 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
     events.push(...settle(v, ctx));
     if (!events.some((e) => e.importance >= 2)) events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: 'absorb:NO2' }));
   } else if (gas === 'Cl2') {
-    // Chlorine water: a little dissolves, the rest escapes with a sharp smell.
-    addGas(v, gas, mmol * 0.7, now);
-    v.fx.smellAt = now;
-    events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: ['smell'], key: 'absorb:Cl2' }));
+    // Chlorine water: about a third dissolves, the rest escapes with a sharp smell.
+    // Alkali takes up all of it (chloride and hypochlorite); so do solutions it reacts with.
+    const alkaline = amt(v.aq, 'OH^-') > EPS;
+    const kept = alkaline ? mmol : mmol * 0.3;
+    put(v.aq, 'Cl2', kept);
+    if (mmol - kept > EPS) { addGas(v, gas, mmol - kept, now); v.fx.smellAt = now; }
+    events.push(...settle(v, ctx));
+    if (!events.some((e) => e.importance >= 2)) {
+      events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: alkaline ? [] : ['smell'], key: 'absorb:Cl2' }));
+    }
   } else {
     // Hydrogen, oxygen and nitrogen oxides hardly dissolve: they bubble through.
     addGas(v, gas, mmol, now);
@@ -181,9 +201,11 @@ export function testGas(sample: Record<string, number>, tool: GasTool, solutes: 
   const cl2 = x('Cl2');
   const inert = x('N2');
   const h2s = x('H2S');
+  // Dinitrogen oxide gives up its oxygen in the flame: a glowing splint relights in it as in oxygen.
+  const n2o = x('N2O');
   switch (tool) {
     case 'glowing':
-      if (o2 > 0.35) return { result: 'relights' };
+      if (o2 + n2o > 0.35) return { result: 'relights' };
       if (h2 > 0.05 && o2 > 0.05) return { result: 'loudPop', burns: ['H2'] };
       if (co2 + nh3 + inert + x('SO2') + x('HCl') + h2s > 0.5) return { result: 'goesOut' };
       return { result: 'stillGlows' };
@@ -191,7 +213,7 @@ export function testGas(sample: Record<string, number>, tool: GasTool, solutes: 
       if (h2 > 0.05 && o2 > 0.1) return { result: 'loudPop', burns: ['H2', 'O2'] };
       if (h2 > 0.05) return { result: 'pop', burns: ['H2'] };
       if (h2s > 0.1) return { result: 'h2sBurns', burns: ['H2S'] };
-      if (o2 > 0.35) return { result: 'burnsBrighter' };
+      if (o2 + n2o > 0.35) return { result: 'burnsBrighter' };
       if (co2 + nh3 + cl2 + inert + x('SO2') + x('HCl') > 0.4) return { result: 'goesOut' };
       return { result: 'burnsAsUsual' };
     case 'litmus':
@@ -235,26 +257,55 @@ function firstPresent(v: Vessel, ids: string[]): string | undefined {
   return ids.find((id) => amt(v.aq, id) > 1e-5);
 }
 
-/** Electrolysis equation for the main salt and the products now forming. */
-function electroEq(v: Vessel, cathode: string, anode: string): EqSpec | undefined {
-  const cation = cathode === 'Cu' ? 'Cu^2+' : cathode === 'Ag' ? 'Ag^+' : cathode === 'Zn' ? 'Zn^2+' : cathode === 'Fe' ? 'Fe^2+'
-    : firstPresent(v, ['H^+', 'Na^+', 'K^+', 'Ca^2+', 'Mg^2+', 'Ba^2+', 'Al^3+', 'Li^+']);
-  const anion = anode === 'Cl2' ? 'Cl^-' : anode === 'I2' ? 'I^-' : firstPresent(v, ['SO4^2-', 'NO3^-', 'OH^-', 'PO4^3-']);
-  if (!cation) return { reactants: ['H2O'], products: ['H2', 'O2'], gas: ['H2', 'O2'], cond: 'el' };
-  const water = !(cathode !== 'H2' && (anode === 'Cl2' || anode === 'I2')) && !(cation === 'H^+' && anode !== 'O2');
-  const saltId = anion ? salt(cation, anion).id : undefined;
-  if (!saltId || (cathode === 'H2' && anode === 'O2')) return { reactants: ['H2O'], products: ['H2', 'O2'], gas: ['H2', 'O2'], cond: 'el' };
-  const products: string[] = [cathode, anode];
-  if (water) {
-    if (cathode === 'H2') products.push(salt(cation, 'OH^-').id);
-    if (anode === 'O2' && anion) products.push(salt('H^+', anion).id);
-  }
-  return {
-    reactants: water ? [saltId, 'H2O'] : [saltId],
-    products,
-    gas: ['H2', 'O2', 'Cl2'].filter((g) => products.includes(g)),
-    cond: 'el'
-  };
+/**
+ * Cations reduced at the cathode, the most easily reduced first. `share` is the part of the
+ * current that deposits the metal; the rest gives hydrogen (metals between aluminium and
+ * hydrogen in the activity series). Iron(III) is first reduced to iron(II) without any metal.
+ * Aluminium and the metals before it are never reduced from water: only hydrogen forms.
+ */
+const CATHODE: { ion: string; metal: string; share: number }[] = [
+  { ion: 'Ag^+', metal: 'Ag', share: 1 },
+  { ion: 'Fe^3+', metal: 'Fe^2+', share: 1 },
+  { ion: 'Cu^2+', metal: 'Cu', share: 1 },
+  { ion: 'Pb^2+', metal: 'Pb', share: 0.95 },
+  { ion: 'Sn^2+', metal: 'Sn', share: 0.9 },
+  { ion: 'Ni^2+', metal: 'Ni', share: 0.8 },
+  { ion: 'Co^2+', metal: 'Co', share: 0.8 },
+  { ion: 'Fe^2+', metal: 'Fe', share: 0.6 },
+  { ion: 'Zn^2+', metal: 'Zn', share: 0.75 },
+  { ion: 'Cr^3+', metal: 'Cr', share: 0.3 },
+  { ion: 'Mn^2+', metal: 'Mn', share: 0.3 }
+];
+const ACTIVE = ['Na^+', 'K^+', 'Li^+', 'Ca^2+', 'Ba^2+', 'Mg^2+', 'Al^3+'];
+
+/** Anions oxidised at a graphite anode, the most easily oxidised first; then OH- and water give oxygen. */
+const ANODE: { ion: string; product: string; e: number }[] = [
+  { ion: 'S^2-', product: 'S', e: 2 },
+  { ion: 'I^-', product: 'I2', e: 1 },
+  { ion: 'Br^-', product: 'Br2', e: 1 },
+  { ion: 'Cl^-', product: 'Cl2', e: 1 }
+];
+const OXO = ['SO4^2-', 'NO3^-', 'PO4^3-', 'CO3^2-', 'CH3COO^-', 'F^-'];
+
+/** Electrolysis equation for the salt being electrolysed and the products now forming. */
+function electroEq(cation: string | undefined, cathode: string, anion: string | undefined, anode: string): EqSpec {
+  const water: EqSpec = { reactants: ['H2O'], products: ['H2', 'O2'], gas: ['H2', 'O2'], cond: 'el' };
+  if (!cation || !anion) return water;
+  const gas = ['H2', 'O2', 'Cl2'];
+  const saltId = salt(cation, anion).id;
+  const halide = anode !== 'O2';
+  if (cathode === 'H2' && !halide) return water;
+  const products: string[] = [];
+  let withWater = false;
+  if (cathode === 'Fe^2+') products.push(salt('Fe^2+', anion).id);
+  else if (cathode === 'H2') {
+    products.push('H2');
+    // An acid gives up its hydrogen; a salt of an active metal leaves its hydroxide behind.
+    if (cation !== 'H^+') { products.push(salt(cation, 'OH^-').id); withWater = true; }
+  } else products.push(cathode);
+  products.push(anode);
+  if (!halide) { products.push(salt('H^+', anion).id); withWater = true; }
+  return { reactants: withWater ? [saltId, 'H2O'] : [saltId], products: [...new Set(products)], gas: gas.filter((g) => products.includes(g)), cond: 'el' };
 }
 
 /** Run electrolysis for `seconds` of lab time. Returns events when the products change. */
@@ -270,77 +321,91 @@ export function electrolysisStep(v: Vessel, seconds: number, now: number): React
     }
     return [];
   }
-  let ne = MMOL_E_PER_S * seconds * (cond === 'weak' ? 0.05 : 1);
-  const startNe = ne;
+  const startNe = MMOL_E_PER_S * seconds * (cond === 'weak' ? 0.05 : 1);
+  let ne = startNe;
 
-  // Cathode: silver and copper plate out; zinc and iron plate out together with hydrogen;
-  // active metals stay in solution and water gives hydrogen.
+  // Cathode.
   let cathode = 'H2';
-  const ag = amt(v.aq, 'Ag^+');
-  const cu = amt(v.aq, 'Cu^2+');
-  const zn = amt(v.aq, 'Zn^2+');
-  const fe = amt(v.aq, 'Fe^2+') + amt(v.aq, 'Fe^3+');
-  if (ag > 1e-5) {
-    const n = Math.min(ag, ne);
-    take(v.aq, 'Ag^+', n); put(v.electro.cathode, 'Ag', n); ne -= n; cathode = 'Ag';
-  } else if (cu > 1e-5) {
-    const n = Math.min(cu, ne / 2);
-    take(v.aq, 'Cu^2+', n); put(v.electro.cathode, 'Cu', n); ne -= n * 2; cathode = 'Cu';
-  } else if (zn > 1e-5 || fe > 1e-5) {
-    const ion = zn > 1e-5 ? 'Zn^2+' : amt(v.aq, 'Fe^3+') > 1e-5 ? 'Fe^3+' : 'Fe^2+';
-    const metal = zn > 1e-5 ? 'Zn' : 'Fe';
-    const z = IONS[ion].charge;
-    const n = Math.min(amt(v.aq, ion), ne / 2 / z);
-    take(v.aq, ion, n); put(v.electro.cathode, metal, n); ne -= n * z; cathode = metal;
-  }
-  if (ne > EPS) {
-    const h = amt(v.aq, 'H^+');
-    const fromAcid = Math.min(h, ne);
-    if (fromAcid > EPS) { take(v.aq, 'H^+', fromAcid); }
-    const fromWater = ne - fromAcid;
-    if (fromWater > EPS) {
-      const cation = firstPresent(v, ['Na^+', 'K^+', 'Li^+', 'Ca^2+', 'Ba^2+', 'Mg^2+', 'Al^3+']) || 'Na^+';
-      putIon(v, 'OH^-', fromWater, salt(cation, 'OH^-').id);
+  let cation: string | undefined;
+  let hydrogenE = 0;
+  for (const c of CATHODE) {
+    if (ne <= EPS) break;
+    const have = amt(v.aq, c.ion);
+    if (have <= 1e-5) continue;
+    if (c.ion === 'Fe^3+') {
+      const n = Math.min(have, ne);
+      const anion = counterIon(v.parent['Fe^3+'] || '', 'Fe^3+') || 'Cl^-';
+      take(v.aq, 'Fe^3+', n);
+      putIon(v, 'Fe^2+', n, salt('Fe^2+', anion).id);
+      ne -= n;
+    } else {
+      const z = IONS[c.ion].charge;
+      const eMetal = Math.min(have * z, ne * c.share);
+      const eH = Math.min(ne - eMetal, (eMetal * (1 - c.share)) / c.share);
+      take(v.aq, c.ion, eMetal / z);
+      put(v.electro.cathode, c.metal, eMetal / z);
+      ne -= eMetal + eH;
+      hydrogenE += eH;
     }
-    addGas(v, 'H2', ne / 2, now);
+    if (!cation) { cation = c.ion; cathode = c.metal; }
+  }
+  hydrogenE += Math.max(0, ne);
+  let acid = false;
+  if (hydrogenE > EPS) {
+    const h = amt(v.aq, 'H^+');
+    const fromAcid = Math.min(h, hydrogenE);
+    if (fromAcid > EPS) { take(v.aq, 'H^+', fromAcid); acid = true; }
+    const fromWater = hydrogenE - fromAcid;
+    const active = firstPresent(v, ACTIVE);
+    if (fromWater > EPS) putIon(v, 'OH^-', fromWater, salt(active || cation || 'Na^+', 'OH^-').id);
+    addGas(v, 'H2', hydrogenE / 2, now);
+    if (!cation) cation = acid ? 'H^+' : active;
   }
 
-  // Anode (graphite): chloride and iodide give the halogen; otherwise water gives oxygen.
+  // Anode (graphite).
   let anode = 'O2';
+  let anion: string | undefined;
   let me = startNe;
-  const cl = amt(v.aq, 'Cl^-');
-  const iod = amt(v.aq, 'I^-');
-  if (iod > 1e-5) {
-    const n = Math.min(iod, me);
-    take(v.aq, 'I^-', n); put(v.aq, 'I2', n / 2); me -= n; anode = 'I2';
-  } else if (cl > 1e-5) {
-    const n = Math.min(cl, me);
-    take(v.aq, 'Cl^-', n); addGas(v, 'Cl2', n / 2, now); me -= n; anode = 'Cl2';
-    v.fx.smellAt = now;
+  for (const a of ANODE) {
+    if (me <= EPS) break;
+    const have = amt(v.aq, a.ion);
+    if (have <= 1e-5) continue;
+    const n = Math.min(have, me / a.e);
+    take(v.aq, a.ion, n);
+    me -= n * a.e;
+    if (a.product === 'S') put(v.solids, 'S', n);
+    else if (a.product === 'Cl2') { addGas(v, 'Cl2', n / 2, now); v.fx.smellAt = now; }
+    else put(v.aq, a.product, n / 2);
+    if (!anion) { anion = a.ion; anode = a.product; }
   }
   if (me > EPS) {
     const oh = amt(v.aq, 'OH^-');
     const fromOh = Math.min(oh, me);
     if (fromOh > EPS) take(v.aq, 'OH^-', fromOh);
     const fromWater = me - fromOh;
-    if (fromWater > EPS) {
-      const anion = firstPresent(v, ['SO4^2-', 'NO3^-', 'Cl^-', 'PO4^3-']) || 'SO4^2-';
-      putIon(v, 'H^+', fromWater, salt('H^+', anion).id);
-    }
+    const oxo = firstPresent(v, OXO);
+    if (fromWater > EPS) putIon(v, 'H^+', fromWater, salt('H^+', oxo || 'SO4^2-').id);
     addGas(v, 'O2', me / 4, now);
+    if (!anion) anion = oxo || (fromOh > EPS ? 'OH^-' : undefined);
   }
   v.temp += 0.002 * seconds;
+
+  // What the electrodes made reacts with the solution: hydroxides come down, acid meets alkali,
+  // halogens meet the alkali formed at the cathode. The electrolysis event tells about it.
+  settle(v, { now, aqueousAddedToConc: false, limited: new Set() });
 
   const state = `${cathode}|${anode}`;
   if (state === v.electro.state) return [];
   v.electro.state = state;
   const signs: ReactionEvent['signs'] = ['gas'];
-  if (cathode !== 'H2') signs.push('deposit');
-  if (anode === 'I2' || cathode === 'Cu') signs.push('color');
-  if (anode === 'Cl2') signs.push('smell');
+  const metal = cathode !== 'H2' && cathode !== 'Fe^2+';
+  if (metal) signs.push('deposit');
+  if (anode === 'I2' || anode === 'Br2' || cathode === 'Cu' || cathode === 'Fe^2+') signs.push('color');
+  if (anode === 'S') signs.push('precip');
+  if (anode === 'Cl2' || anode === 'Br2') signs.push('smell');
   const e = ev({
-    kind: 'electrolysis', importance: 2, type: 'redox', eq: electroEq(v, cathode, anode),
-    p: { cathode, anode }, signs, key: `electro:${state}`
+    kind: 'electrolysis', importance: 2, type: 'redox', eq: electroEq(cation, cathode, anion === 'OH^-' ? undefined : anion, anode),
+    p: { cathode, anode, acid: acid ? '1' : '', h2: metal && hydrogenE > EPS ? '1' : '' }, signs, key: `electro:${state}`
   });
   v.lastEvents = [e];
   return [e];
@@ -362,7 +427,12 @@ export function flameTest(v: Vessel): { ions: string[]; color: string | null } {
   for (const id in v.aq) add(id, v.aq[id]);
   for (const id in v.solids) {
     if (METALS[id]) add(METALS[id].ion, v.solids[id]);
-    else if (hasCompound(id)) add(compound(id).cation, v.solids[id]);
+    else if (hasCompound(id) && compound(id).cation) add(compound(id).cation, v.solids[id]);
+    else {
+      // Basic salts, crystal hydrates and oxides: the metal is the first element of the formula.
+      const sym = /^\(?([A-Z][a-z]?)/.exec(id)?.[1];
+      if (sym && METALS[sym]) add(METALS[sym].ion, v.solids[id]);
+    }
   }
   const ions = [...found.entries()].sort((a, b) => b[1] - a[1]).map(([ion]) => ion);
   // Sodium's bright yellow hides the other colors.

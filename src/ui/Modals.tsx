@@ -170,22 +170,25 @@ function Indicators({ s }: { s: Strings }) {
   const ids: IndicatorId[] = ['phph', 'litmus', 'mo', 'univ'];
   const cols: [keyof Strings['tablesModal']['indicatorRows'], number][] = [['acid', 2], ['neutral', 7], ['alkaline', 12]];
   return (
-    <table className="ind">
-      <thead>
-        <tr><th />{cols.map(([k]) => <th key={k}>{s.tablesModal.indicatorRows[k]}</th>)}</tr>
-      </thead>
-      <tbody>
-        {ids.map((id) => (
-          <tr key={id}>
-            <th>{s.indicators[id]}</th>
-            {cols.map(([k, pH]) => {
-              const c = indicatorColor(id, pH);
-              return <td key={k}><i style={{ background: c.hex }} />{s.indColors[c.name]}</td>;
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <>
+      <table className="ind">
+        <thead>
+          <tr><th />{cols.map(([k]) => <th key={k}>{s.tablesModal.indicatorRows[k]}</th>)}</tr>
+        </thead>
+        <tbody>
+          {ids.map((id) => (
+            <tr key={id}>
+              <th>{s.indicators[id]}</th>
+              {cols.map(([k, pH]) => {
+                const c = indicatorColor(id, pH);
+                return <td key={k}><i style={{ background: c.hex }} />{s.indColors[c.name]}</td>;
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="note">{s.tablesModal.indicatorNote}</p>
+    </>
   );
 }
 
