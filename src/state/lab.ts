@@ -47,6 +47,7 @@ export interface Outcome {
   result?: ActionResult;
   error?: 'full' | 'empty' | 'same' | 'nothing' | 'broken';
   discovered: string[];
+  placed?: VesselKind;   // a vessel was put on the empty bench to hold the reagent
 }
 
 export const COLLECTOR_ID = 'collector';
@@ -70,7 +71,8 @@ function save(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage may be unavailable */ }
 }
 
-const DEFAULT_SET: [string, VesselKind][] = [['t1', 'tube'], ['t2', 'tube'], ['t3', 'tube'], ['t4', 'tube'], ['b1', 'beaker'], ['f1', 'flask']];
+/** A ready set of glassware (used by tests); the app starts with an empty bench. */
+export const DEMO_SET: [string, VesselKind][] = [['t1', 'tube'], ['t2', 'tube'], ['t3', 'tube'], ['t4', 'tube'], ['b1', 'beaker'], ['f1', 'flask']];
 
 /** Random concentration of the unknown acid for the titration task, mol/L. */
 function unknownConcentration(): number {
@@ -78,8 +80,8 @@ function unknownConcentration(): number {
 }
 
 export class Lab {
-  vessels: Vessel[] = DEFAULT_SET.map(([id, kind]) => newVessel(id, kind));
-  selected = 't1';
+  vessels: Vessel[];
+  selected: string;
   heating: string | null = null;
   tubes: Record<string, string> = {};
   collector: Collector = { gases: {}, capacityMl: 100 };
@@ -100,7 +102,9 @@ export class Lab {
   private listeners = new Set<() => void>();
   private counter = 1;
 
-  constructor() {
+  constructor(initial: [string, VesselKind][] = []) {
+    this.vessels = initial.map(([id, kind]) => newVessel(id, kind));
+    this.selected = this.vessels[0]?.id ?? '';
     const x = REAGENT_BY_ID.HClx;
     if (x) x.aq = { 'H^+': this.unknownC, 'Cl^-': this.unknownC };
   }
@@ -198,19 +202,30 @@ export class Lab {
 
   add(reagentId: string, amount: Amount, target = this.selected, remember = true): Outcome {
     const r = REAGENT_BY_ID[reagentId];
-    if (!r || target === COLLECTOR_ID || !this.has(target)) return { error: 'nothing', discovered: [] };
-    const v = this.vessel(target);
+    if (!r) return { error: 'nothing', discovered: [] };
     if (remember) this.remember();
+    // On an empty bench the reagent goes into a new test tube.
+    let placed: VesselKind | undefined;
+    if (this.vessels.length === 0) {
+      target = this.place('tube');
+      placed = 'tube';
+    }
+    if (target === COLLECTOR_ID || !this.has(target)) {
+      if (remember) this.history.pop();
+      return { error: 'nothing', discovered: [] };
+    }
+    const v = this.vessel(target);
     const now = Date.now();
     const result = addReagent(v, r, amount, now);
     if (result.error) {
       if (remember) this.history.pop();
+      if (placed) this.vessels = this.vessels.filter((x) => x.id !== target);
       return { error: result.error, discovered: [] };
     }
     this.selected = target;
     const discovered = [...this.record(v, result.events, now), ...this.routeGas(now)];
     this.emit();
-    return { result, discovered };
+    return { result, discovered, placed };
   }
 
   pour(fromId: string, toId: string, filter = false): Outcome {
@@ -243,6 +258,7 @@ export class Lab {
 
   wash(id = this.selected) {
     if (id === COLLECTOR_ID) { this.emptyCollector(); return; }
+    if (!this.has(id)) return;
     this.remember();
     wash(this.vessel(id));
     if (this.burette?.vessel === id) this.burette = { ...this.burette, points: [], endpoint: undefined, sampleMl: 0, used: 0, flow: false, lastColor: undefined };
@@ -252,23 +268,47 @@ export class Lab {
   addVessel(kind: VesselKind): string | null {
     if (this.vessels.length >= MAX_VESSELS) return null;
     this.remember();
-    let id = '';
-    do { id = `${kind[0]}${kind === 'beaker250' ? 'w' : ''}${++this.counter}`; } while (this.has(id));
-    this.vessels.push(newVessel(id, kind));
-    this.selected = id;
+    const id = this.place(kind);
     this.emit();
     return id;
   }
 
+  /** Put a new vessel on the bench and select it (no undo step, no update). */
+  private place(kind: VesselKind): string {
+    let id = '';
+    do { id = `${kind[0]}${kind === 'beaker250' ? 'w' : ''}${++this.counter}`; } while (this.has(id));
+    this.vessels.push(newVessel(id, kind));
+    this.selected = id;
+    return id;
+  }
+
+  /** Start over: an empty bench, nothing heating, normal speed. Progress and the journal stay. Undo brings it back. */
+  reset(): boolean {
+    const busy = this.vessels.length > 0 || Object.keys(this.collector.gases).length > 0 || this.speed !== 1;
+    if (!busy) return false;
+    this.remember();
+    this.vessels = [];
+    this.selected = '';
+    this.heating = null;
+    this.tubes = {};
+    this.collector = { gases: {}, capacityMl: this.collector.capacityMl };
+    this.burette = null;
+    this.electro = null;
+    this.flame = null;
+    this.speed = 1;
+    this.emit();
+    return true;
+  }
+
   removeVessel(id: string) {
-    if (!this.has(id) || this.vessels.length <= 1) return;
+    if (!this.has(id)) return;
     this.remember();
     this.vessels = this.vessels.filter((v) => v.id !== id);
     if (this.heating === id) this.heating = null;
     if (this.electro === id) this.electro = null;
     if (this.burette?.vessel === id) this.burette = null;
     for (const k of Object.keys(this.tubes)) if (k === id || this.tubes[k] === id) delete this.tubes[k];
-    if (this.selected === id) this.selected = this.vessels[0].id;
+    if (this.selected === id) this.selected = this.vessels[0]?.id ?? '';
     this.emit();
   }
 

@@ -5,7 +5,7 @@ import { mainEvent, phOf } from '../engine/actions';
 import { ML_PER_MMOL, conductivity, type GasTool } from '../engine/apparatus';
 import { molarMass } from '../engine/formula';
 import { medium } from '../engine/ph';
-import { ROOM_T, isEmpty, type ReactionEvent, type Sign, type Vessel } from '../engine/vessel';
+import { ROOM_T, isEmpty, type ReactionEvent, type Sign, type Vessel, type VesselKind } from '../engine/vessel';
 import { fmt, makeH } from '../i18n';
 import type { Strings } from '../i18n/types';
 import type { Extra } from '../i18n/extra';
@@ -112,6 +112,25 @@ function Numbers({ v, x, lang }: { v: Vessel; x: Extra; lang: Lang }) {
         {gases.map(([id, n]) => <li key={`g-${id}`}><span>{x.numbers.gasOut} <Formula f={id} /></span><b>≈ {fmt(n * ML_PER_MMOL, lang, n * ML_PER_MMOL < 10 ? 1 : 0)} {x.amount.ml}</b></li>)}
       </ul>
     </div>
+  );
+}
+
+function IonicLines({ eqs, s, eqProps }: { eqs: NonNullable<ReturnType<typeof buildEquations>>; s: Strings; eqProps: Omit<Parameters<typeof EquationLine>[0], 'side'> }) {
+  return (
+    <>
+      {eqs.fullIonic && (
+        <>
+          <span className="eq-label">{s.panel.fullIonic}</span>
+          <span className="eq-line ionic"><EquationLine side={eqs.fullIonic} {...eqProps} /></span>
+        </>
+      )}
+      {eqs.netIonic && (
+        <>
+          <span className="eq-label">{s.panel.netIonic}</span>
+          <span className="eq-line ionic"><EquationLine side={eqs.netIonic} {...eqProps} /></span>
+        </>
+      )}
+    </>
   );
 }
 
@@ -305,7 +324,7 @@ function CollectorPanel({ lab, s, x, lang, onTest }: { lab: Lab; s: Strings; x: 
   );
 }
 
-export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onPour, onTest, onReplace, onFilter, onMagnet, onFlame }: {
+export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onPour, onTest, onReplace, onFilter, onMagnet, onFlame, onAddVessel }: {
   lab: Lab; s: Strings; x: Extra; lang: Lang; grade: Grade; now: number;
   onIdea: (steps: string[]) => void;
   onHeat: () => void;
@@ -316,6 +335,7 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
   onFilter: (target: string) => void;
   onMagnet: () => void;
   onFlame: () => void;
+  onAddVessel: (kind: VesselKind) => void;
 }) {
   const [showIons, setShowIons] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({ pour: false, tube: false, test: false, sep: false, burette: false, electro: false });
@@ -323,6 +343,42 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
   const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
   if (lab.selected === COLLECTOR_ID) return <CollectorPanel lab={lab} s={s} x={x} lang={lang} onTest={onTest} />;
+
+  const ideas = (
+    <div className="ideas">
+      <h3>{s.panel.ideas}</h3>
+      {s.ideaList.map((idea) => (
+        <button key={idea.label} type="button" className="idea" onClick={() => onIdea(idea.steps)}>
+          <span>{idea.label}</span>
+          <small>
+            {idea.steps.map((id, i) => {
+              const r = REAGENT_BY_ID[id];
+              return <span key={id}>{i > 0 && ' + '}{r?.indicator ? s.indicators[r.indicator] : <Formula f={r?.formula ?? id} />}</span>;
+            })}
+          </small>
+        </button>
+      ))}
+    </div>
+  );
+
+  // Nothing on the bench yet: choose glassware first (or start from an idea).
+  if (!lab.has(lab.selected)) {
+    return (
+      <section className="panel" aria-live="polite">
+        <div className="panel-inner">
+          <div className="panel-kicker"><h2>{LAB_MORE[lang].ui.pickTitle}</h2></div>
+          <p className="say">{LAB_MORE[lang].ui.pickHint}</p>
+          <div className="action-row">
+            {(['tube', 'beaker', 'beaker250', 'flask'] as VesselKind[]).map((k) => (
+              <button key={k} type="button" className="btn small" onClick={() => onAddVessel(k)}>+ {x.vessel[k]}</button>
+            ))}
+          </div>
+          {ideas}
+          <p className="grade-note">{s.gradeNotes[grade]}</p>
+        </div>
+      </section>
+    );
+  }
 
   const v = lab.vessel(lab.selected);
   const h = makeH(lang, s);
@@ -364,7 +420,7 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
       <div className="action-row">
         <button type="button" className={`btn ${v.heating ? 'heat-on' : ''}`} onClick={onHeat}><IconFlame />{v.heating ? s.stopHeat : s.heat}</button>
         <button type="button" className="btn" onClick={onWash} disabled={empty}><IconWash />{s.wash}</button>
-        <button type="button" className="btn" onClick={() => lab.removeVessel(v.id)} disabled={lab.vessels.length <= 1}>{x.removeVessel}</button>
+        <button type="button" className="btn" onClick={() => lab.removeVessel(v.id)}>{x.removeVessel}</button>
       </div>
       {!empty && (
         <Fold title={<span className="fold-title"><IconPour />{s.pourInto}</span>} open={open.pour} onToggle={() => toggle('pour')}>
@@ -427,20 +483,7 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
           {header}
           <span className="status empty">{s.panel.empty}</span>
           <p className="say">{s.panel.emptyText}</p>
-          <div className="ideas">
-            <h3>{s.panel.ideas}</h3>
-            {s.ideaList.map((idea) => (
-              <button key={idea.label} type="button" className="idea" onClick={() => onIdea(idea.steps)}>
-                <span>{idea.label}</span>
-                <small>
-                  {idea.steps.map((id, i) => {
-                    const r = REAGENT_BY_ID[id];
-                    return <span key={id}>{i > 0 && ' + '}{r?.indicator ? s.indicators[r.indicator] : <Formula f={r?.formula ?? id} />}</span>;
-                  })}
-                </small>
-              </button>
-            ))}
-          </div>
+          {ideas}
           {tools}
           <p className="grade-note">{s.gradeNotes[grade]}</p>
         </div>
@@ -450,7 +493,7 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
 
   const txt = main ? s.events[main.kind](main.p, h, main) : null;
   const status = main ? statusOf(main, s, h.cap) : null;
-  const eqs = main?.eq && grade >= 8 ? buildEquations(main.eq) : null;
+  const eqs = main?.eq ? buildEquations(main.eq) : null;
   const why = txt ? (grade === 7 ? txt.why7 ?? txt.why : txt.why ?? txt.why7) : undefined;
   const isNone = main ? NONE.has(main.kind) : false;
   const showSeries = main && ['metalAcid', 'metalAcidNone', 'metalSalt', 'metalSaltNone'].includes(main.kind);
@@ -496,21 +539,16 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
           <div className="eq">
             <span className="eq-label">{s.panel.equation}</span>
             <span className="eq-line"><EquationLine side={eqs.molecular} cond={eqs.molecular.cond} noReaction={eqs.molecular.noReaction} {...eqProps} /></span>
-            {grade >= 9 && eqs.fullIonic && (
-              <>
-                <span className="eq-label">{s.panel.fullIonic}</span>
-                <span className="eq-line ionic"><EquationLine side={eqs.fullIonic} {...eqProps} /></span>
-              </>
-            )}
-            {grade >= 9 && eqs.netIonic && (
-              <>
-                <span className="eq-label">{s.panel.netIonic}</span>
-                <span className="eq-line ionic"><EquationLine side={eqs.netIonic} {...eqProps} /></span>
-              </>
-            )}
+            {eqs.fullIonic && (grade >= 9 ? (
+              <IonicLines eqs={eqs} s={s} eqProps={eqProps} />
+            ) : (
+              <details className="ionic-more">
+                <summary>{lm.ui.ionic}</summary>
+                <IonicLines eqs={eqs} s={s} eqProps={eqProps} />
+              </details>
+            ))}
           </div>
         )}
-        {grade === 7 && main?.eq && !main.eq.noReaction && <p className="grade-note">{s.panel.gradeHint7}</p>}
 
         {(pH != null || Math.abs(dT) > 1.5) && (
           <div className="ph">

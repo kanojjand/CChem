@@ -1,12 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { Lang } from '../engine/data';
 import { REAGENT_BY_ID } from '../engine/data';
-import { ROOM_T, isEmpty, type Vessel, type VesselKind } from '../engine/vessel';
+import { CAPACITY, ROOM_T, isEmpty, newVessel, type Vessel, type VesselKind } from '../engine/vessel';
 import type { Strings } from '../i18n/types';
 import type { Extra } from '../i18n/extra';
 import { COLLECTOR_ID, MAX_VESSELS, SPEEDS, type Lab } from '../state/lab';
 import { Formula } from './Formula';
-import { FlameOnly, IconHand, LampSVG } from './icons';
+import { FlameOnly, IconGrid, IconHand, IconReset, IconZoom, LampSVG } from './icons';
+import { LAB_MORE } from '../i18n/labMore';
 import { dragHandlers, useDrag, type DragItem } from './drag';
 import { CollectorSVG, GEO, VesselSVG, vesselFxClass } from './VesselView';
 
@@ -63,9 +64,10 @@ function BuretteSVG({ fraction, open }: { fraction: number; open: boolean }) {
   );
 }
 
-function VesselButton({ v, lab, x, now, over, onDrop }: {
+function VesselButton({ v, lab, x, now, over, onDrop, onZoom }: {
   v: Vessel; lab: Lab; x: Extra; now: number; over: boolean;
   onDrop: (item: DragItem, target: string) => void;
+  onZoom: () => void;
 }) {
   const selected = lab.selected === v.id;
   const handlers = dragHandlers({ kind: 'vessel', id: v.id }, {
@@ -77,7 +79,7 @@ function VesselButton({ v, lab, x, now, over, onDrop }: {
   const cls = ['vessel', v.kind, vesselFxClass(v, now), v.heating ? 'is-heating' : '', over ? 'drop-hover' : '', burette ? 'has-burette' : '', v.broken ? 'is-broken' : '']
     .filter(Boolean).join(' ');
   return (
-    <button type="button" className={cls} data-drop={v.id} aria-pressed={selected} aria-label={vesselLabel(lab, v, x)} {...handlers}>
+    <button type="button" className={cls} data-drop={v.id} aria-pressed={selected} aria-label={vesselLabel(lab, v, x)} {...handlers} onDoubleClick={onZoom}>
       {burette && <BuretteSVG fraction={(burette.capacity - burette.used) / burette.capacity} open={burette.flow} />}
       {Math.abs(dT) > 1.5 && !v.broken && <span className={`temp ${dT > 0 ? 'hot' : 'cold'}`}>{Math.round(v.temp)} °C</span>}
       <VesselSVG v={v} now={now} />
@@ -89,16 +91,46 @@ function VesselButton({ v, lab, x, now, over, onDrop }: {
 
 const KINDS: VesselKind[] = ['tube', 'beaker', 'beaker250', 'flask'];
 
-export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVessel }: {
+/** Cards for choosing glassware: each shows the empty vessel, its name and how much it holds. */
+export function GlasswarePicker({ x, lang, onAdd, compact }: { x: Extra; lang: Lang; onAdd: (kind: VesselKind) => void; compact?: boolean }) {
+  const lm = LAB_MORE[lang];
+  return (
+    <div className={`picker ${compact ? 'compact' : ''}`}>
+      <h3>{lm.ui.pickTitle}</h3>
+      <p>{lm.ui.pickHint}</p>
+      <div className="picker-cards">
+        {KINDS.map((k) => (
+          <button key={k} type="button" className={`picker-card ${k}`} onClick={() => onAdd(k)}>
+            <VesselSVG v={newVessel(`pick-${k}`, k)} now={0} />
+            <b>{x.vessel[k]}</b>
+            <span>{lm.ui.capacity(CAPACITY[k])}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVessel, focus, setFocus, onReset }: {
   lab: Lab; s: Strings; x: Extra; lang: Lang; now: number; touch: boolean;
   onDrop: (item: DragItem, target: string) => void;
   onLampTap: () => void;
   onAddVessel: (kind: VesselKind) => void;
+  focus: boolean;
+  setFocus: (f: boolean) => void;
+  onReset: () => void;
 }) {
   const drag = useDrag();
   const over = drag?.over ?? null;
-  const tubes = lab.vessels.filter((v) => v.kind === 'tube');
-  const others = lab.vessels.filter((v) => v.kind !== 'tube');
+  const lm = LAB_MORE[lang];
+  const empty = lab.vessels.length === 0;
+  // Zoom shows only the selected vessel, large, in the middle of the bench.
+  const zoomed = focus && !empty && (lab.has(lab.selected) || lab.selected === COLLECTOR_ID);
+  const shown = zoomed ? lab.vessels.filter((v) => v.id === lab.selected) : lab.vessels;
+  const tubes = shown.filter((v) => v.kind === 'tube');
+  const others = shown.filter((v) => v.kind !== 'tube');
+  const toggleZoom = () => setFocus(!focus);
+  const selectedVessel = lab.has(lab.selected) ? lab.vessel(lab.selected) : null;
   const flameColor = lab.flame && now - lab.flame.at < 4000 ? lab.flame.color : undefined;
   const lampHandlers = dragHandlers({ kind: 'lamp' }, { onTap: onLampTap, onDrop: (t) => onDrop({ kind: 'lamp' }, t) });
   const lampBusy = lab.heating != null;
@@ -159,6 +191,12 @@ export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVes
             </div>
           )}
         </div>
+        <button type="button" className={`btn small zoom-btn ${focus ? 'on' : ''}`} onClick={toggleZoom} aria-pressed={focus} title={lm.ui.focusHint} disabled={empty}>
+          {focus ? <IconGrid /> : <IconZoom />}{focus ? lm.ui.overview : lm.ui.focus}
+        </button>
+        <button type="button" className="btn small zoom-btn" onClick={onReset} title={lm.ui.reset} disabled={empty && lab.speed === 1}>
+          <IconReset />{lm.ui.reset}
+        </button>
         <div className="speed" title={x.speed.hint}>
           <span>{x.speed.label}</span>
           <div className="seg" role="group" aria-label={x.speed.label}>
@@ -168,24 +206,30 @@ export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVes
           </div>
         </div>
       </div>
-      <div className="scene" ref={sceneRef}>
+      <div className={`scene ${zoomed ? 'zoomed' : ''} ${empty ? 'is-empty' : ''}`} ref={sceneRef}>
+        {empty && <GlasswarePicker x={x} lang={lang} onAdd={onAddVessel} />}
         {tubes.length > 0 && (
           <div className="rack">
             <div className="rack-legs" />
-            {tubes.map((v) => <VesselButton key={v.id} v={v} lab={lab} x={x} now={now} over={over === v.id} onDrop={onDrop} />)}
+            {tubes.map((v) => <VesselButton key={v.id} v={v} lab={lab} x={x} now={now} over={over === v.id} onDrop={onDrop} onZoom={toggleZoom} />)}
           </div>
         )}
-        {others.map((v) => <VesselButton key={v.id} v={v} lab={lab} x={x} now={now} over={over === v.id} onDrop={onDrop} />)}
-        <button type="button" className={`item collector ${lab.selected === COLLECTOR_ID ? 'is-selected' : ''} ${over === COLLECTOR_ID ? 'drop-hover' : ''} ${collectorUsed ? '' : 'idle'}`}
+        {others.map((v) => <VesselButton key={v.id} v={v} lab={lab} x={x} now={now} over={over === v.id} onDrop={onDrop} onZoom={toggleZoom} />)}
+        {zoomed && selectedVessel && selectedVessel.added.length > 0 && (
+          <div className="zoom-label"><AddedList v={selectedVessel} lang={lang} max={6} /></div>
+        )}
+        {!empty && (!zoomed || lab.selected === COLLECTOR_ID) && <button type="button" className={`item collector ${lab.selected === COLLECTOR_ID ? 'is-selected' : ''} ${over === COLLECTOR_ID ? 'drop-hover' : ''} ${collectorUsed ? '' : 'idle'}`}
           data-drop={COLLECTOR_ID} onClick={() => lab.select(COLLECTOR_ID)} aria-pressed={lab.selected === COLLECTOR_ID}>
           <CollectorSVG ml={ml} capacity={lab.collector.capacityMl} color={gasColor} />
           <span>{x.collector.name}{ml > 0 ? ` · ${Math.round(ml)} ${x.amount.ml}` : ''}</span>
-        </button>
-        <button type="button" className={`item lamp ${lampBusy ? 'in-use' : ''}`} {...lampHandlers}
-          aria-label={lab.heating === lab.selected ? s.stopHeat : s.heat}>
-          <LampSVG lit={!lampBusy || flameColor != null} color={flameColor} />
-          <span>{s.lamp}</span>
-        </button>
+        </button>}
+        {!empty && (
+          <button type="button" className={`item lamp ${lampBusy ? 'in-use' : ''}`} {...lampHandlers}
+            aria-label={lab.heating === lab.selected ? s.stopHeat : s.heat}>
+            <LampSVG lit={!lampBusy || flameColor != null} color={flameColor} />
+            <span>{s.lamp}</span>
+          </button>
+        )}
         <svg className="tubes-overlay" aria-hidden="true">
           {paths.map((d, i) => (
             <g key={i}>

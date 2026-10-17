@@ -3,13 +3,12 @@ import { REAGENTS, type Lang, type Reagent, type ReagentCat } from '../engine/da
 import { pretty } from '../engine/formula';
 import type { Strings } from '../i18n/types';
 import { numText, type Extra } from '../i18n/extra';
+import { LAB_MORE } from '../i18n/labMore';
 import { Formula } from './Formula';
 import { BottleIcon } from './icons';
 import { dragHandlers } from './drag';
 
 const CATS: ('all' | ReagentCat)[] = ['all', 'acid', 'base', 'salt', 'oxide', 'metal', 'nonmetal', 'ind', 'other'];
-const ML_PRESETS = [0.05, 1, 2, 5, 10, 25, 50, 100];
-const G_PRESETS = [0.05, 0.1, 0.5, 1, 5, 10, 20];
 
 function matches(r: Reagent, q: string): boolean {
   if (!q) return true;
@@ -18,8 +17,8 @@ function matches(r: Reagent, q: string): boolean {
   return hay.includes(needle);
 }
 
-function AmountRow({ id, label, unit, value, presets, max, compare, onChange, lang }: {
-  id: string; label: string; unit: string; value: number; presets: number[]; max: number;
+function AmountField({ id, label, unit, value, max, compare, onChange, lang }: {
+  id: string; label: string; unit: string; value: number; max: number;
   compare: string; onChange: (v: number) => void; lang: Lang;
 }) {
   const [text, setText] = useState<string | null>(null);
@@ -29,19 +28,15 @@ function AmountRow({ id, label, unit, value, presets, max, compare, onChange, la
     setText(null);
   };
   return (
-    <div className="amount-row">
+    <div className="amount-field">
       <label htmlFor={id}>{label}</label>
       <div className="amount-input">
         <input id={id} inputMode="decimal" value={text ?? numText(value, lang)} onChange={(e) => setText(e.target.value)}
-          onBlur={(e) => commit(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') commit((e.target as HTMLInputElement).value); }} />
+          onFocus={(e) => e.target.select()}
+          onBlur={(e) => commit(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { commit((e.target as HTMLInputElement).value); (e.target as HTMLInputElement).blur(); } }} />
         <span>{unit}</span>
       </div>
       <span className="amount-compare">{compare}</span>
-      <div className="amount-presets" role="group" aria-label={label}>
-        {presets.map((p) => (
-          <button key={p} type="button" aria-pressed={Math.abs(p - value) < 1e-9} onClick={() => onChange(p)}>{numText(p, lang)}</button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -88,12 +83,11 @@ export function Shelf({ s, x, lang, ml, g, setMl, setG, onAdd, onDrop, onInfo }:
     <aside className="shelf" aria-labelledby="shelfTitle">
       <div className="shelf-head">
         <div className="shelf-title"><h2 id="shelfTitle">{s.reagents}</h2><span>{list.length}</span></div>
-        <div className="amount" title={x.amount.hint}>
-          <AmountRow id="amount-ml" label={x.amount.liquid} unit={x.amount.ml} value={ml} presets={ML_PRESETS} max={250}
+        <div className="amount" title={LAB_MORE[lang].ui.amountHint}>
+          <AmountField id="amount-ml" label={x.amount.liquid} unit={x.amount.ml} value={ml} max={250}
             compare={x.compareLiquid(ml)} onChange={setMl} lang={lang} />
-          <AmountRow id="amount-g" label={x.amount.solid} unit={x.amount.g} value={g} presets={G_PRESETS} max={50}
+          <AmountField id="amount-g" label={x.amount.solid} unit={x.amount.g} value={g} max={50}
             compare={x.compareSolid(g)} onChange={setG} lang={lang} />
-          <span className="amount-note">{x.amount.drops}</span>
         </div>
         <input className="search" type="search" autoComplete="off" placeholder={s.search} aria-label={s.search} value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="chips" role="group" aria-label={s.reagents}>

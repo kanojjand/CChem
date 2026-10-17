@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { REAGENTS, REAGENT_BY_ID } from '../engine/data';
 import { addReagent, condense, pour, tick, type Amount } from '../engine/actions';
 import { newVessel, type ReactionEvent, type Vessel } from '../engine/vessel';
-import { Lab } from '../state/lab';
+import { Lab, DEMO_SET } from '../state/lab';
 import { LANGS, STRINGS, makeH } from './index';
 import { REAGENT_INFO } from './reagentInfo';
 import { LIFE } from './lifeTexts';
@@ -73,7 +73,7 @@ function collect(): ReactionEvent[] {
   all.push(...pour(a, b, 9000, true).events);
   all.push(...pour(newVessel('c', 'tube'), b, 9000, true).events);
   all.push(...condense(newVessel('e', 'tube'), 0.5, 1000));
-  const lab = new Lab();
+  const lab = new Lab(DEMO_SET);
   lab.add('Fe', { g: 0.5 }, 't1'); lab.add('S', { g: 0.3 }, 't1');
   lab.magnet('t1'); lab.magnet('t1');
   all.push(...lab.journal.map((j) => j.event), ...lab.vessel('t1').lastEvents);

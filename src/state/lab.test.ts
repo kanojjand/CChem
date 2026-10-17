@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { COLLECTOR_ID, Lab } from './lab';
+import { COLLECTOR_ID, Lab, DEMO_SET } from './lab';
 
 describe('lab apparatus', () => {
   it('collects hydrogen through a delivery tube and tests it with a burning splint', () => {
-    const lab = new Lab();
+    const lab = new Lab(DEMO_SET);
     lab.add('HCl', { ml: 5 }, 't1');
     lab.setTube('t1', COLLECTOR_ID);
     lab.add('Zn', { g: 0.3 }, 't1');
@@ -14,7 +14,7 @@ describe('lab apparatus', () => {
   });
 
   it('passes CO2 from marble and acid into limewater', () => {
-    const lab = new Lab();
+    const lab = new Lab(DEMO_SET);
     lab.add('CaOH2', { ml: 50 }, 'b1');
     lab.add('HCl', { ml: 5 }, 't2');
     lab.setTube('t2', 'b1');
@@ -24,7 +24,7 @@ describe('lab apparatus', () => {
   });
 
   it('titration of the unknown acid finds its concentration', () => {
-    const lab = new Lab();
+    const lab = new Lab(DEMO_SET);
     lab.add('HClx', { ml: 20 }, 'f1');
     lab.add('phph', { drops: 2 }, 'f1');
     lab.attachBurette('f1', 'NaOH01');
@@ -37,8 +37,8 @@ describe('lab apparatus', () => {
   });
 
   it('runs electrolysis faster when time is sped up', () => {
-    const slow = new Lab();
-    const fast = new Lab();
+    const slow = new Lab(DEMO_SET);
+    const fast = new Lab(DEMO_SET);
     for (const lab of [slow, fast]) { lab.add('CuSO4', { ml: 20 }, 'b1'); lab.toggleElectro('b1'); }
     fast.setSpeed(20);
     slow.step(1); fast.step(1);
@@ -46,7 +46,7 @@ describe('lab apparatus', () => {
   });
 
   it('distils water: steam from a boiling vessel condenses in another one', () => {
-    const lab = new Lab();
+    const lab = new Lab(DEMO_SET);
     lab.add('KMnO4', { ml: 5 }, 't1');
     lab.setTube('t1', 't2');
     lab.toggleHeat('t1');
@@ -59,7 +59,7 @@ describe('lab apparatus', () => {
   });
 
   it('heating potassium permanganate fills the collector with oxygen that relights a splint', () => {
-    const lab = new Lab();
+    const lab = new Lab(DEMO_SET);
     lab.add('KMnO4s', { g: 1 }, 't1');
     lab.setTube('t1', 'collector');
     lab.toggleHeat('t1');
@@ -70,7 +70,7 @@ describe('lab apparatus', () => {
   });
 
   it('magnet pulls iron out of a mixture with sulfur but not out of iron sulfide', () => {
-    const lab = new Lab();
+    const lab = new Lab(DEMO_SET);
     lab.add('Fe', { g: 0.5 }, 't1');
     lab.add('S', { g: 0.3 }, 't1');
     expect(lab.magnet('t1').grams).toBeGreaterThan(0.4);

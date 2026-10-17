@@ -21,12 +21,13 @@ import { APP_NAME, TopBar, type Skin } from './ui/TopBar';
 import { AuthModal, ProfileModal } from './ui/Account';
 import { AdminPage } from './ui/Admin';
 import { useDrag, type DragItem } from './ui/drag';
+import { LAB_MORE } from './i18n/labMore';
 
-interface Settings { lang: Lang; grade: Grade; skin: Skin; ml: number; g: number }
+interface Settings { lang: Lang; grade: Grade; skin: Skin; ml: number; g: number; focus: boolean }
 
 function initialSettings(): Settings {
   const nav = (typeof navigator !== 'undefined' ? navigator.language : 'ru').toLowerCase();
-  const fallback: Settings = { lang: nav.startsWith('kk') ? 'kk' : nav.startsWith('en') ? 'en' : 'ru', grade: 8, skin: 'bright', ml: 2, g: 0.5 };
+  const fallback: Settings = { lang: nav.startsWith('kk') ? 'kk' : nav.startsWith('en') ? 'en' : 'ru', grade: 8, skin: 'bright', ml: 2, g: 0.5, focus: false };
   try {
     const saved = JSON.parse(localStorage.getItem('cchem.settings') || '{}') as Partial<Settings>;
     return { ...fallback, ...saved };
@@ -98,7 +99,8 @@ export function App() {
   });
   const [touch] = useState(coarsePointer);
   const logoRef = useRef<HexaLogo | null>(null);
-  const { lang, grade, skin, ml, g } = settings;
+  const { lang, grade, skin, ml, g, focus } = settings;
+  const lm = LAB_MORE[lang];
   const s = STRINGS[lang];
   const x = EXTRA[lang];
 
@@ -179,7 +181,8 @@ export function App() {
   }, [s, say]);
 
   const handle = useCallback((out: Outcome) => {
-    if (out.error === 'full') say(s.toasts.full);
+    if (out.placed && !out.error) say(LAB_MORE[settingsRef.current.lang].ui.placedTube);
+    else if (out.error === 'full') say(s.toasts.full);
     else if (out.error === 'empty') say(s.toasts.emptyPour);
     else if (out.error === 'broken') say(x.broken.title);
     else if (out.result?.overflow) say(x.spill(fmt(out.result.overflow, lang, 1)));
@@ -222,7 +225,7 @@ export function App() {
   };
 
   const onIdea = (steps: string[]) => {
-    lab.wash();
+    if (lab.has(lab.selected)) lab.wash();
     const found: string[] = [];
     for (const id of steps) found.push(...lab.add(id, REAGENT_BY_ID[id]?.indicator ? { drops: 2 } : REAGENT_BY_ID[id]?.kind === 'solid' ? { g: 0.3 } : { ml: 2 }).discovered);
     celebrate(found);
@@ -256,12 +259,14 @@ export function App() {
           onUndo={undo} onClear={() => { if (lab.clearAll()) say(s.toasts.cleared); }} />
         <Shelf s={s} x={x} lang={lang} ml={ml} g={g} setMl={(v) => update({ ml: v })} setG={(v) => update({ g: v })}
           onAdd={(id) => handle(lab.add(id, amountFor(id)))} onDrop={(id, t) => handle(lab.add(id, amountFor(id), t))} onInfo={setReagentInfo} />
-        <Bench lab={lab} s={s} x={x} lang={lang} now={now} touch={touch} onDrop={onDrop} onLampTap={() => lab.toggleHeat()} onAddVessel={onAddVessel} />
+        <Bench lab={lab} s={s} x={x} lang={lang} now={now} touch={touch} onDrop={onDrop} onLampTap={() => lab.toggleHeat()} onAddVessel={onAddVessel}
+          focus={focus} setFocus={(f) => update({ focus: f })} onReset={() => say(lab.reset() ? lm.ui.resetDone : lm.ui.nothingToReset)} />
         <Panel lab={lab} s={s} x={x} lang={lang} grade={grade} now={now} onIdea={onIdea}
           onHeat={() => lab.toggleHeat()} onWash={() => { lab.wash(); say(s.toasts.washed); }}
           onPour={(t) => handle(lab.pour(lab.selected, t))} onTest={onTest} onReplace={() => lab.wash()}
           onFilter={(t) => handle(lab.pour(lab.selected, t, true))}
-          onMagnet={() => celebrate(lab.magnet().discovered)} onFlame={() => celebrate(lab.flameTest().discovered)} />
+          onMagnet={() => celebrate(lab.magnet().discovered)} onFlame={() => celebrate(lab.flameTest().discovered)}
+          onAddVessel={onAddVessel} />
       </div>
       <Ghost lang={lang} />
       {modal === 'tables' && <TablesModal s={s} lang={lang} onClose={() => setModal(null)} onAdd={(id) => handle(lab.add(id, amountFor(id)))} />}

@@ -2,12 +2,13 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ACTIVITY, COLORS, REAGENT_BY_ID, TABLE_ANIONS, TABLE_CATIONS, solubility, type IndicatorId, type Lang } from '../engine/data';
 import { indicatorColor } from '../engine/color';
 import { ELEMENTS, type ElementCat, type ElementDef } from '../data/elements';
-import { ElementCard } from './ElementCard';
+import { ElementCard, massText } from './ElementCard';
 import { fmt, makeH } from '../i18n';
 import type { Strings } from '../i18n/types';
 import { COLLECTOR_ID, type JournalEntry, type Lab } from '../state/lab';
 import type { Extra } from '../i18n/extra';
 import { REAGENT_INFO } from '../i18n/reagentInfo';
+import { LAB_MORE } from '../i18n/labMore';
 import { molarMass } from '../engine/formula';
 import { BottleIcon } from './icons';
 import { Formula, Rich } from './Formula';
@@ -51,11 +52,15 @@ function neighbour(z: number, key: string): number | null {
   return best ? best.z : null;
 }
 
+const ROMAN = ['IA', 'IIA', 'IIIB', 'IVB', 'VB', 'VIB', 'VIIB', 'VIIIB', 'VIIIB', 'VIIIB', 'IB', 'IIB', 'IIIA', 'IVA', 'VA', 'VIA', 'VIIA', 'VIIIA'];
+
 function Periodic({ s, lang, onAdd }: { s: Strings; lang: Lang; onAdd?: (reagentId: string) => void }) {
   const [sel, setSel] = useState<number>(1);
+  const [hl, setHl] = useState<ElementCat | null>(null);
   const cells = useRef<Record<number, HTMLButtonElement | null>>({});
   const card = useRef<HTMLDivElement>(null);
   const e = ELEMENTS[sel - 1];
+  const lm = LAB_MORE[lang];
   // The card sits under the table: bring it into view when an element is picked.
   const pick = (z: number) => {
     setSel(z);
@@ -68,24 +73,44 @@ function Periodic({ s, lang, onAdd }: { s: Strings; lang: Lang; onAdd?: (reagent
     setSel(next);
     cells.current[next]?.focus();
   };
+  // Grid: column 1 holds period numbers, row 1 holds group numbers; the f-block goes below.
+  const rowOf = (row: number) => row + 1;
   return (
     <>
-      <div style={{ overflowX: 'auto' }}>
+      <div className="pt-scroll">
         <div className="pt" role="grid" aria-label={s.tablesModal.periodic} onKeyDown={onKey}>
+          <div className="pt-corner" style={{ gridColumn: 1, gridRow: 1 }}><span>{lm.pt.group} →</span><span>{lm.pt.period} ↓</span></div>
+          {ROMAN.map((r, i) => (
+            <div key={`g${i}`} className="pt-head" style={{ gridColumn: i + 2, gridRow: 1 }}><b>{i + 1}</b><span>{r}</span></div>
+          ))}
+          {[1, 2, 3, 4, 5, 6, 7].map((p) => (
+            <div key={`p${p}`} className="pt-period" style={{ gridColumn: 1, gridRow: p + 1 }}>{p}</div>
+          ))}
+          <div className="pt-ref cat-lanthanide" style={{ gridColumn: 4, gridRow: 7 }}>57–71</div>
+          <div className="pt-ref cat-actinide" style={{ gridColumn: 4, gridRow: 8 }}>89–103</div>
+          <div className="pt-gap" style={{ gridRow: 9 }} />
+          <div className="pt-row-label" style={{ gridColumn: '1 / 4', gridRow: 10 }}>{lm.pt.lanthanides}</div>
+          <div className="pt-row-label" style={{ gridColumn: '1 / 4', gridRow: 11 }}>{lm.pt.actinides}</div>
           {ELEMENTS.map((el) => (
-            <button key={el.z} type="button" className={`pt-cell cat-${el.cat}`} aria-pressed={sel === el.z}
+            <button key={el.z} type="button" className={`pt-cell cat-${el.cat} ${hl && hl !== el.cat ? 'dim' : ''}`} aria-pressed={sel === el.z}
               ref={(b) => { cells.current[el.z] = b; }} tabIndex={sel === el.z ? 0 : -1}
-              style={{ gridColumn: el.col, gridRow: el.row }}
-              onClick={() => pick(el.z)} title={s.elements[el.z - 1]}>
-              <span>{el.z}</span>
+              style={{ gridColumn: el.col + 1, gridRow: rowOf(el.row) }}
+              onClick={() => pick(el.z)} title={`${el.z} ${s.elements[el.z - 1]}`}>
+              <span className="pt-z">{el.z}</span>
               <b>{el.sym}</b>
+              <span className="pt-name">{s.elements[el.z - 1]}</span>
+              <span className="pt-mass">{massText(el, lang)}</span>
             </button>
           ))}
-          <div className="pt-gap" style={{ gridRow: 8 }} />
         </div>
       </div>
-      <div className="pt-legend">
-        {CATS.map((c) => <span key={c}><i className={`cat-${c}`} />{s.tablesModal.categories[c]}</span>)}
+      <div className="pt-legend" role="group">
+        {CATS.map((c) => (
+          <button key={c} type="button" aria-pressed={hl === c} onClick={() => setHl(hl === c ? null : c)}>
+            <i className={`cat-${c}`} />{s.tablesModal.categories[c]}
+          </button>
+        ))}
+        {hl && <button type="button" className="pt-all" onClick={() => setHl(null)}>{lm.pt.showAll}</button>}
       </div>
       <div ref={card}><ElementCard el={e} s={s} lang={lang} onAdd={onAdd} /></div>
     </>

@@ -14,6 +14,9 @@ export const IconWash = () => <svg {...P}><path d="M12 3s5 5.6 5 9.5a5 5 0 0 1-1
 export const IconPour = () => <svg {...P}><path d="M4 7h9l-1 13H5z" /><path d="M13 9l5-4 2 2-5 5" /></svg>;
 export const IconAlert = () => <svg {...P}><path d="M12 3 2 20h20z" /><path d="M12 10v4M12 17h.01" /></svg>;
 export const IconUser = () => <svg {...P}><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>;
+export const IconReset = () => <svg {...P}><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v5h5" /></svg>;
+export const IconZoom = () => <svg {...P}><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5M11 8.5v5M8.5 11h5" /></svg>;
+export const IconGrid = () => <svg {...P}><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></svg>;
 export const IconClose = () => <svg {...P}><path d="M6 6l12 12M18 6 6 18" /></svg>;
 
 const SIGN_PATHS: Record<Sign, ReactElement> = {
