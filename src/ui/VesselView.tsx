@@ -399,10 +399,27 @@ export function vesselFxClass(v: Vessel, now: number): string {
   return cls.join(' ');
 }
 
-/** Gas collector over water: a measuring cylinder upside down in a trough. */
-export function CollectorSVG({ ml, capacity, color }: { ml: number; capacity: number; color: string | null }) {
+/** Gas collector: a measuring cylinder upside down in a trough of water, or a tube held
+ *  upside down (gases lighter than air) or mouth up (heavier gases) to collect by displacing air. */
+export function CollectorSVG({ ml, capacity, color, method = 'water' }: { ml: number; capacity: number; color: string | null; method?: 'water' | 'up' | 'down' }) {
   const top = 10, bottom = 120;
   const gasH = Math.min(1, ml / capacity) * (bottom - top - 6);
+  if (method !== 'water') {
+    const up = method === 'up';
+    // In an upside-down tube the gas fills it from the closed top; in an upright one from the bottom.
+    const y = up ? top + 1 : bottom - gasH - 1;
+    return (
+      <svg viewBox="0 0 110 150" className="collector-svg" aria-hidden="true">
+        <rect x={14} y={60} width={24} height={6} rx={2} fill="var(--rack)" />
+        <rect x={10} y={20} width={6} height={124} rx={2} fill="var(--rack)" />
+        {gasH > 0 && <rect className="gas-fill" x={39} y={y} width={32} height={gasH} rx={3} fill={color ?? 'var(--glass-fill)'} opacity={color ? 0.45 : 1} />}
+        {up
+          ? <path d={`M38 ${bottom} V${top + 4} A4 4 0 0 1 42 ${top} H68 A4 4 0 0 1 72 ${top + 4} V${bottom}`} className="glass-line" />
+          : <path d={`M38 ${top} V${bottom - 4} A4 4 0 0 0 42 ${bottom} H68 A4 4 0 0 0 72 ${bottom - 4} V${top}`} className="glass-line" />}
+        {[0.25, 0.5, 0.75].map((f) => <path key={f} d={`M64 ${top + f * (bottom - top)} h8`} stroke="var(--glass)" strokeWidth={1.5} />)}
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 110 150" className="collector-svg" aria-hidden="true">
       <path d="M6 96 V140 A6 6 0 0 0 12 146 H98 A6 6 0 0 0 104 140 V96" className="glass-line" />

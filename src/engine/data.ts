@@ -103,6 +103,8 @@ const ION_LIST: IonDef[] = [
   { id: 'S^2-', charge: -2, part: 'S', weakConj: true, name: { kk: 'сульфиді', ru: 'сульфид', en: 'sulfide' }, acidName: { kk: 'күкіртсутек қышқылы', ru: 'сероводородная кислота', en: 'hydrosulfuric acid' } },
   { id: 'SO3^2-', charge: -2, part: 'SO3', poly: true, weakConj: true, name: { kk: 'сульфиті', ru: 'сульфит', en: 'sulfite' }, acidName: { kk: 'күкіртті қышқыл', ru: 'сернистая кислота', en: 'sulfurous acid' } },
   { id: 'CrO4^2-', charge: -2, part: 'CrO4', poly: true, color: '#F2C200', refC: 0.03, name: { kk: 'хроматы', ru: 'хромат', en: 'chromate' }, acidName: { kk: 'хром қышқылы', ru: 'хромовая кислота', en: 'chromic acid' } },
+  { id: 'MnO4^2-', charge: -2, part: 'MnO4', poly: true, color: '#2E8B57', refC: 0.004, name: { kk: 'манганаты', ru: 'манганат', en: 'manganate' } },
+  { id: 'HSO4^-', charge: -1, part: 'HSO4', poly: true, name: { kk: 'гидросульфаты', ru: 'гидросульфат', en: 'hydrogen sulfate' } },
   { id: 'Cr2O7^2-', charge: -2, part: 'Cr2O7', poly: true, color: '#E8700C', refC: 0.025, name: { kk: 'дихроматы', ru: 'дихромат', en: 'dichromate' } },
   { id: 'S2O3^2-', charge: -2, part: 'S2O3', poly: true, name: { kk: 'тиосульфаты', ru: 'тиосульфат', en: 'thiosulfate' } },
   { id: 'S4O6^2-', charge: -2, part: 'S4O6', poly: true, name: { kk: 'тетратионаты', ru: 'тетратионат', en: 'tetrathionate' } },
@@ -158,7 +160,7 @@ const COMPOUND_LIST: CompoundDef[] = [
   C('CaO', 'кальций оксиді', 'оксид кальция', 'calcium oxide', 's', { color: 'white' }),
   C('MgO', 'магний оксиді', 'оксид магния', 'magnesium oxide', 's', { color: 'white' }),
   C('ZnO', 'мырыш оксиді', 'оксид цинка', 'zinc oxide', 's', { color: 'white' }),
-  C('MnO2', 'марганец(IV) оксиді', 'оксид марганца(IV)', 'manganese(IV) oxide', 's', { color: 'black' }),
+  C('MnO2', 'марганец(IV) оксиді', 'оксид марганца(IV)', 'manganese(IV) oxide', 's', { color: 'darkBrown' }),
   C('Fe2O3', 'темір(III) оксиді', 'оксид железа(III)', 'iron(III) oxide', 's', { color: 'redBrown' }),
   C('Ag2O', 'күміс оксиді', 'оксид серебра', 'silver oxide', 's', { color: 'darkBrown' }),
   C('(CuOH)2CO3', 'мыс(II) гидроксокарбонаты', 'гидроксокарбонат меди(II)', 'basic copper(II) carbonate', 's', { color: 'blueGreen' }),
@@ -189,7 +191,6 @@ const COMPOUND_LIST: CompoundDef[] = [
   C('SiO2', 'құм (кремний(IV) оксиді)', 'песок (оксид кремния(IV))', 'sand (silicon dioxide)', 's', { color: 'sand' }),
   C('H2O(s)', 'мұз', 'лёд', 'ice', 's', { color: 'ice' }),
   C('starch', 'крахмал', 'крахмал', 'starch', 'aq'),
-  C('K2MnO4', 'калий манганаты', 'манганат калия', 'potassium manganate', 's', { color: 'darkGreen' }),
   C('Cr2O3', 'хром(III) оксиді', 'оксид хрома(III)', 'chromium(III) oxide', 's', { color: 'darkGreen' }),
   C('KNO2', 'калий нитриті', 'нитрит калия', 'potassium nitrite', 's', { color: 'white' }),
   C('CuI', 'мыс(I) иодиді', 'иодид меди(I)', 'copper(I) iodide', 's', { color: 'white' }),
@@ -444,9 +445,11 @@ export const REAGENTS: Reagent[] = [
   { id: 'HCl', formula: 'HCl', cat: 'acid', kind: 'liquid', name: L('Тұз қышқылы', 'Соляная кислота', 'Hydrochloric acid'), note: M1, aq: { 'H^+': 1, 'Cl^-': 1 }, parent: 'HCl', bottle: CLEAR, grade: 8 },
   { id: 'HCl01', formula: 'HCl', cat: 'acid', kind: 'liquid', name: L('Тұз қышқылы', 'Соляная кислота', 'Hydrochloric acid'), note: L('0,1 М · титрлеуге', '0,1 М · для титрования', '0.1 M · for titration'), aq: { 'H^+': 0.1, 'Cl^-': 0.1 }, parent: 'HCl', bottle: CLEAR, grade: 9 },
   { id: 'HClx', formula: 'HCl', cat: 'acid', kind: 'liquid', name: L('Тұз қышқылы X', 'Соляная кислота X', 'Hydrochloric acid X'), note: L('концентрациясы белгісіз', 'концентрация неизвестна', 'unknown concentration'), aq: { 'H^+': 0.1, 'Cl^-': 0.1 }, parent: 'HCl', bottle: '#E6EEF9', grade: 9 },
+  { id: 'HClc', formula: 'HCl', cat: 'acid', kind: 'liquid', tag: 'conc', name: L('Тұз қышқылы', 'Соляная кислота', 'Hydrochloric acid'), note: L('36 % · түтіндейді', '36 % · дымит', '36 % · fuming'), aq: { 'H^+': 11.6, 'Cl^-': 11.6 }, parent: 'HCl', bottle: '#F2F6E6', grade: 9 },
   { id: 'H2SO4', formula: 'H2SO4', cat: 'acid', kind: 'liquid', tag: 'dil', name: L('Күкірт қышқылы', 'Серная кислота', 'Sulfuric acid'), note: M1, aq: { 'H^+': 2, 'SO4^2-': 1 }, parent: 'H2SO4', bottle: CLEAR, grade: 8 },
   { id: 'H2SO4c', formula: 'H2SO4', cat: 'acid', kind: 'liquid', tag: 'conc', name: L('Күкірт қышқылы', 'Серная кислота', 'Sulfuric acid'), note: L('98 %', '98 %', '98 %'), aq: { 'H2SO4c': 18.4 }, parent: 'H2SO4', concVolume: true, bottle: '#F3EFE2', grade: 9 },
   { id: 'HNO3', formula: 'HNO3', cat: 'acid', kind: 'liquid', tag: 'dil', name: L('Азот қышқылы', 'Азотная кислота', 'Nitric acid'), note: L('2 М', '2 М', '2 M'), aq: { 'H^+': 2, 'NO3^-': 2 }, parent: 'HNO3', bottle: CLEAR, grade: 9 },
+  { id: 'HNO3c', formula: 'HNO3', cat: 'acid', kind: 'liquid', tag: 'conc', name: L('Азот қышқылы', 'Азотная кислота', 'Nitric acid'), note: L('65 %', '65 %', '65 %'), aq: { 'H^+': 14.4, 'NO3^-': 14.4 }, parent: 'HNO3', bottle: '#F6F1D8', grade: 9 },
   { id: 'H3PO4', formula: 'H3PO4', cat: 'acid', kind: 'liquid', name: L('Фосфор қышқылы', 'Фосфорная кислота', 'Phosphoric acid'), note: M1, aq: { 'H^+': 3, 'PO4^3-': 1 }, parent: 'H3PO4', bottle: CLEAR, grade: 8 },
   { id: 'CH3COOH', formula: 'CH3COOH', cat: 'acid', kind: 'liquid', name: L('Сірке қышқылы', 'Уксусная кислота', 'Acetic acid'), note: M1, aq: { 'CH3COOH': 1 }, parent: 'CH3COOH', bottle: CLEAR, grade: 8 },
   // bases
@@ -454,6 +457,7 @@ export const REAGENTS: Reagent[] = [
   { id: 'NaOH01', formula: 'NaOH', cat: 'base', kind: 'liquid', name: L('Натрий гидроксиді', 'Гидроксид натрия', 'Sodium hydroxide'), note: L('0,1 М · титрлеуге', '0,1 М · для титрования', '0.1 M · for titration'), aq: { 'Na^+': 0.1, 'OH^-': 0.1 }, parent: 'NaOH', bottle: CLEAR, grade: 9 },
   { id: 'KOH', formula: 'KOH', cat: 'base', kind: 'liquid', name: L('Калий гидроксиді', 'Гидроксид калия', 'Potassium hydroxide'), note: M1, aq: { 'K^+': 1, 'OH^-': 1 }, parent: 'KOH', bottle: CLEAR, grade: 8 },
   { id: 'CaOH2', formula: 'Ca(OH)2', cat: 'base', kind: 'liquid', name: L('Әк суы', 'Известковая вода', 'Limewater'), note: L('қаныққан', 'насыщенный', 'saturated'), aq: { 'Ca^2+': 0.02, 'OH^-': 0.04 }, parent: 'Ca(OH)2', bottle: '#F1F4F6', grade: 8 },
+  { id: 'CaOH2s', formula: 'Ca(OH)2', cat: 'base', kind: 'solid', name: L('Сөндірілген әк', 'Гашёная известь', 'Slaked lime'), note: L('кальций гидроксиді, ұнтақ', 'гидроксид кальция, порошок', 'calcium hydroxide, powder'), solid: { 'Ca(OH)2': 5 }, bottle: '#F4F4F0', grade: 8 },
   { id: 'BaOH2', formula: 'Ba(OH)2', cat: 'base', kind: 'liquid', name: L('Барий гидроксиді', 'Гидроксид бария', 'Barium hydroxide'), note: L('0,1 М', '0,1 М', '0.1 M'), aq: { 'Ba^2+': 0.1, 'OH^-': 0.2 }, parent: 'Ba(OH)2', bottle: CLEAR, grade: 9 },
   { id: 'NaOHs', formula: 'NaOH', cat: 'base', kind: 'solid', name: L('Натрий гидроксиді', 'Гидроксид натрия', 'Sodium hydroxide'), note: L('түйіршіктер', 'гранулы', 'pellets'), solid: { 'NaOH': 5 }, bottle: '#FAFAF7', grade: 8 },
   { id: 'NH3aq', formula: 'NH3·H2O', cat: 'base', kind: 'liquid', name: L('Аммиак ерітіндісі', 'Раствор аммиака', 'Ammonia solution'), note: L('2 М', '2 М', '2 M'), aq: { 'NH3': 2 }, parent: 'NH3·H2O', bottle: CLEAR, grade: 9 },
@@ -584,7 +588,7 @@ export function solidSolubility(info: SolubleSolid, t: number): number {
 
 // Colors of salts that crystallise from solution or come from the shelf as crystals.
 const CRYSTAL_COLORS: Record<string, ColorKey> = {
-  KMnO4: 'violetBlack', K2Cr2O7: 'orange', '(NH4)2Cr2O7': 'orange', K2CrO4: 'yellow', Na2CrO4: 'yellow',
+  KMnO4: 'violetBlack', K2MnO4: 'darkGreen', NaHSO4: 'white', K2Cr2O7: 'orange', '(NH4)2Cr2O7': 'orange', K2CrO4: 'yellow', Na2CrO4: 'yellow',
   CoCl2: 'blue', NiSO4: 'green', NiCl2: 'green', 'Ni(NO3)2': 'green', MnSO4: 'pink', MnCl2: 'pink',
   CrCl3: 'darkGreen', 'Cr2(SO4)3': 'darkGreen', FeSO4: 'green', FeCl3: 'brown', 'Fe2(SO4)3': 'paleYellow',
   CuCl2: 'blueGreen', 'Cu(NO3)2': 'lightBlue', CuSO4: 'white', 'Co(NO3)2': 'pink', CoSO4: 'pink'

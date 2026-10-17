@@ -8,6 +8,7 @@ import { COLLECTOR_ID, MAX_VESSELS, SPEEDS, type Lab } from '../state/lab';
 import { Formula } from './Formula';
 import { FlameOnly, IconGrid, IconHand, IconReset, IconZoom, LampSVG } from './icons';
 import { LAB_MORE } from '../i18n/labMore';
+import { GASES } from '../engine/gases';
 import { dragHandlers, useDrag, type DragItem } from './drag';
 import { CollectorSVG, GEO, VesselSVG, vesselFxClass } from './VesselView';
 
@@ -168,7 +169,7 @@ export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVes
 
   const ml = lab.collectorMl();
   const mainGas = Object.entries(lab.collector.gases).sort((a, b) => b[1] - a[1])[0]?.[0];
-  const gasColor = mainGas === 'Cl2' ? '#C9DD5A' : mainGas === 'NO2' || mainGas === 'NO' ? '#C7653A' : null;
+  const gasColor = (mainGas && GASES[mainGas]?.hex) || null;
   const collectorUsed = Object.values(lab.tubes).includes(COLLECTOR_ID) || ml > 0;
 
   return (
@@ -220,7 +221,7 @@ export function Bench({ lab, s, x, lang, now, touch, onDrop, onLampTap, onAddVes
         )}
         {!empty && (!zoomed || lab.selected === COLLECTOR_ID) && <button type="button" className={`item collector ${lab.selected === COLLECTOR_ID ? 'is-selected' : ''} ${over === COLLECTOR_ID ? 'drop-hover' : ''} ${collectorUsed ? '' : 'idle'}`}
           data-drop={COLLECTOR_ID} onClick={() => lab.select(COLLECTOR_ID)} aria-pressed={lab.selected === COLLECTOR_ID}>
-          <CollectorSVG ml={ml} capacity={lab.collector.capacityMl} color={gasColor} />
+          <CollectorSVG ml={ml} capacity={lab.collector.capacityMl} color={gasColor} method={lab.collector.method} />
           <span>{x.collector.name}{ml > 0 ? ` · ${Math.round(ml)} ${x.amount.ml}` : ''}</span>
         </button>}
         {!empty && (

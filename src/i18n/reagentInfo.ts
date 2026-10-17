@@ -15,6 +15,18 @@ const ALKALI_METAL = L('Сумен қатты әрекеттеседі: тек �
 const FUME = L('Буы улы әрі тітіркендіргіш: тек тартпа шкафында жұмыс істе.', 'Пары ядовиты и раздражают дыхательные пути: работать только под тягой.', 'Toxic, irritating fumes: work only in a fume hood.');
 
 export const REAGENT_INFO: Record<string, ReagentInfo> = {
+  HClc: {
+    life: L('Концентрлі тұз қышқылы ауада «түтіндейді»: хлорсутек буланып, ауадағы ылғалмен тұман түзеді. Зертханада хлор алу үшін қолданылады.', 'Концентрированная соляная кислота «дымит» на воздухе: хлороводород испаряется и с влагой воздуха образует туман. В лаборатории из неё получают хлор.', 'Concentrated hydrochloric acid fumes in air: hydrogen chloride escapes and forms a mist with moisture. In the lab it is used to make chlorine.'),
+    hazard: L('Өте күйдіргіш, булары тыныс жолдарын тітіркендіреді. Тек тартпа шкафта.', 'Очень едкая, пары раздражают дыхательные пути. Только под тягой.', 'Very corrosive; the fumes irritate the airways. Fume hood only.')
+  },
+  HNO3c: {
+    life: L('Концентрлі азот қышқылы — күшті тотықтырғыш: мысты да ерітеді, ал темір мен алюминийді суықта пассивтейді. Тыңайтқыштар мен жарылғыш заттар өндірісінде қолданылады.', 'Концентрированная азотная кислота — сильный окислитель: растворяет даже медь, а железо и алюминий на холоде пассивирует. Из неё делают удобрения и взрывчатые вещества.', 'Concentrated nitric acid is a strong oxidiser: it dissolves even copper but passivates iron and aluminium in the cold. It is used to make fertilisers and explosives.'),
+    hazard: L('Өте күйдіргіш, теріні сарғайтады; металдармен улы қоңыр газ NO₂ береді. Тек тартпа шкафта.', 'Очень едкая, оставляет жёлтые пятна на коже; с металлами даёт ядовитый бурый газ NO₂. Только под тягой.', 'Very corrosive, stains skin yellow; with metals it gives toxic brown NO₂. Fume hood only.')
+  },
+  CaOH2s: {
+    life: L('Сөндірілген әк: құрылыс ерітінділеріне, ағаш діңдерін ақтауға және қышқыл топырақты бейтараптауға қолданылады. Аммоний тұзымен қыздырғанда аммиак береді.', 'Гашёная известь: её добавляют в строительные растворы, белят ею стволы деревьев и раскисляют почву. С солями аммония при нагревании даёт аммиак.', 'Slaked lime: used in mortar, for whitewashing tree trunks and to make acid soil less acidic. Heated with ammonium salts it gives ammonia.'),
+    hazard: L('Сілті: көзге тисе, көп сумен жу.', 'Щёлочь: при попадании в глаза промыть большим количеством воды.', 'An alkali: rinse eyes with plenty of water if it gets in them.')
+  },
   HCl: {
     life: L('Асқазан сөлінде болады — тағамды қорытуға көмектеседі. Сантехниканы тазалайтын құралдарға қосылады.', 'Есть в желудочном соке — помогает переваривать пищу. Входит в средства для чистки сантехники.', 'Found in stomach juice, where it helps digest food. Used in toilet and tile cleaners.'),
     hazard: CORROSIVE

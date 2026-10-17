@@ -7,6 +7,7 @@ import { REAGENT_BY_ID } from '../engine/data';
 import { addReagent, condense, finish, mainEvent, phOf, pour, snapshot, tick, wash, type ActionResult, type Amount } from '../engine/actions';
 import { ML_PER_MMOL, bubbleGas, electrolysisStep, flameTest, testGas, type GasTestResult, type GasTool } from '../engine/apparatus';
 import { needsTick } from '../engine/physics';
+import { collectShare, type CollectMethod } from '../engine/gases';
 import { METALS } from '../engine/data';
 import { indicatorColor } from '../engine/color';
 import { EPS, newVessel, type ReactionEvent, type Vessel, type VesselKind } from '../engine/vessel';
@@ -19,7 +20,13 @@ export interface JournalEntry {
   event: ReactionEvent;
 }
 
-export interface Collector { gases: Record<string, number>; capacityMl: number; lastTest?: { tool: GasTool; result: GasTestResult; at: number } }
+export interface Collector {
+  gases: Record<string, number>;
+  capacityMl: number;
+  method: CollectMethod;                       // over water, upside-down tube, upright tube
+  lost?: { gas: string; why: 'dissolved' | 'escaped'; at: number };  // last gas that did not stay in the collector
+  lastTest?: { tool: GasTool; result: GasTestResult; at: number };
+}
 
 export interface Burette {
   vessel: string;
@@ -84,7 +91,7 @@ export class Lab {
   selected: string;
   heating: string | null = null;
   tubes: Record<string, string> = {};
-  collector: Collector = { gases: {}, capacityMl: 100 };
+  collector: Collector = { gases: {}, capacityMl: 100, method: 'water' };
   burette: Burette | null = null;
   electro: string | null = null;
   /** Last flame test: the lamp flame shows its color for a few seconds. */
@@ -176,8 +183,12 @@ export class Lab {
           }
           if (target === COLLECTOR_ID && g.id === 'I2') continue;
           if (target === COLLECTOR_ID) {
+            // Soluble gases dissolve in the water of the trough; in a tube without water only gases
+            // lighter (mouth down) or heavier (mouth up) than air stay inside.
+            const share = collectShare(g.id, this.collector.method);
+            if (share < 1) this.collector.lost = { gas: g.id, why: this.collector.method === 'water' ? 'dissolved' : 'escaped', at: now };
             const room = this.collector.capacityMl / ML_PER_MMOL - Object.values(this.collector.gases).reduce((s, n) => s + n, 0);
-            const n = Math.min(g.amount, Math.max(0, room));
+            const n = Math.min(g.amount * share, Math.max(0, room));
             if (n > EPS) this.collector.gases[g.id] = (this.collector.gases[g.id] || 0) + n;
           } else if (this.has(target)) {
             const t = this.vessel(target);
@@ -291,7 +302,7 @@ export class Lab {
     this.selected = '';
     this.heating = null;
     this.tubes = {};
-    this.collector = { gases: {}, capacityMl: this.collector.capacityMl };
+    this.collector = { gases: {}, capacityMl: this.collector.capacityMl, method: this.collector.method };
     this.burette = null;
     this.electro = null;
     this.flame = null;
@@ -320,7 +331,7 @@ export class Lab {
     for (const v of this.vessels) { wash(v); v.heating = false; v.electro = undefined; }
     this.heating = null;
     this.tubes = {};
-    this.collector = { gases: {}, capacityMl: this.collector.capacityMl };
+    this.collector = { gases: {}, capacityMl: this.collector.capacityMl, method: this.collector.method };
     this.burette = null;
     this.electro = null;
     this.emit();
@@ -355,7 +366,15 @@ export class Lab {
   emptyCollector() {
     if (!Object.keys(this.collector.gases).length && !this.collector.lastTest) return;
     this.remember();
-    this.collector = { gases: {}, capacityMl: this.collector.capacityMl };
+    this.collector = { gases: {}, capacityMl: this.collector.capacityMl, method: this.collector.method };
+    this.emit();
+  }
+
+  /** Choose how the gas is collected; the collected gas is let out. */
+  setCollectMethod(method: CollectMethod) {
+    if (this.collector.method === method) return;
+    this.remember();
+    this.collector = { gases: {}, capacityMl: this.collector.capacityMl, method };
     this.emit();
   }
 
@@ -367,31 +386,37 @@ export class Lab {
   testGas(target: string, tool: GasTool): { result: GasTestResult; discovered: string[] } {
     const now = Date.now();
     let sample: Record<string, number> = {};
+    let solutes: Record<string, number> = {};
     if (target === COLLECTOR_ID) sample = { ...this.collector.gases };
     else if (this.has(target)) {
-      for (const g of this.vessel(target).fx.gas) {
+      const v = this.vessel(target);
+      for (const g of v.fx.gas) {
         if (g.until > now && g.id !== 'H2O' && g.id !== 'tube') sample[g.id] = (sample[g.id] || 0) + g.amount;
       }
+      // Volatile substances in the solution can be smelled and reach the paper at the mouth.
+      if (v.volume > 0.01) solutes = { ...v.aq };
     }
-    const { result, burns } = testGas(sample, tool);
+    const { result, burns } = testGas(sample, tool, solutes);
     if (target === COLLECTOR_ID) {
       if (burns) {
-        // Hydrogen burns to water; with oxygen present both are used up.
+        // Hydrogen burns to water; with oxygen present both are used up. Hydrogen sulfide burns away too.
         const h2 = this.collector.gases.H2 || 0;
         delete this.collector.gases.H2;
+        if (burns.includes('H2S')) delete this.collector.gases.H2S;
         if (burns.includes('O2') && this.collector.gases.O2) {
           this.collector.gases.O2 = Math.max(0, this.collector.gases.O2 - h2 / 2);
           if (this.collector.gases.O2 <= EPS) delete this.collector.gases.O2;
         }
       }
-      if (tool === 'limewater' && result === 'limewaterCloudy') delete this.collector.gases.CO2;
+      if (tool === 'limewater' && result === 'limewaterCloudy') { delete this.collector.gases.CO2; delete this.collector.gases.SO2; }
       this.collector.lastTest = { tool, result, at: now };
     }
     const gas = Object.entries(sample).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
-    const event: ReactionEvent = {
-      kind: 'gasTest', importance: 2, p: { tool, result, gas, target }, signs: result === 'pop' || result === 'loudPop' || result === 'relights' || result === 'burnsBrighter' ? ['light'] : [],
-      key: result === 'stillGlows' || result === 'burnsAsUsual' || result === 'litmusSame' || result === 'limewaterSame' ? undefined : `test:${result}`
-    };
+    const quiet = ['stillGlows', 'burnsAsUsual', 'litmusSame', 'limewaterSame', 'smell:none', 'kiSame', 'leadSame', 'noSmoke', 'noGas'];
+    const signs: ReactionEvent['signs'] = ['pop', 'loudPop', 'relights', 'burnsBrighter', 'h2sBurns'].includes(result) ? ['light']
+      : result.startsWith('smell:') && result !== 'smell:none' ? ['smell']
+      : ['kiBlue', 'leadBlack', 'litmusBlue', 'litmusRed', 'litmusBleached', 'limewaterCloudy', 'whiteSmoke'].includes(result) ? ['color'] : [];
+    const event: ReactionEvent = { kind: 'gasTest', importance: 2, p: { tool, result, gas, target }, signs, key: quiet.includes(result) ? undefined : `test:${result}` };
     let discovered: string[] = [];
     if (target !== COLLECTOR_ID && this.has(target)) {
       const v = this.vessel(target);

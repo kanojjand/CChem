@@ -19,6 +19,7 @@ export type EventKind =
   | 'iodideOx' | 'starchIodine' | 'bleach' | 'permanganateRedox' | 'dichromateRedox' | 'sulfideHydrolysis'
   | 'metalSulfur' | 'carbonReduce' | 'thermalDecomp' | 'volcano' | 'hardWater' | 'adsorption' | 'leadFilm'
   | 'dissolveHot' | 'flameTest' | 'magnet' | 'magnetNone' | 'filtered'
+  | 'iron3Metal' | 'hclPrep' | 'ammoniaPrep' | 'chlorinePrep' | 'metalHotWater' | 'sulfateFilm'
   // physical processes
   | 'dryOut' | 'crystallize' | 'melting' | 'sublimation' | 'distillation' | 'iceMelt'
   | 'gasOut' | 'floats' | 'dissolveCold' | 'dissolveHotSolid'

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { REAGENT_BY_ID, REAGENTS, salt } from './data';
 import { addReagent, condense, pour, tick, type Amount } from './actions';
-import { flameTest } from './apparatus';
+import { flameTest, testGas } from './apparatus';
+import { collectShare } from './gases';
+import { solutionColor } from './color';
 import { buildEquations } from './equation';
 import { amt, newVessel, type ReactionEvent, type Vessel, type VesselKind } from './vessel';
 
@@ -321,5 +323,98 @@ describe('flame test and shelf', () => {
     expect(salt('Pb^2+', 'I^-').id).toBe('PbI2');
     expect(salt('K^+', 'Cr2O7^2-').id).toBe('K2Cr2O7');
     expect(salt('NH4^+', 'Cr2O7^2-').id).toBe('(NH4)2Cr2O7');
+  });
+});
+
+describe('gases, concentrated acids and media', () => {
+  it('salt with concentrated sulfuric acid gives hydrogen chloride', () => {
+    const r = run([['NaCls', { g: 0.5 }], ['H2SO4c', { ml: 1 }]]);
+    expect(r.kinds).toContain('hclPrep');
+    expect(r.v.gasTotal.HCl).toBeGreaterThan(0);
+  });
+
+  it('ammonium chloride heated with slaked lime gives ammonia', () => {
+    const r = run([['NH4Cls', { g: 0.3 }], ['CaOH2s', { g: 0.3 }]]);
+    expect(wait(r.v, 60, true).kinds).toContain('ammoniaPrep');
+    expect(r.v.gasTotal.NH3).toBeGreaterThan(0);
+  });
+
+  it('chlorine: permanganate with concentrated HCl at once, MnO2 only when heated, dilute HCl does nothing', () => {
+    expect(run([['KMnO4', { ml: 1 }], ['HClc', { ml: 2 }]]).kinds).toContain('permanganateRedox');
+    expect(run([['KMnO4', { ml: 1 }], ['HCl', { ml: 2 }]]).kinds).not.toContain('permanganateRedox');
+    const m = run([['MnO2', { g: 0.2 }], ['HClc', { ml: 2 }]]);
+    expect(m.v.gasTotal.Cl2 ?? 0).toBe(0);
+    expect(wait(m.v, 60, true).kinds).toContain('chlorinePrep');
+  });
+
+  it('concentrated nitric acid: copper gives brown NO2, iron is passivated', () => {
+    const cu = run([['HNO3c', { ml: 2 }], ['Cu', { g: 0.1 }]]);
+    expect(cu.v.gasTotal.NO2).toBeGreaterThan(0);
+    expect(cu.all.find((e) => e.kind === 'metalNitric')?.p.conc).toBe('1');
+    const fe = run([['HNO3c', { ml: 2 }], ['Fe', { g: 0.1 }]]);
+    expect(fe.kinds).toContain('passivation');
+    expect(run([['HNO3', { ml: 2 }], ['Cu', { g: 0.1 }]]).v.gasTotal.NO).toBeGreaterThan(0);
+  });
+
+  it('zinc dissolves in concentrated sulfuric acid giving SO2', () => {
+    const r = run([['H2SO4c', { ml: 1 }], ['Zn', { g: 0.1 }]]);
+    expect(r.kinds).toContain('cuConcAcid');
+    expect(r.v.gasTotal.SO2).toBeGreaterThan(0);
+  });
+
+  it('marble with sulfuric acid stops because of a sulfate crust', () => {
+    const r = run([['CaCO3', { g: 0.5 }], ['H2SO4', { ml: 2 }]]);
+    expect(r.kinds).toContain('sulfateFilm');
+    expect(r.v.solids.CaCO3).toBeGreaterThan(4);
+    expect(run([['H2SO4', { ml: 1 }]], r.v).kinds).toContain('sulfateFilm');
+  });
+
+  it('magnesium reacts with hot water but not with cold', () => {
+    const r = run([['H2O', { ml: 5 }], ['Mg', { g: 0.05 }]]);
+    expect(r.kinds).toContain('metalWaterNone');
+    expect(wait(r.v, 120, true).kinds).toContain('metalHotWater');
+  });
+
+  it('permanganate in three media', () => {
+    const neutral = run([['KMnO4', { ml: 1 }], ['Na2SO3', { ml: 1 }]]);
+    expect(neutral.all.find((e) => e.kind === 'permanganateRedox')?.p.medium).toBe('neutral');
+    expect(neutral.v.solids.MnO2).toBeGreaterThan(0);
+    const alkaline = run([['NaOH', { ml: 1 }], ['KMnO4', { ml: 1 }], ['Na2SO3', { ml: 0.2 }]]);
+    expect(alkaline.all.find((e) => e.kind === 'permanganateRedox')?.p.medium).toBe('alkaline');
+    expect(amt(alkaline.v.aq, 'MnO4^2-')).toBeGreaterThan(0);
+  });
+
+  it('hydrogen peroxide oxidises iodide; iron(III) dissolves copper', () => {
+    expect(run(['KI', 'H2O2']).all.find((e) => e.kind === 'iodideOx')?.p.ion).toBe('H2O2');
+    const cu = run([['FeCl3', { ml: 2 }], ['Cu', { g: 0.05 }]]);
+    expect(cu.kinds).toContain('iron3Metal');
+    expect(amt(cu.v.aq, 'Cu^2+')).toBeGreaterThan(0);
+  });
+
+  it('starch with iodine is blue', () => {
+    const r = run(['starch', 'KI', 'Cl2aq']);
+    const hex = solutionColor(r.v.aq, r.v.volume, r.v.inds, 7)!;
+    const [rr, , bb] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    expect(bb).toBeGreaterThan(rr);
+  });
+
+  it('gas collection: ammonia dissolves over water, stays in an upside-down tube; CO2 in an upright one', () => {
+    expect(collectShare('NH3', 'water')).toBe(0);
+    expect(collectShare('NH3', 'up')).toBe(1);
+    expect(collectShare('NH3', 'down')).toBe(0);
+    expect(collectShare('CO2', 'down')).toBe(1);
+    expect(collectShare('H2', 'water')).toBe(1);
+    expect(collectShare('O2', 'down')).toBe(1);
+    expect(collectShare('N2', 'up')).toBe(0);
+  });
+
+  it('smells: ammonia solution, vinegar, hydrogen sulfide', () => {
+    expect(testGas({}, 'smell', { NH3: 2 }).result).toBe('smell:ammonia');
+    expect(testGas({}, 'smell', { CH3COOH: 1 }).result).toBe('smell:vinegar');
+    expect(testGas({ H2S: 0.01, CO2: 1 }, 'smell').result).toBe('smell:rottenEggs');
+    expect(testGas({ H2: 1 }, 'smell').result).toBe('smell:none');
+    expect(testGas({ H2S: 0.1 }, 'leadPaper').result).toBe('leadBlack');
+    expect(testGas({ Cl2: 0.5 }, 'starchKI').result).toBe('kiBlue');
+    expect(testGas({ NH3: 0.5 }, 'hclRod').result).toBe('whiteSmoke');
   });
 });

@@ -1,6 +1,7 @@
 import type { EventText, H, Strings } from './types';
 import { apparatusEvents } from './apparatusTexts';
 import { moreEvents } from './moreTexts';
+import { chemEvents } from './chemTexts';
 import { ELEMENTS } from '../data/elements';
 
 const JOINT_ION: Record<string, string> = { '(CuOH)2CO3': 'copper(II)', 'Fe(OH)3': 'iron(III)', 'Al(OH)3': 'aluminium', 'Cr(OH)3': 'chromium(III)' };
@@ -163,6 +164,7 @@ export const en: Strings = {
   events: {
     ...apparatusEvents('en'),
     ...moreEvents('en'),
+    ...chemEvents('en'),
     precip: (p, h) => ({
       title: `A ${h.color(p.color)} precipitate formed`,
       say: `${h.cap(h.NF(p.product))} formed. It does not dissolve in water and settles out as a precipitate — a sign of a chemical reaction.` +

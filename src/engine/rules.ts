@@ -13,7 +13,7 @@ import {
   acidOf, baseOf, colorOf, consume, counterIon, donors, ev, once, parentOf, setParent,
   type Ctx, type Donor, type Rule
 } from './ruleKit';
-import { MORE_EARLY, MORE_LATE } from './rulesMore';
+import { MORE_EARLY, MORE_LATE, MORE_PREP } from './rulesMore';
 import { ELEMENT_BY_SYMBOL } from '../data/elements';
 
 const ELEMENT_MASS: Record<string, number> = Object.fromEntries(Object.values(ELEMENT_BY_SYMBOL).map((e) => [e.sym, e.mass]));
@@ -58,11 +58,12 @@ const concSugar: Rule = (v, ctx) => {
 
 const concMetal: Rule = (v, ctx) => {
   const acid = amt(v.aq, 'H2SO4c');
-  if (acid <= EPS || waterVolume(v) > 0.05 || v.temp < 80 || ctx.limited.has('concMetal')) return null;
-  for (const m of ['Cu', 'Ag']) {
+  if (acid <= EPS || waterVolume(v) > 0.05 || ctx.limited.has('concMetal')) return null;
+  // Zinc and magnesium react with concentrated sulfuric acid without heating; copper and silver only when hot.
+  for (const [m, minT] of [['Zn', 0], ['Mg', 0], ['Cu', 80], ['Ag', 80]] as [string, number][]) {
     const n = amt(v.solids, m);
-    if (n <= EPS) continue;
-    const perMetal = m === 'Cu' ? 2 : 1;
+    if (n <= EPS || v.temp < minT) continue;
+    const perMetal = m === 'Ag' ? 1 : 2;
     const e = Math.min(n, 0.4, acid / perMetal);
     if (e <= EPS) continue;
     ctx.limited.add('concMetal');
@@ -71,12 +72,13 @@ const concMetal: Rule = (v, ctx) => {
     take(v.solids, m, e);
     take(v.aq, 'H2SO4c', perMetal * e);
     putIon(v, ion, e, s);
-    putIon(v, 'SO4^2-', m === 'Cu' ? e : e / 2, s);
-    addGas(v, 'SO2', m === 'Cu' ? e : e / 2, ctx.now);
+    putIon(v, 'SO4^2-', m === 'Ag' ? e / 2 : e, s);
+    addGas(v, 'SO2', m === 'Ag' ? e / 2 : e, ctx.now);
+    if (m === 'Zn' || m === 'Mg') release(v, 150 * e);
     v.fx.smellAt = ctx.now;
     return ev({
       kind: 'cuConcAcid', importance: 2, type: 'redox',
-      eq: { reactants: [m, 'H2SO4'], products: [s, 'SO2', 'H2O'], conc: 'H2SO4', cond: 't', gas: ['SO2'] },
+      eq: { reactants: [m, 'H2SO4'], products: [s, 'SO2', 'H2O'], conc: 'H2SO4', cond: minT ? 't' : undefined, gas: ['SO2'] },
       p: { metal: m }, signs: ['gas', 'smell', 'color'], safety: 'fumeHood', key: 'cu-conc-h2so4'
     });
   }
@@ -496,8 +498,26 @@ const solidAcid: Rule = (v, ctx) => {
     }
     if (info.heat && v.temp < 60) continue;
     for (const d of donors(v, info.weak)) {
-      const e = Math.min(n, d.amount / info.h);
+      let e = Math.min(n, d.amount / info.h);
       if (e <= EPS) continue;
+      // Marble, barium and lead carbonate with sulfuric acid: an insoluble sulfate crust covers the
+      // pieces and the reaction soon stops. That is why CO2 is made with hydrochloric acid.
+      const film = info.kind === 'carbonate' && d.anion === 'SO4^2-' && ['Ca^2+', 'Ba^2+', 'Pb^2+'].includes(info.cation);
+      if (film) {
+        if (v.seen.includes(`sulfate-film:${s}`)) continue;
+        v.seen.push(`sulfate-film:${s}`);
+        e = Math.min(e, 0.05);
+        const s2f = salt(info.cation, 'SO4^2-').id;
+        take(v.solids, s, e);
+        consume(v, d, info.h * e, s2f);
+        put(v.solids, s2f, e);
+        addGas(v, 'CO2', e, ctx.now);
+        return ev({
+          kind: 'sulfateFilm', importance: 2, type: 'exchange',
+          eq: { reactants: [s, d.parent], products: [s2f, 'H2O', 'CO2'], precip: [s2f], gas: ['CO2'] },
+          p: { solid: s, crust: s2f }, signs: ['gas'], key: 'sulfate-film'
+        });
+      }
       const s2 = salt(info.cation, d.anion);
       take(v.solids, s, e);
       consume(v, d, info.h * e, s2.id);
@@ -577,11 +597,33 @@ const metalNitric: Rule = (v, ctx) => {
   const h = amt(v.aq, 'H^+');
   const no3 = amt(v.aq, 'NO3^-');
   if (h <= EPS || no3 <= EPS) return null;
+  // Concentrated nitric acid (above about 6 mol/L) gives brown NO2; iron, aluminium and chromium
+  // are passivated by it in the cold.
+  const conc = v.volume > 0.01 && h / v.volume >= 6;
   for (const m of HEAVY) {
     const n = amt(v.solids, m);
     if (n <= EPS) continue;
     const ion = METALS[m].nitricIon;
     const z = IONS[ion].charge;
+    if (conc) {
+      if ((m === 'Fe' || m === 'Al') && v.temp < 60) continue;
+      const e = Math.min(n, h / (2 * z), no3 / (2 * z));
+      if (e <= EPS) continue;
+      const s = salt(ion, 'NO3^-').id;
+      take(v.solids, m, e);
+      take(v.aq, 'H^+', 2 * z * e);
+      take(v.aq, 'NO3^-', z * e);
+      putIon(v, ion, e, s);
+      addGas(v, 'NO2', z * e, ctx.now);
+      v.fx.brownAt = ctx.now;
+      v.fx.smellAt = ctx.now;
+      const dT = release(v, 150 * e);
+      return ev({
+        kind: 'metalNitric', importance: 2, type: 'redox',
+        eq: { reactants: [m, 'HNO3'], products: [s, 'NO2', 'H2O'], gas: ['NO2'], conc: 'HNO3' },
+        p: { metal: m, conc: '1' }, signs: ['gas', 'color', 'smell'], safety: 'fumeHood', dT, key: `metal-nitric-conc:${m}`
+      });
+    }
     const e = Math.min(n, (h * 3) / (4 * z), (no3 * 3) / z);
     if (e <= EPS) continue;
     const s = salt(ion, 'NO3^-').id;
@@ -595,7 +637,7 @@ const metalNitric: Rule = (v, ctx) => {
     return ev({
       kind: 'metalNitric', importance: 2, type: 'redox',
       eq: { reactants: [m, 'HNO3'], products: [s, 'NO', 'H2O'], gas: ['NO'] },
-      p: { metal: m }, signs: ['gas', 'color'], safety: 'fumeHood', dT, key: `metal-nitric:${m}`
+      p: { metal: m, conc: '' }, signs: ['gas', 'color', 'smell'], safety: 'fumeHood', dT, key: `metal-nitric:${m}`
     });
   }
   return null;
@@ -611,6 +653,8 @@ const metalAcid: Rule = (v, ctx) => {
     for (const d of donors(v, m !== 'Al')) {
       let e = Math.min(n, d.amount / z);
       if (e <= EPS) continue;
+      // Nitric acid never gives hydrogen with metals (its nitrate is reduced instead).
+      if (d.id === 'H^+' && amt(v.aq, 'NO3^-') > EPS) continue;
       if (met.slow) {
         if (!once(ctx, `slow:${m}`)) continue;
         e = Math.min(e, Math.max(0.002, SLOW_RATE * (ctx.dt ?? 0)));
@@ -1014,7 +1058,7 @@ const heatRules: Rule = (v, ctx) => {
 };
 
 export const RULES: Rule[] = [
-  concDilution, concSugar, concMetal, alkaliMetal,
+  concDilution, concSugar, concMetal, ...MORE_PREP, alkaliMetal,
   neutralization, weakAcidBase, ammoniumBase, ammoniaAcid, bicarbonateBase,
   carbonateStrong, bicarbonateStrong, carbonateWeak, bicarbonateWeak, silicateAcid, acetateStrong, phosphateStrong,
   ...MORE_EARLY,

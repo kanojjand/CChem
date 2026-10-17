@@ -1,6 +1,7 @@
 import type { EventText, H, Strings } from './types';
 import { apparatusEvents } from './apparatusTexts';
 import { moreEvents } from './moreTexts';
+import { chemEvents } from './chemTexts';
 
 // Kazakh texts. Chemical terms follow school nomenclature; see docs/content-mvp.md for the review list.
 
@@ -166,6 +167,7 @@ export const kk: Strings = {
   events: {
     ...apparatusEvents('kk'),
     ...moreEvents('kk'),
+    ...chemEvents('kk'),
     precip: (p, h) => ({
       title: `${h.cap(h.color(p.color))} тұнба түсті`,
       say: `${h.cap(h.NF(p.product))} түзілді. Ол суда ерімейді, сондықтан тұнбаға түседі — бұл химиялық реакцияның белгісі.` +

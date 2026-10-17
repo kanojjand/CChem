@@ -278,8 +278,7 @@ function notModeled(v: Vessel): string | null {
   const has = (id: string) => amt(v.aq, id) > EPS;
   const solid = (id: string) => amt(v.solids, id) > EPS;
   if (has('MnO4^-') && !has('H^+') && (has('Fe^2+') || has('I^-') || has('H2O2') || has('SO3^2-'))) return 'permanganate';
-  if (has('Fe^3+') && ['Fe', 'Cu', 'Zn', 'Mg', 'Al'].some(solid)) return 'iron3metal';
-  if (amt(v.aq, 'H2SO4c') > EPS && waterVolume(v) <= 0.05 && ['Zn', 'Mg', 'Na', 'Ca'].some(solid)) return 'concActive';
+  if (amt(v.aq, 'H2SO4c') > EPS && waterVolume(v) <= 0.05 && ['Na', 'Ca', 'K', 'Li', 'Ba'].some(solid)) return 'concActive';
   return null;
 }
 
@@ -294,10 +293,19 @@ function explain(v: Vessel, before: Before, events: ReactionEvent[], x: ExplainC
   const metals = Object.keys(METALS).filter(solid);
   const conc = amt(v.aq, 'H2SO4c') > EPS && waterVolume(v) <= 0.05;
 
+  // Iron and aluminium in cold concentrated nitric acid are passivated too.
+  const nitricConc = v.volume > 0.01 && amt(v.aq, 'H^+') / v.volume >= 6 && has('NO3^-');
+  if (nitricConc && v.temp < 60) {
+    const passive = metals.find((m) => m === 'Fe' || m === 'Al');
+    if (passive) return { kind: 'passivation', importance: 2, p: { metal: passive, acid: 'HNO3' }, signs: [], eq: { reactants: [passive, 'HNO3'], products: [], conc: 'HNO3', noReaction: true } };
+  }
+  const crusted = ['CaCO3', 'BaCO3', 'PbCO3'].find((c) => solid(c) && v.seen.includes(`sulfate-film:${c}`));
+  if (crusted && has('H^+') && has('SO4^2-')) return { kind: 'sulfateFilm', importance: 2, p: { solid: crusted, crust: salt(compound(crusted).cation!, 'SO4^2-').id, again: '1' }, signs: [] };
+
   // Concentrated acid with iron or aluminium, or copper that needs heating.
   if (conc) {
     const passive = metals.find((m) => m === 'Fe' || m === 'Al');
-    if (passive) return { kind: 'passivation', importance: 2, p: { metal: passive }, signs: [], eq: { reactants: [passive, 'H2SO4'], products: [], conc: 'H2SO4', noReaction: true } };
+    if (passive) return { kind: 'passivation', importance: 2, p: { metal: passive, acid: 'H2SO4' }, signs: [], eq: { reactants: [passive, 'H2SO4'], products: [], conc: 'H2SO4', noReaction: true } };
     const cu = metals.find((m) => m === 'Cu' || m === 'Ag');
     if (cu) return { kind: 'needsHeat', importance: 2, p: { what: 'cuConc', metal: cu }, signs: [] };
   }

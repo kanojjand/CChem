@@ -3,6 +3,7 @@
 // electrical conductivity and electrolysis with inert (graphite) electrodes.
 
 import { IONS, METALS, compound, hasCompound, salt } from './data';
+import { GASES, SOLUTE_SMELLS, type Smell } from './gases';
 import { finish, snapshot, type ActionResult } from './actions';
 import { settle, type Ctx } from './rules';
 import { EPS, addGas, amt, put, putIon, take, waterVolume, type ReactionEvent, type Vessel } from './vessel';
@@ -105,6 +106,19 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
     if (rest > EPS) put(v.aq, gas, rest);
     events.push(...settle(v, ctx));
     if (!events.some((e) => e.importance >= 2)) events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: `absorb:${gas}` }));
+  } else if (gas === 'HCl') {
+    // Hydrogen chloride dissolves completely: the water becomes hydrochloric acid.
+    putIon(v, 'H^+', mmol, 'HCl');
+    putIon(v, 'Cl^-', mmol, 'HCl');
+    events.push(...settle(v, ctx));
+    if (!events.some((e) => e.importance >= 2)) events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: 'absorb:HCl' }));
+  } else if (gas === 'NO2') {
+    // 3NO2 + H2O -> 2HNO3 + NO: the water turns acidic, colourless NO bubbles out.
+    putIon(v, 'H^+', (2 * mmol) / 3, 'HNO3');
+    putIon(v, 'NO3^-', (2 * mmol) / 3, 'HNO3');
+    addGas(v, 'NO', mmol / 3, now);
+    events.push(...settle(v, ctx));
+    if (!events.some((e) => e.importance >= 2)) events.push(ev({ kind: 'gasAbsorbed', importance: 2, p: { gas }, signs: [], key: 'absorb:NO2' }));
   } else if (gas === 'Cl2') {
     // Chlorine water: a little dissolves, the rest escapes with a sharp smell.
     addGas(v, gas, mmol * 0.7, now);
@@ -120,16 +134,45 @@ export function bubbleGas(v: Vessel, gas: string, mmol: number, now: number): Ac
 
 // ---------------------------------------------------------------- gas tests
 
-export type GasTool = 'glowing' | 'burning' | 'litmus' | 'limewater';
+export type GasTool = 'glowing' | 'burning' | 'litmus' | 'limewater' | 'smell' | 'starchKI' | 'leadPaper' | 'hclRod';
+export const GAS_TOOLS: GasTool[] = ['smell', 'glowing', 'burning', 'litmus', 'limewater', 'starchKI', 'leadPaper', 'hclRod'];
 export type GasTestResult =
-  | 'relights' | 'burnsBrighter' | 'pop' | 'loudPop' | 'goesOut' | 'burnsAsUsual' | 'stillGlows'
+  | 'relights' | 'burnsBrighter' | 'pop' | 'loudPop' | 'goesOut' | 'burnsAsUsual' | 'stillGlows' | 'h2sBurns'
   | 'litmusBlue' | 'litmusRed' | 'litmusBleached' | 'litmusSame'
-  | 'limewaterCloudy' | 'limewaterSame' | 'noGas';
+  | 'limewaterCloudy' | 'limewaterSame' | 'noGas'
+  | `smell:${Smell}` | 'kiBlue' | 'kiSame' | 'leadBlack' | 'leadSame' | 'whiteSmoke' | 'noSmoke';
+
+const NOTHING: Record<GasTool, GasTestResult> = {
+  glowing: 'stillGlows', burning: 'burnsAsUsual', litmus: 'litmusSame', limewater: 'limewaterSame',
+  smell: 'smell:none', starchKI: 'kiSame', leadPaper: 'leadSame', hclRod: 'noSmoke'
+};
+
+/** Smell of a gas sample and of volatile substances in the solution, the strongest first. */
+export function smellOf(sample: Record<string, number>, solutes: Record<string, number> = {}): Smell {
+  let best: Smell = 'none';
+  let score = 0;
+  const consider = (smell: Smell | undefined, n: number) => {
+    if (!smell || smell === 'none' || n <= 1e-6) return;
+    // Hydrogen sulfide and ammonia are noticed at tiny amounts.
+    const k = smell === 'rottenEggs' ? 50 : smell === 'ammonia' || smell === 'chlorine' ? 5 : 1;
+    if (n * k > score) { score = n * k; best = smell; }
+  };
+  for (const id in sample) consider(GASES[id]?.smell, sample[id]);
+  for (const id in solutes) consider(SOLUTE_SMELLS[id], solutes[id]);
+  return best;
+}
 
 /** Test a gas sample (mmol of each gas). Air fills whatever the sample does not. */
-export function testGas(sample: Record<string, number>, tool: GasTool): { result: GasTestResult; burns?: string[] } {
+export function testGas(sample: Record<string, number>, tool: GasTool, solutes: Record<string, number> = {}): { result: GasTestResult; burns?: string[] } {
+  if (tool === 'smell') return { result: `smell:${smellOf(sample, solutes)}` };
   const total = Object.values(sample).reduce((s, n) => s + n, 0);
-  if (total <= EPS) return { result: tool === 'burning' ? 'burnsAsUsual' : tool === 'glowing' ? 'stillGlows' : tool === 'litmus' ? 'litmusSame' : 'limewaterSame' };
+  if (total <= EPS) {
+    // Paper and the glass rod still react with vapour over the solution.
+    if (tool === 'starchKI' && ((solutes.Cl2 || 0) + (solutes.Br2 || 0) > 1e-5)) return { result: 'kiBlue' };
+    if (tool === 'leadPaper' && (solutes.H2S || 0) > 1e-6) return { result: 'leadBlack' };
+    if (tool === 'hclRod' && (solutes.NH3 || 0) > 1e-4) return { result: 'whiteSmoke' };
+    return { result: NOTHING[tool] };
+  }
   const x = (id: string) => (sample[id] || 0) / total;
   const o2 = x('O2');
   const h2 = x('H2');
@@ -137,25 +180,36 @@ export function testGas(sample: Record<string, number>, tool: GasTool): { result
   const nh3 = x('NH3');
   const cl2 = x('Cl2');
   const inert = x('N2');
+  const h2s = x('H2S');
   switch (tool) {
     case 'glowing':
       if (o2 > 0.35) return { result: 'relights' };
       if (h2 > 0.05 && o2 > 0.05) return { result: 'loudPop', burns: ['H2'] };
-      if (co2 + nh3 + inert > 0.5) return { result: 'goesOut' };
+      if (co2 + nh3 + inert + x('SO2') + x('HCl') + h2s > 0.5) return { result: 'goesOut' };
       return { result: 'stillGlows' };
     case 'burning':
       if (h2 > 0.05 && o2 > 0.1) return { result: 'loudPop', burns: ['H2', 'O2'] };
       if (h2 > 0.05) return { result: 'pop', burns: ['H2'] };
+      if (h2s > 0.1) return { result: 'h2sBurns', burns: ['H2S'] };
       if (o2 > 0.35) return { result: 'burnsBrighter' };
-      if (co2 + nh3 + cl2 + inert > 0.4) return { result: 'goesOut' };
+      if (co2 + nh3 + cl2 + inert + x('SO2') + x('HCl') > 0.4) return { result: 'goesOut' };
       return { result: 'burnsAsUsual' };
     case 'litmus':
       if (cl2 > 0.1) return { result: 'litmusBleached' };
       if (nh3 > 0.05) return { result: 'litmusBlue' };
-      if (co2 > 0.2 || x('SO2') > 0.05 || x('NO2') > 0.05 || x('H2S') > 0.05) return { result: 'litmusRed' };
+      if (co2 > 0.2 || x('SO2') > 0.05 || x('NO2') > 0.05 || h2s > 0.05 || x('HCl') > 0.02) return { result: 'litmusRed' };
       return { result: 'litmusSame' };
     case 'limewater':
-      return { result: co2 > 0.05 ? 'limewaterCloudy' : 'limewaterSame' };
+      // Sulfur dioxide also turns limewater cloudy (calcium sulfite).
+      return { result: co2 > 0.05 || x('SO2') > 0.05 ? 'limewaterCloudy' : 'limewaterSame' };
+    case 'starchKI':
+      return { result: cl2 + x('Br2') + x('NO2') + (solutes.Cl2 ? 0.1 : 0) > 0.02 ? 'kiBlue' : 'kiSame' };
+    case 'leadPaper':
+      return { result: h2s > 0.001 || (solutes.H2S || 0) > 1e-6 ? 'leadBlack' : 'leadSame' };
+    case 'hclRod':
+      return { result: nh3 > 0.01 || (solutes.NH3 || 0) > 1e-4 ? 'whiteSmoke' : 'noSmoke' };
+    default:
+      return { result: 'noGas' };
   }
 }
 

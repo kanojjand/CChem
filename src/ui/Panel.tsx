@@ -2,11 +2,13 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { ACTIVITY, IONS, METALS, REAGENTS, REAGENT_BY_ID, type Lang } from '../engine/data';
 import { buildEquations } from '../engine/equation';
 import { mainEvent, phOf } from '../engine/actions';
-import { ML_PER_MMOL, conductivity, type GasTool } from '../engine/apparatus';
+import { GAS_TOOLS, ML_PER_MMOL, conductivity, type GasTool } from '../engine/apparatus';
+import { GASES, airDensity, type CollectMethod } from '../engine/gases';
+import { GAS_TEXTS } from '../i18n/gasTexts';
 import { molarMass } from '../engine/formula';
 import { medium } from '../engine/ph';
 import { ROOM_T, isEmpty, type ReactionEvent, type Sign, type Vessel, type VesselKind } from '../engine/vessel';
-import { fmt, makeH } from '../i18n';
+import { fmt, makeH, substanceName } from '../i18n';
 import type { Strings } from '../i18n/types';
 import type { Extra } from '../i18n/extra';
 import { LIFE } from '../i18n/lifeTexts';
@@ -25,7 +27,6 @@ const QUIET = new Set(['added', 'diluted', 'minor']);
 const MAIN_SIGNS: Sign[] = ['precip', 'gas', 'color', 'heat'];
 const EXTRA_SIGNS: Sign[] = ['dissolve', 'smell', 'deposit', 'light'];
 const MMOL: Record<Lang, string> = { kk: 'ммоль', ru: 'ммоль', en: 'mmol' };
-const TOOLS: GasTool[] = ['glowing', 'burning', 'litmus', 'limewater'];
 
 function Series({ e }: { e: ReactionEvent }) {
   const p = e.p;
@@ -271,9 +272,39 @@ function ElectroCard({ lab, v, x, lang }: { lab: Lab; v: Vessel; x: Extra; lang:
 function ToolButtons({ target, x, onTest }: { target: string; x: Extra; onTest: (target: string, tool: GasTool) => void }) {
   return (
     <div className="tool-grid">
-      {TOOLS.map((t) => (
+      {GAS_TOOLS.map((t) => (
         <button key={t} type="button" className={`btn small tool-${t}`} onClick={() => onTest(target, t)}>{x.tools.names[t]}</button>
       ))}
+    </div>
+  );
+}
+
+/** Properties of the gases in a reaction: color, smell, lighter or heavier than air, solubility, test, hazard. */
+function GasCard({ ids, lang }: { ids: string[]; lang: Lang }) {
+  const t = GAS_TEXTS[lang];
+  const list = ids.filter((id) => GASES[id] && t.gases[id]);
+  if (!list.length) return null;
+  return (
+    <div className="gas-card">
+      <h3>{t.title}</h3>
+      {list.map((id) => {
+        const g = GASES[id];
+        const gt = t.gases[id];
+        const d = airDensity(id);
+        return (
+          <div key={id} className="gas-item">
+            <b>{g.hex && <i className="gas-dot" style={{ background: g.hex }} />}<Formula f={id} /> <span>{substanceName(id, lang) ?? ''}</span></b>
+            <dl>
+              <dt>{t.color}</dt><dd>{gt.color}</dd>
+              <dt>{t.smell}</dt><dd>{gt.smell}</dd>
+              <dt>{t.density}</dt><dd>{fmt(d, lang, 2)} — {d < 0.93 ? t.lighter : d > 1.07 ? t.heavier : t.same}</dd>
+              <dt>{t.solubility}</dt><dd>{t.sol(g.solubility)}</dd>
+              <dt>{t.test}</dt><dd>{gt.test}</dd>
+              {gt.hazard && <><dt>{t.hazard}</dt><dd className="bad-text">{gt.hazard}</dd></>}
+            </dl>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -293,6 +324,22 @@ function CollectorPanel({ lab, s, x, lang, onTest }: { lab: Lab; s: Strings; x: 
           {sources.length > 0 && <span className="contents">← {sources.map((id) => targetLabel(lab, id, x)).join(', ')}</span>}
         </div>
         <h3 className="result-title">{ml > 0 ? `${x.collector.volume}: ${Math.round(ml)} ${x.amount.ml}` : x.collector.empty}</h3>
+        <div className="collect-method">
+          <span className="eq-label">{GAS_TEXTS[lang].method.title}</span>
+          <div className="seg" role="group" aria-label={GAS_TEXTS[lang].method.title}>
+            {(['water', 'up', 'down'] as CollectMethod[]).map((m) => (
+              <button key={m} type="button" aria-pressed={lab.collector.method === m} onClick={() => lab.setCollectMethod(m)}>{GAS_TEXTS[lang].method.names[m]}</button>
+            ))}
+          </div>
+          <p className="grade-note">{GAS_TEXTS[lang].method.notes[lab.collector.method]}</p>
+          {lab.collector.lost && Date.now() - lab.collector.lost.at < 60000 && (
+            <div className="safety-card" role="status">
+              <p>{lab.collector.lost.why === 'dissolved'
+                ? GAS_TEXTS[lang].lost.dissolved(h.cap(substanceName(lab.collector.lost.gas, lang) ?? lab.collector.lost.gas))
+                : GAS_TEXTS[lang].lost.escaped(h.cap(substanceName(lab.collector.lost.gas, lang) ?? lab.collector.lost.gas), airDensity(lab.collector.lost.gas) < 1)}</p>
+            </div>
+          )}
+        </div>
         <div className="collector-meter" aria-hidden="true"><span style={{ width: `${Math.min(100, (ml / lab.collector.capacityMl) * 100)}%` }} /></div>
         <p className="grade-note">{x.collector.of}</p>
         {gases.length > 0 && (
@@ -306,6 +353,7 @@ function CollectorPanel({ lab, s, x, lang, onTest }: { lab: Lab; s: Strings; x: 
           </div>
         )}
         {!sources.length && ml === 0 && <p className="say">{x.collector.connect}</p>}
+        <GasCard ids={gases.map(([id]) => id)} lang={lang} />
         {tt && (
           <div className="test-result">
             <b>{x.tools.names[test!.tool]}: <Rich text={tt.title} /></b>
@@ -501,6 +549,7 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
   const also = v.lastEvents.filter((e) => e !== main && e.importance >= 2 && !QUIET.has(e.kind) && !NONE.has(e.kind));
   const signs = main?.signs ?? [];
   const life = main ? LIFE[lang][main.kind] : undefined;
+  const gasIds = main ? [...new Set([...(main.eq?.gas ?? []), ...(GASES[main.p.gas] && main.kind !== 'gasTest' ? [main.p.gas] : [])])].filter((g) => g !== 'H2O') : [];
   const eqProps = { noReactionLabel: s.panel.noReaction, concLabel: s.conc, heatLabel: 't°', elLabel: x.electro.name };
 
   return (
@@ -549,6 +598,8 @@ export function Panel({ lab, s, x, lang, grade, now, onIdea, onHeat, onWash, onP
             ))}
           </div>
         )}
+
+        {gasIds.length > 0 && <GasCard ids={gasIds} lang={lang} />}
 
         {(pH != null || Math.abs(dT) > 1.5) && (
           <div className="ph">

@@ -642,3 +642,15 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
   .scene.zoomed .vessel.tube .vessel-svg { height: 360px; margin-top: -59px; }
   .zoom-label { font-size: 15px; }
 }
+
+/* ---------------------------------------------------------------- gas card, collecting gases */
+.gas-card { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--panel-2); }
+.gas-card h3 { margin: 0; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.gas-item b { display: flex; align-items: center; gap: 6px; font-size: 16px; }
+.gas-item b span { font-weight: 600; color: var(--muted); font-size: 14px; }
+.gas-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid var(--line); }
+.gas-item dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; margin: 6px 0 0; font-size: 13.5px; }
+.gas-item dt { color: var(--muted); }
+.gas-item dd { margin: 0; }
+.collect-method { display: grid; gap: 6px; }
+.collect-method .seg { flex-wrap: wrap; }

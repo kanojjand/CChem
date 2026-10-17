@@ -2,7 +2,7 @@
 // salts, chromate and dichromate, permanganate and dichromate as oxidisers in acid, joint
 // hydrolysis with sulfides, and reactions of dry solids on strong heating.
 
-import { salt } from './data';
+import { IONS, METALS, salt } from './data';
 import { EPS, addGas, amt, put, putIon, release, take, waterVolume, type ReactionEvent, type Vessel } from './vessel';
 import {
   acidOf, baseOf, consume, counterIon, donors, ev, once, parentOf, setParent, warmth,
@@ -262,13 +262,18 @@ const iodideOx: Rule = (v, ctx) => {
   return null;
 };
 
-interface Reducer { id: string; e: number; hOut: number; fallback: string }
+interface Reducer { id: string; e: number; hOut: number; fallback: string; minH?: number }
 const REDUCERS: Reducer[] = [
   { id: 'Fe^2+', e: 1, hOut: 0, fallback: 'FeSO4' },
   { id: 'I^-', e: 1, hOut: 0, fallback: 'KI' },
   { id: 'SO3^2-', e: 2, hOut: 2, fallback: 'Na2SO3' },
-  { id: 'H2O2', e: 2, hOut: 2, fallback: 'H2O2' }
+  { id: 'H2O2', e: 2, hOut: 2, fallback: 'H2O2' },
+  // Chloride gives chlorine only in concentrated hydrochloric acid.
+  { id: 'Cl^-', e: 1, hOut: 0, fallback: 'HCl', minH: 5 }
 ];
+
+/** Concentration in mol/L. */
+const molar = (v: Vessel, id: string) => (v.volume > 0.01 ? amt(v.aq, id) / v.volume : 0);
 
 /** Permanganate or dichromate in acid oxidise a reducer: the violet or orange color changes. */
 function strongOxidiser(v: Vessel, ctx: Ctx, oxIon: string, eOx: number, hIn: number, reduced: string, nReduced: number, kind: 'permanganateRedox' | 'dichromateRedox'): ReactionEvent | null {
@@ -277,7 +282,7 @@ function strongOxidiser(v: Vessel, ctx: Ctx, oxIon: string, eOx: number, hIn: nu
   if (ox <= EPS || h <= EPS) return null;
   for (const r of REDUCERS) {
     const red = amt(v.aq, r.id);
-    if (red <= EPS) continue;
+    if (red <= EPS || (r.minH && molar(v, 'H^+') < r.minH)) continue;
     const ratio = eOx / r.e;                 // reducer units per oxidiser unit
     const hNet = hIn - ratio * r.hOut;       // H+ used per oxidiser unit
     const u = Math.min(ox, red / ratio, hNet > 0 ? h / hNet : Infinity);
@@ -285,7 +290,7 @@ function strongOxidiser(v: Vessel, ctx: Ctx, oxIon: string, eOx: number, hIn: nu
     const acid = acidOf(v);
     const oxParent = parentOf(v, oxIon, oxIon === 'MnO4^-' ? 'KMnO4' : 'K2Cr2O7');
     const oxCat = counterIon(oxParent, oxIon) || 'K^+';
-    const rParent = r.id === 'H2O2' ? 'H2O2' : parentOf(v, r.id, r.fallback);
+    const rParent = r.id === 'H2O2' ? 'H2O2' : r.id === 'Cl^-' ? acid.parent : parentOf(v, r.id, r.fallback);
     const w = u * ratio;
     take(v.aq, oxIon, u);
     take(v.aq, r.id, w);
@@ -298,16 +303,21 @@ function strongOxidiser(v: Vessel, ctx: Ctx, oxIon: string, eOx: number, hIn: nu
     if (r.id === 'I^-') { put(v.aq, 'I2', w / 2); products.push('I2'); }
     if (r.id === 'SO3^2-') putIon(v, 'SO4^2-', w, salt(oxCat, 'SO4^2-').id);
     if (r.id === 'H2O2') { addGas(v, 'O2', w / 2, ctx.now); products.push('O2'); signs.push('gas'); }
+    if (r.id === 'Cl^-') { addGas(v, 'Cl2', w / 2, ctx.now); products.push('Cl2'); signs.push('gas', 'smell'); v.fx.smellAt = ctx.now; }
     products.push(salt(oxCat, acid.anion).id);
-    const rCat = r.id === 'H2O2' ? undefined : counterIon(rParent, r.id);
-    if (rCat && rCat.endsWith('+') && rCat !== 'Fe^2+') products.push(salt(rCat, acid.anion).id);
-    else if (r.id === 'SO3^2-' || r.id === 'I^-') products.push(salt(counterIon(rParent, r.id) || 'Na^+', acid.anion).id);
+    const rCat = r.id === 'H2O2' || r.id === 'Cl^-' ? undefined : counterIon(rParent, r.id);
+    if (rCat && rCat !== 'H^+' && rCat !== 'Fe^2+') products.push(salt(rCat, acid.anion).id);
     products.push('H2O');
     release(v, 30 * u);
+    // With hydrogen peroxide the balancer has more than one answer (peroxide can also just decompose):
+    // give the textbook coefficients.
+    const peroxideK = r.id === 'H2O2' && oxCat === 'K^+'
+      ? ({ 'MnO4^-|SO4^2-': [2, 5, 3, 2, 5, 1, 8], 'MnO4^-|Cl^-': [2, 5, 6, 2, 5, 2, 8], 'Cr2O7^2-|SO4^2-': [1, 3, 4, 1, 3, 1, 7], 'Cr2O7^2-|Cl^-': [1, 3, 8, 2, 3, 2, 7] } as Record<string, number[]>)[`${oxIon}|${acid.anion}`]
+      : undefined;
     return ev({
       kind, importance: 2, type: 'redox',
-      eq: { reactants: uniq([oxParent, rParent, acid.parent]), products: uniq(products), gas: r.id === 'H2O2' ? ['O2'] : undefined },
-      p: { red: r.id }, signs, key: `${kind === 'permanganateRedox' ? 'permanganate' : 'dichromate'}:${r.id}`
+      eq: { reactants: uniq([oxParent, rParent, acid.parent]), products: uniq(products), k: peroxideK, gas: r.id === 'H2O2' ? ['O2'] : r.id === 'Cl^-' ? ['Cl2'] : undefined, conc: r.id === 'Cl^-' ? 'HCl' : undefined },
+      p: { red: r.id, medium: 'acid' }, signs, safety: r.id === 'Cl^-' ? 'fumeHood' : undefined, key: `${kind === 'permanganateRedox' ? 'permanganate' : 'dichromate'}:${r.id}`
     });
   }
   return null;
@@ -315,6 +325,121 @@ function strongOxidiser(v: Vessel, ctx: Ctx, oxIon: string, eOx: number, hIn: nu
 
 const permanganateRedox: Rule = (v, ctx) => strongOxidiser(v, ctx, 'MnO4^-', 5, 8, 'Mn^2+', 1, 'permanganateRedox');
 const dichromateRedox: Rule = (v, ctx) => strongOxidiser(v, ctx, 'Cr2O7^2-', 6, 14, 'Cr^3+', 2, 'dichromateRedox');
+
+/**
+ * Permanganate without acid: in neutral solution it turns into a brown precipitate of MnO2,
+ * in alkaline solution into green manganate. The classic "permanganate in three media".
+ */
+const permanganateNoAcid: Rule = (v, ctx) => {
+  const mn = amt(v.aq, 'MnO4^-');
+  if (mn <= EPS || amt(v.aq, 'H^+') > EPS || waterVolume(v) <= 0.05) return null;
+  const oh = amt(v.aq, 'OH^-');
+  const oxParent = parentOf(v, 'MnO4^-', 'KMnO4');
+  const oxCat = counterIon(oxParent, 'MnO4^-') || 'K^+';
+  const so3 = amt(v.aq, 'SO3^2-');
+  if (so3 > EPS && oh > EPS) {
+    // 2MnO4- + SO3^2- + 2OH- -> 2MnO4^2- + SO4^2- + H2O
+    const u = Math.min(mn / 2, so3, oh / 2);
+    if (u <= EPS) return null;
+    const sParent = parentOf(v, 'SO3^2-', 'Na2SO3');
+    const sCat = counterIon(sParent, 'SO3^2-') || 'Na^+';
+    const base = baseOf(v);
+    take(v.aq, 'MnO4^-', 2 * u); take(v.aq, 'SO3^2-', u); take(v.aq, 'OH^-', 2 * u);
+    putIon(v, 'MnO4^2-', 2 * u, salt(oxCat, 'MnO4^2-').id);
+    putIon(v, 'SO4^2-', u, salt(sCat, 'SO4^2-').id);
+    return ev({
+      kind: 'permanganateRedox', importance: 2, type: 'redox',
+      eq: { reactants: uniq([oxParent, sParent, base.parent]), products: uniq([salt(oxCat, 'MnO4^2-').id, salt(base.cation, 'MnO4^2-').id, salt(sCat, 'SO4^2-').id, 'H2O']) },
+      p: { red: 'SO3^2-', medium: 'alkaline' }, signs: ['color'], key: 'permanganate:alkaline'
+    });
+  }
+  // Neutral: MnO4- + 3e -> MnO2 (brown precipitate) and OH- in the solution.
+  for (const [red, e, ohPerMn, fallback] of [['SO3^2-', 2, 1, 'Na2SO3'], ['I^-', 1, 4, 'KI'], ['H2O2', 2, 1, 'H2O2']] as [string, number, number, string][]) {
+    const r = amt(v.aq, red);
+    if (r <= EPS) continue;
+    const u = Math.min(mn, (r * e) / 3);
+    if (u <= EPS) continue;
+    const w = (u * 3) / e;
+    const rParent = red === 'H2O2' ? 'H2O2' : parentOf(v, red, fallback);
+    const rCat = red === 'H2O2' ? undefined : counterIon(rParent, red) || 'K^+';
+    take(v.aq, 'MnO4^-', u); take(v.aq, red, w);
+    put(v.solids, 'MnO2', u);
+    putIon(v, 'OH^-', ohPerMn * u, salt(oxCat, 'OH^-').id);
+    const products = ['MnO2'];
+    if (red === 'SO3^2-') { putIon(v, 'SO4^2-', w, salt(rCat!, 'SO4^2-').id); products.push(salt(rCat!, 'SO4^2-').id); }
+    if (red === 'I^-') { put(v.aq, 'I2', w / 2); products.push('I2'); }
+    if (red === 'H2O2') { addGas(v, 'O2', w / 2, ctx.now); products.push('O2'); }
+    products.push(salt(oxCat, 'OH^-').id);
+    if (rCat && rCat !== oxCat && red !== 'SO3^2-') products.push(salt(rCat, 'OH^-').id);
+    if (red === 'H2O2') products.push('H2O');
+    v.fx.precipAt = ctx.now;
+    const reactants = uniq([oxParent, rParent]);
+    if (red !== 'H2O2') reactants.push('H2O');
+    return ev({
+      kind: 'permanganateRedox', importance: 2, type: 'redox',
+      eq: { reactants, products: uniq(products), precip: ['MnO2'], gas: red === 'H2O2' ? ['O2'] : undefined, k: red === 'H2O2' && oxCat === 'K^+' ? [2, 3, 2, 3, 2, 2] : undefined },
+      p: { red, medium: 'neutral' }, signs: red === 'H2O2' ? ['precip', 'color', 'gas'] : ['precip', 'color'], key: 'permanganate:neutral'
+    });
+  }
+  return null;
+};
+
+/** Hydrogen peroxide takes electrons from iodide: the solution turns yellow-brown with iodine. */
+const peroxideIodide: Rule = (v) => {
+  const p2 = amt(v.aq, 'H2O2');
+  const iod = amt(v.aq, 'I^-');
+  if (p2 <= EPS || iod <= EPS) return null;
+  const iParent = parentOf(v, 'I^-', 'KI');
+  const cat = counterIon(iParent, 'I^-') || 'K^+';
+  const h = amt(v.aq, 'H^+');
+  if (h > EPS) {
+    const u = Math.min(p2, iod / 2, h / 2);
+    const acid = acidOf(v);
+    take(v.aq, 'H2O2', u); take(v.aq, 'I^-', 2 * u); take(v.aq, 'H^+', 2 * u);
+    put(v.aq, 'I2', u);
+    setParent(v, [cat, acid.anion], salt(cat, acid.anion).id);
+    return ev({
+      kind: 'iodideOx', importance: 2, type: 'redox',
+      eq: { reactants: uniq(['H2O2', iParent, acid.parent]), products: ['I2', salt(cat, acid.anion).id, 'H2O'] }, p: { ion: 'H2O2' },
+      signs: ['color'], key: 'iodide:H2O2'
+    });
+  }
+  const u = Math.min(p2, iod / 2);
+  take(v.aq, 'H2O2', u); take(v.aq, 'I^-', 2 * u);
+  put(v.aq, 'I2', u);
+  putIon(v, 'OH^-', 2 * u, salt(cat, 'OH^-').id);
+  return ev({
+    kind: 'iodideOx', importance: 2, type: 'redox',
+    eq: { reactants: ['H2O2', iParent], products: ['I2', salt(cat, 'OH^-').id] }, p: { ion: 'H2O2' }, signs: ['color'], key: 'iodide:H2O2'
+  });
+};
+
+/** Iron(III) salts dissolve metals, even copper (this is how circuit boards are etched). */
+const iron3Metal: Rule = (v) => {
+  const fe = amt(v.aq, 'Fe^3+');
+  if (fe <= EPS) return null;
+  for (const m of ['Mg', 'Al', 'Zn', 'Fe', 'Ni', 'Sn', 'Pb', 'Cu']) {
+    const n = amt(v.solids, m);
+    if (n <= EPS) continue;
+    const ion = METALS[m].ion;
+    const z = IONS[ion].charge;
+    const e = Math.min(n, fe / z);
+    if (e <= EPS) continue;
+    const feParent = parentOf(v, 'Fe^3+', 'FeCl3');
+    const anion = counterIon(feParent, 'Fe^3+') || 'Cl^-';
+    const mySalt = salt(ion, anion);
+    take(v.solids, m, e);
+    take(v.aq, 'Fe^3+', z * e);
+    putIon(v, 'Fe^2+', z * e, salt('Fe^2+', anion).id);
+    if (mySalt.phase === 's') put(v.solids, mySalt.id, e); else putIon(v, ion, e, mySalt.id);
+    return ev({
+      kind: 'iron3Metal', importance: 2, type: 'redox',
+      eq: { reactants: [m, feParent], products: uniq([mySalt.id, salt('Fe^2+', anion).id]) }, p: { metal: m },
+      signs: IONS[ion].color ? ['dissolve', 'color'] : ['dissolve', 'color'], key: `iron3:${m}`
+    });
+  }
+  return null;
+};
 
 /** Sulfide with aluminium, chromium(III) or iron(III): no sulfide precipitates, water takes part. */
 const sulfideHydrolysis: Rule = (v, ctx) => {
@@ -378,8 +503,106 @@ const starchIodine: Rule = (v, ctx) => {
 
 export const MORE_EARLY: Rule[] = [
   chromateAcid, dichromateBase, sulfideAcid, sulfiteAcid, thiosulfateAcid,
-  halogenDisplace, iodideOx, permanganateRedox, dichromateRedox, sulfideHydrolysis, bleach
+  halogenDisplace, iodideOx, permanganateRedox, dichromateRedox, permanganateNoAcid, peroxideIodide, iron3Metal,
+  sulfideHydrolysis, bleach
 ];
+
+// ---------------------------------------------------------------- concentrated acids, preparing gases
+
+/** Concentrated sulfuric acid drives hydrogen chloride out of table salt: the lab way to get HCl. */
+const hclFromSalt: Rule = (v, ctx) => {
+  const acid = amt(v.aq, 'H2SO4c');
+  if (acid <= EPS || waterVolume(v) > 0.05) return null;
+  for (const s of ['NaCl', 'KCl']) {
+    const e = Math.min(amt(v.solids, s), acid);
+    if (e <= EPS) continue;
+    const cat = s === 'NaCl' ? 'Na^+' : 'K^+';
+    const hs = salt(cat, 'HSO4^-').id;
+    take(v.solids, s, e);
+    take(v.aq, 'H2SO4c', e);
+    v.concVol = Math.max(0, v.concVol - e / 18.4);
+    v.volume = Math.max(0, v.volume - e / 18.4);
+    put(v.solids, hs, e);
+    addGas(v, 'HCl', e, ctx.now);
+    v.fx.smokeAt = ctx.now;
+    v.fx.smellAt = ctx.now;
+    return ev({
+      kind: 'hclPrep', importance: 2, type: 'exchange',
+      eq: { reactants: [s, 'H2SO4'], products: [hs, 'HCl'], gas: ['HCl'], conc: 'H2SO4', dry: true }, p: { salt: s },
+      signs: ['gas', 'smell'], safety: 'fumeHood', key: 'hcl-prep'
+    });
+  }
+  return null;
+};
+
+/** A dry ammonium salt heated with slaked lime or sodium hydroxide gives ammonia: the lab way to get NH3. */
+const ammoniaFromSalt: Rule = (v, ctx) => {
+  const dt = ctx.dt ?? 0;
+  if (dt <= 0 || !dry(v) || v.temp < 40 || !once(ctx, 'nh3-prep')) return null;
+  for (const [nh4, anion] of [['NH4Cl', 'Cl^-'], ['NH4NO3', 'NO3^-']] as [string, string][]) {
+    const ns = amt(v.solids, nh4);
+    if (ns <= EPS) continue;
+    for (const [base, cat, z] of [['Ca(OH)2', 'Ca^2+', 2], ['NaOH', 'Na^+', 1]] as [string, string, number][]) {
+      const nb = amt(v.solids, base);
+      const max = Math.min(ns / z, nb);
+      if (max <= EPS) continue;
+      const u = max < 1e-3 ? max : max * (1 - Math.exp(-0.25 * dt));
+      const product = salt(cat, anion).id;
+      take(v.solids, nh4, z * u);
+      take(v.solids, base, u);
+      put(v.solids, product, u);
+      addGas(v, 'NH3', z * u, ctx.now);
+      addGas(v, 'H2O', z * u * ML_PER_MMOL_WATER, ctx.now);
+      v.fx.dropsAt = ctx.now;
+      v.fx.smellAt = ctx.now;
+      return ev({
+        kind: 'ammoniaPrep', importance: 2, type: 'exchange',
+        eq: { reactants: [nh4, base], products: [product, 'NH3', 'H2O'], gas: ['NH3'], cond: 't', dry: true }, p: { salt: nh4, base },
+        signs: ['gas', 'smell'], safety: 'ammoniaSmell', key: 'ammonia-prep'
+      });
+    }
+  }
+  return null;
+};
+
+/** Manganese(IV) oxide heated with concentrated hydrochloric acid gives chlorine. */
+const chlorineFromMnO2: Rule = (v, ctx) => {
+  const dt = ctx.dt ?? 0;
+  const mno2 = amt(v.solids, 'MnO2');
+  if (dt <= 0 || mno2 <= EPS || v.temp < 50 || molar(v, 'H^+') < 5 || amt(v.aq, 'Cl^-') <= EPS || !once(ctx, 'cl2-mno2')) return null;
+  const max = Math.min(mno2, amt(v.aq, 'H^+') / 4, amt(v.aq, 'Cl^-') / 4);
+  const u = max < 1e-3 ? max : max * (1 - Math.exp(-0.1 * dt));
+  if (u <= EPS) return null;
+  take(v.solids, 'MnO2', u);
+  take(v.aq, 'H^+', 4 * u);
+  take(v.aq, 'Cl^-', 2 * u);
+  putIon(v, 'Mn^2+', u, 'MnCl2');
+  addGas(v, 'Cl2', u, ctx.now);
+  v.fx.smellAt = ctx.now;
+  return ev({
+    kind: 'chlorinePrep', importance: 2, type: 'redox',
+    eq: { reactants: ['MnO2', 'HCl'], products: ['MnCl2', 'Cl2', 'H2O'], gas: ['Cl2'], conc: 'HCl', cond: 't' },
+    signs: ['gas', 'smell', 'color'], safety: 'fumeHood', key: 'chlorine-prep'
+  });
+};
+
+/** Magnesium hardly reacts with cold water, but slowly gives hydrogen with hot water. */
+const magnesiumHotWater: Rule = (v, ctx) => {
+  const dt = ctx.dt ?? 0;
+  const mg = amt(v.solids, 'Mg');
+  if (dt <= 0 || mg <= EPS || waterVolume(v) <= 0.05 || v.temp < 70 || amt(v.aq, 'H^+') > EPS || !once(ctx, 'mg-hot')) return null;
+  const e = Math.min(mg, 0.003 * dt * Math.min(1, mg));
+  take(v.solids, 'Mg', e);
+  put(v.solids, 'Mg(OH)2', e);
+  addGas(v, 'H2', e, ctx.now);
+  return ev({
+    kind: 'metalHotWater', importance: 2, type: 'substitution',
+    eq: { reactants: ['Mg', 'H2O'], products: ['Mg(OH)2', 'H2'], gas: ['H2'], cond: 't' }, p: { metal: 'Mg' }, signs: ['gas'], key: 'metal-hot-water:Mg'
+  });
+};
+
+export const MORE_PREP: Rule[] = [hclFromSalt];
+export const MORE_HEAT: Rule[] = [ammoniaFromSalt, chlorineFromMnO2, magnesiumHotWater];
 
 // ---------------------------------------------------------------- strong heating
 
@@ -546,5 +769,5 @@ const adsorption: Rule = (v, ctx) => {
   return ev({ kind: 'minor', importance: 0, type: 'physical' });
 };
 
-export const MORE_LATE: Rule[] = [thermalDecomp, bicarbonateBoil, metalSulfur, carbonReduce, starchIodine, adsorption];
+export const MORE_LATE: Rule[] = [...MORE_HEAT, thermalDecomp, bicarbonateBoil, metalSulfur, carbonReduce, starchIodine, adsorption];
 

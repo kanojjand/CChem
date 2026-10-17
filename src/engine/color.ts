@@ -91,7 +91,13 @@ export function solutionColor(
     const ion = IONS[id];
     if (ion?.color && ion.refC) apply(ion.color, amt / volumeMl / ion.refC);
     if (id === 'Fe(SCN)3') apply('#8E0A16', amt / volumeMl / 0.004);
-    if (id === 'I2') apply('#8A4A12', amt / volumeMl / 0.01);
+    // Iodine is yellow-brown; with starch even a trace of it is deep blue.
+    if (id === 'I2') {
+      if ((aq.starch || 0) > 1e-6) apply('#1B2370', amt / volumeMl / 0.0004);
+      else apply('#8A4A12', amt / volumeMl / 0.01);
+    }
+    if (id === 'Br2') apply('#E0861F', amt / volumeMl / 0.03);
+    if (id === 'Cl2') apply('#D6E58A', amt / volumeMl / 0.06);
   }
   if (pH != null) {
     for (const key in inds) {

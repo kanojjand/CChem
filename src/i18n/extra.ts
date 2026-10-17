@@ -126,7 +126,7 @@ const ru: Extra = {
   partialPour: (ml) => `Перелито ${ml} мл — больше не поместилось`,
   tube: { label: 'Газоотводная трубка', none: 'Нет', to: 'Газ пойдёт в', hint: 'Газ из этого сосуда пойдёт по трубке в газосборник или в другой сосуд.', badge: (to) => `трубка → ${to}` },
   collector: { name: 'Газосборник', empty: 'Газ ещё не собран', volume: 'Собрано газа', of: 'из 100 мл', composition: 'Состав', release: 'Выпустить газ', how: 'Газ собирают вытеснением воды: цилиндр с водой перевёрнут в кювете, газ поднимается и вытесняет воду.', connect: 'Подключи газоотводную трубку к сосуду, где выделяется газ: открой сосуд и выбери «Газоотводная трубка → Газосборник».' },
-  tools: { title: 'Проверить газ', hint: 'Проверка газа, который сейчас выделяется', names: { glowing: 'Тлеющая лучинка', burning: 'Горящая лучинка', litmus: 'Влажный лакмус', limewater: 'Известковая вода' } },
+  tools: { title: 'Проверить газ', hint: 'Проверка газа, который сейчас выделяется', names: { glowing: 'Тлеющая лучинка', burning: 'Горящая лучинка', litmus: 'Влажный лакмус', limewater: 'Известковая вода', smell: 'Понюхать (направляя рукой)', starchKI: 'Йодкрахмальная бумажка', leadPaper: 'Бумажка с ацетатом свинца', hclRod: 'Палочка с конц. HCl' } },
   burette: {
     name: 'Бюретка', attach: 'Поставить бюретку', detach: 'Убрать бюретку', titrant: 'В бюретке', used: 'Израсходовано', left: 'Осталось',
     drop: '1 капля', half: '+0,5 мл', one: '+1 мл', open: 'Открыть кран', close: 'Закрыть кран', curve: 'Кривая титрования', axisV: 'мл',
@@ -174,7 +174,7 @@ const kk: Extra = {
   partialPour: (ml) => `${ml} мл құйылды — артығы сыймады`,
   tube: { label: 'Газ өткізгіш түтік', none: 'Жоқ', to: 'Газ мұнда барады', hint: 'Бұл ыдыстағы газ түтік арқылы газ жинағышқа немесе басқа ыдысқа барады.', badge: (to) => `түтік → ${to}` },
   collector: { name: 'Газ жинағыш', empty: 'Газ әлі жиналған жоқ', volume: 'Жиналған газ', of: '100 мл-ден', composition: 'Құрамы', release: 'Газды шығару', how: 'Газды суды ығыстыру арқылы жинайды: суы бар цилиндр кюветада төңкеріліп тұрады, газ көтеріліп, суды ығыстырады.', connect: 'Газ бөлінетін ыдысқа газ өткізгіш түтік жалға: ыдысты ашып, «Газ өткізгіш түтік → Газ жинағыш» таңда.' },
-  tools: { title: 'Газды тексеру', hint: 'Қазір бөлініп жатқан газды тексеру', names: { glowing: 'Бықсыған шақпақ', burning: 'Жанып тұрған шақпақ', litmus: 'Дымқыл лакмус', limewater: 'Әк суы' } },
+  tools: { title: 'Газды тексеру', hint: 'Қазір бөлініп жатқан газды тексеру', names: { glowing: 'Бықсыған шақпақ', burning: 'Жанып тұрған шақпақ', litmus: 'Дымқыл лакмус', limewater: 'Әк суы', smell: 'Иіскеу (қолмен желпіп)', starchKI: 'Йодкрахмал қағазы', leadPaper: 'Қорғасын ацетаты сіңген қағаз', hclRod: 'Конц. HCl малынған таяқша' } },
   burette: {
     name: 'Бюретка', attach: 'Бюретканы орнату', detach: 'Бюретканы алу', titrant: 'Бюреткада', used: 'Жұмсалды', left: 'Қалды',
     drop: '1 тамшы', half: '+0,5 мл', one: '+1 мл', open: 'Кранды ашу', close: 'Кранды жабу', curve: 'Титрлеу қисығы', axisV: 'мл',
@@ -222,7 +222,7 @@ const en: Extra = {
   partialPour: (ml) => `Poured ${ml} mL — the rest did not fit`,
   tube: { label: 'Delivery tube', none: 'None', to: 'Gas goes to', hint: 'Gas from this vessel goes through the tube to the gas collector or to another vessel.', badge: (to) => `tube → ${to}` },
   collector: { name: 'Gas collector', empty: 'No gas collected yet', volume: 'Gas collected', of: 'of 100 mL', composition: 'Contents', release: 'Release the gas', how: 'The gas is collected over water: a cylinder full of water stands upside down in a trough, and the gas rises and pushes the water out.', connect: 'Connect a delivery tube to a vessel where gas is given off: open the vessel and choose "Delivery tube → Gas collector".' },
-  tools: { title: 'Test the gas', hint: 'Tests the gas being given off right now', names: { glowing: 'Glowing splint', burning: 'Burning splint', litmus: 'Damp litmus', limewater: 'Limewater' } },
+  tools: { title: 'Test the gas', hint: 'Tests the gas being given off right now', names: { glowing: 'Glowing splint', burning: 'Burning splint', litmus: 'Damp litmus', limewater: 'Limewater', smell: 'Smell it (waft with your hand)', starchKI: 'Starch-iodide paper', leadPaper: 'Lead acetate paper', hclRod: 'Rod dipped in conc. HCl' } },
   burette: {
     name: 'Burette', attach: 'Set up a burette', detach: 'Remove the burette', titrant: 'In the burette', used: 'Used', left: 'Left',
     drop: '1 drop', half: '+0.5 mL', one: '+1 mL', open: 'Open the tap', close: 'Close the tap', curve: 'Titration curve', axisV: 'mL',
