@@ -431,7 +431,7 @@ const thermalDecomp: Rule = (v, ctx) => {
     if (d.smoke) signs.splice(0, signs.length, 'smell');
     return ev({
       kind: d.volcano ? 'volcano' : 'thermalDecomp', importance: 2, type: 'decomposition',
-      eq: { reactants: [d.solid], products: d.eq, gas: d.eq.filter((x) => x !== 'H2O' && (gas.includes(x) || x === 'NH3' || x === 'HCl')), cond: 't' },
+      eq: { reactants: [d.solid], products: d.eq, gas: d.eq.filter((x) => x !== 'H2O' && (gas.includes(x) || x === 'NH3' || x === 'HCl')), cond: 't', dry: true },
       p: { solid: d.solid }, signs, safety: d.volcano ? 'toxic' : d.smoke ? 'fumeHood' : undefined, key: `decomp:${d.solid}`
     });
   }
@@ -492,7 +492,7 @@ const metalSulfur: Rule = (v, ctx) => {
     release(v, 100 * u);
     return ev({
       kind: 'metalSulfur', importance: 2, type: 'combination',
-      eq: { reactants: [m, 'S'], products: [product], cond: 't' }, p: { metal: m, product },
+      eq: { reactants: [m, 'S'], products: [product], cond: 't', dry: true }, p: { metal: m, product },
       signs: ['light', 'heat', 'color'], key: `metal-sulfur:${m}`
     });
   }
@@ -513,7 +513,7 @@ const carbonReduce: Rule = (v, ctx) => {
   addGas(v, 'CO2', e, ctx.now);
   return ev({
     kind: 'carbonReduce', importance: 2, type: 'redox',
-    eq: { reactants: ['CuO', 'C'], products: ['Cu', 'CO2'], gas: ['CO2'], cond: 't' }, p: { oxide: 'CuO' },
+    eq: { reactants: ['CuO', 'C'], products: ['Cu', 'CO2'], gas: ['CO2'], cond: 't', dry: true }, p: { oxide: 'CuO' },
     signs: ['color', 'gas'], key: 'carbon-reduce:CuO'
   });
 };

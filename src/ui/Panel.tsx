@@ -94,7 +94,9 @@ function IonsView({ v, s, lang, now }: { v: Vessel; s: Strings; lang: Lang; now:
 
 /** Masses of solids and volumes of gas, so students see the reaction in numbers. */
 function Numbers({ v, x, lang }: { v: Vessel; x: Extra; lang: Lang }) {
-  const solids = Object.entries(v.solids).filter(([id, n]) => n > 1e-3 && !METALS[id]);
+  const solids = Object.entries(v.solids).filter(([id, n]) => n > 1e-3 && !METALS[id] && id !== 'H2O(s)');
+  // Solids the student put in themselves are "in the vessel", not "formed".
+  const added = new Set(v.added.flatMap((r) => Object.keys(REAGENT_BY_ID[r]?.solid ?? {})));
   const plated = Object.entries(v.electro?.cathode ?? {}).filter(([, n]) => n > 1e-3);
   const gases = Object.entries(v.gasTotal).filter(([id, n]) => n > 1e-3 && id !== 'H2O');
   if (!solids.length && !gases.length && !plated.length) return null;
@@ -105,7 +107,7 @@ function Numbers({ v, x, lang }: { v: Vessel; x: Extra; lang: Lang }) {
     <div className="numbers">
       <h3>{x.numbers.title}</h3>
       <ul>
-        {solids.map(([id, n]) => <li key={id}><span>{x.numbers.formed} <Formula f={id} /></span><b>{grams(id, n)} {x.amount.g}</b></li>)}
+        {solids.map(([id, n]) => <li key={id}><span>{added.has(id) ? LAB_MORE[lang].inVessel : x.numbers.formed} <Formula f={id} /></span><b>{grams(id, n)} {x.amount.g}</b></li>)}
         {plated.map(([id, n]) => <li key={`c-${id}`}><span>{x.electro.plated} <Formula f={id} /></span><b>{grams(id, n)} {x.amount.g}</b></li>)}
         {gases.map(([id, n]) => <li key={`g-${id}`}><span>{x.numbers.gasOut} <Formula f={id} /></span><b>≈ {fmt(n * ML_PER_MMOL, lang, n * ML_PER_MMOL < 10 ? 1 : 0)} {x.amount.ml}</b></li>)}
       </ul>

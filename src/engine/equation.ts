@@ -12,6 +12,7 @@ export interface EqSpec {
   conc?: string;          // reactant written as concentrated (e.g. H2SO4)
   noReaction?: boolean;
   k?: number[];           // coefficients given by hand when the balancer has more than one answer
+  dry?: boolean;          // between solids, without water: no ionic equations
 }
 
 export interface Term { f: string; k: number; mark?: '↓' | '↑'; conc?: boolean }
@@ -70,6 +71,7 @@ export function buildEquations(eq: EqSpec): Equations | null {
     }
     return { terms: out, any };
   };
+  if (eq.dry) return { molecular };
   const L = expand(molecular.lhs);
   const Rr = expand(molecular.rhs);
   if (!L.any && !Rr.any) return { molecular };

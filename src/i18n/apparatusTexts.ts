@@ -62,17 +62,23 @@ const ABSORB: Record<Lang, Record<string, T>> = {
   ru: {
     CO2: { title: 'Углекислый газ поглотился', say: 'Газ из трубки растворился в щёлочи и превратился в карбонат. Внешне ничего не видно.', why: 'Углекислый газ — кислотный оксид: он реагирует со щелочами, образуя соль и воду.' },
     NH3: { title: 'Аммиак растворился', say: 'Аммиак очень хорошо растворяется в воде, и раствор становится щелочным. Добавь фенолфталеин — он станет малиновым.', why: 'В одном литре воды растворяется около 700 литров аммиака. Раствор аммиака — слабое основание.' },
-    Cl2: { title: 'Хлор частично растворился', say: 'Часть хлора растворилась в воде — получилась хлорная вода. Остальной газ уходит с резким запахом.', why: 'Хлорная вода обесцвечивает красители. Хлор ядовит, опыты с ним проводят под тягой.' }
+    Cl2: { title: 'Хлор частично растворился', say: 'Часть хлора растворилась в воде — получилась хлорная вода. Остальной газ уходит с резким запахом.', why: 'Хлорная вода обесцвечивает красители. Хлор ядовит, опыты с ним проводят под тягой.' },
+    H2S: { title: 'Сероводород поглотился', say: 'Сероводород растворился в жидкости. В щёлочи он превращается в сульфид — запах исчезает.', why: 'Сероводород — кислотный газ: его раствор называют сероводородной кислотой. Щёлочь связывает его в соль.' },
+    SO2: { title: 'Сернистый газ поглотился', say: 'Сернистый газ хорошо растворяется в воде. В щёлочи он превращается в сульфит.', why: 'Сернистый газ — кислотный оксид: с водой он даёт сернистую кислоту, со щёлочью — соль сульфит.' }
   },
   kk: {
     CO2: { title: 'Көмірқышқыл газ сіңірілді', say: 'Түтіктен келген газ сілтіде еріп, карбонатқа айналды. Сырттай ештеңе байқалмайды.', why: 'Көмірқышқыл газ — қышқылдық оксид: ол сілтілермен әрекеттесіп, тұз бен су түзеді.' },
     NH3: { title: 'Аммиак еріді', say: 'Аммиак суда өте жақсы ериді, ерітінді сілтілік болады. Фенолфталеин қос — ол таңқурай түске боялады.', why: 'Бір литр суда шамамен 700 литр аммиак ериді. Аммиак ерітіндісі — әлсіз негіз.' },
-    Cl2: { title: 'Хлор ішінара еріді', say: 'Хлордың бір бөлігі суда еріп, хлорлы су түзілді. Қалған газ өткір иіспен шығады.', why: 'Хлорлы су бояғыштарды түссіздендіреді. Хлор улы, онымен тәжірибені тартпа шкафта жасайды.' }
+    Cl2: { title: 'Хлор ішінара еріді', say: 'Хлордың бір бөлігі суда еріп, хлорлы су түзілді. Қалған газ өткір иіспен шығады.', why: 'Хлорлы су бояғыштарды түссіздендіреді. Хлор улы, онымен тәжірибені тартпа шкафта жасайды.' },
+    H2S: { title: 'Күкіртсутек сіңірілді', say: 'Күкіртсутек сұйықтықта еріді. Сілтіде ол сульфидке айналады — иіс жоғалады.', why: 'Күкіртсутек — қышқылдық газ: оның ерітіндісін күкіртсутек қышқылы деп атайды. Сілті оны тұзға айналдырады.' },
+    SO2: { title: 'Күкірт(IV) оксиді сіңірілді', say: 'Күкірт(IV) оксиді суда жақсы ериді. Сілтіде ол сульфитке айналады.', why: 'Күкірт(IV) оксиді — қышқылдық оксид: сумен күкіртті қышқыл, сілтімен сульфит тұзын береді.' }
   },
   en: {
     CO2: { title: 'Carbon dioxide was absorbed', say: 'The gas from the tube dissolved in the alkali and turned into carbonate. Nothing is visible.', why: 'Carbon dioxide is an acidic oxide: it reacts with alkalis to form a salt and water.' },
     NH3: { title: 'Ammonia dissolved', say: 'Ammonia dissolves very well in water and the solution turns alkaline. Add phenolphthalein and it turns crimson.', why: 'About 700 litres of ammonia dissolve in one litre of water. Ammonia solution is a weak base.' },
-    Cl2: { title: 'Some chlorine dissolved', say: 'Part of the chlorine dissolved, giving chlorine water. The rest escapes with a sharp smell.', why: 'Chlorine water bleaches dyes. Chlorine is toxic, so it is handled in a fume hood.' }
+    Cl2: { title: 'Some chlorine dissolved', say: 'Part of the chlorine dissolved, giving chlorine water. The rest escapes with a sharp smell.', why: 'Chlorine water bleaches dyes. Chlorine is toxic, so it is handled in a fume hood.' },
+    H2S: { title: 'Hydrogen sulfide was absorbed', say: 'Hydrogen sulfide dissolved in the liquid. In alkali it turns into sulfide and the smell goes.', why: 'Hydrogen sulfide is an acidic gas: its solution is called hydrosulfuric acid. An alkali turns it into a salt.' },
+    SO2: { title: 'Sulfur dioxide was absorbed', say: 'Sulfur dioxide dissolves well in water. In alkali it turns into sulfite.', why: 'Sulfur dioxide is an acidic oxide: with water it gives sulfurous acid, with an alkali a sulfite salt.' }
   }
 };
 

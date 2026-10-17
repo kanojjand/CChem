@@ -234,7 +234,10 @@ describe('physical processes', () => {
     run([['H2O', { ml: 20 }], ['ice', { g: 10 }]], v);
     const w = wait(v, 5);
     expect(w.kinds).toContain('iceMelt');
-    expect(v.temp).toBeLessThan(2);
+    expect(v.temp).toBeGreaterThan(15);
+    wait(v, 55);
+    expect(v.temp).toBeLessThan(8);
+    expect(amt(v.solids, 'H2O(s)')).toBeGreaterThan(0);
     wait(v, 3000, false);
     expect(amt(v.solids, 'H2O(s)')).toBe(0);
     expect(v.volume).toBeGreaterThan(29);

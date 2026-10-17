@@ -10,6 +10,7 @@ export interface LabMore {
     flame: string; flameHint: string; flameNone: string;
   };
   state: { boiling: string; bp: (t: string) => string; dry: string; melted: string; ice: string; steam: string };
+  inVessel: string;
 }
 
 export const LAB_MORE: Record<Lang, LabMore> = {
@@ -20,7 +21,8 @@ export const LAB_MORE: Record<Lang, LabMore> = {
       magnet: 'Поднести магнит', magnetHint: 'Магнит притягивает железо и никель.',
       flame: 'Внести в пламя', flameHint: 'Проволочку смачивают раствором и вносят в пламя: ионы металлов окрашивают его.', flameNone: 'Пламя не изменилось'
     },
-    state: { boiling: 'кипит', bp: (t) => `кипит при ${t} °C`, dry: 'вода выкипела', melted: 'расплав', ice: 'лёд', steam: 'пар' }
+    state: { boiling: 'кипит', bp: (t) => `кипит при ${t} °C`, dry: 'вода выкипела', melted: 'расплав', ice: 'лёд', steam: 'пар' },
+    inVessel: 'В сосуде'
   },
   kk: {
     sep: {
@@ -29,7 +31,8 @@ export const LAB_MORE: Record<Lang, LabMore> = {
       magnet: 'Магнит жақындату', magnetHint: 'Магнит темір мен никельді тартады.',
       flame: 'Жалынға енгізу', flameHint: 'Сымды ерітіндіге малып, жалынға енгізеді: металл иондары жалынды бояйды.', flameNone: 'Жалын өзгерген жоқ'
     },
-    state: { boiling: 'қайнап жатыр', bp: (t) => `${t} °C-та қайнайды`, dry: 'су буланып кетті', melted: 'балқыма', ice: 'мұз', steam: 'бу' }
+    state: { boiling: 'қайнап жатыр', bp: (t) => `${t} °C-та қайнайды`, dry: 'су буланып кетті', melted: 'балқыма', ice: 'мұз', steam: 'бу' },
+    inVessel: 'Ыдыста'
   },
   en: {
     sep: {
@@ -38,6 +41,7 @@ export const LAB_MORE: Record<Lang, LabMore> = {
       magnet: 'Hold a magnet', magnetHint: 'A magnet pulls iron and nickel.',
       flame: 'Flame test', flameHint: 'A wire loop is dipped into the solution and held in the flame: metal ions color it.', flameNone: 'The flame did not change'
     },
-    state: { boiling: 'boiling', bp: (t) => `boils at ${t} °C`, dry: 'boiled dry', melted: 'melt', ice: 'ice', steam: 'steam' }
+    state: { boiling: 'boiling', bp: (t) => `boils at ${t} °C`, dry: 'boiled dry', melted: 'melt', ice: 'ice', steam: 'steam' },
+    inVessel: 'In the vessel'
   }
 };

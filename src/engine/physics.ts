@@ -21,6 +21,8 @@ export const POWER: Record<VesselKind, number> = { tube: 50, beaker: 200, beaker
 const LOSS: Record<VesselKind, number> = { tube: 0.15, beaker: 0.6, beaker250: 1.0, flask: 0.9 };
 /** Heat capacity of the glass itself, J/K. */
 const GLASS: Record<VesselKind, number> = { tube: 8, beaker: 40, beaker250: 80, flask: 80 };
+/** Heat flow from the liquid into floating ice per degree, W/K. */
+const ICE_CONTACT: Record<VesselKind, number> = { tube: 1, beaker: 4, beaker250: 6, flask: 6 };
 
 export const MAX_T = 350;
 const ICE = 'H2O(s)';
@@ -294,10 +296,12 @@ export function heatStep(v: Vessel, dt: number, now: number): ReactionEvent[] {
   let T = v.temp + ((power - LOSS[v.kind] * (v.temp - ROOM_T)) * dt) / C;
 
   // Ice keeps the contents at 0 °C until it has melted.
+  // Heat reaches the ice through its surface, so a cube melts over minutes, not at once.
   const ice = amt(v.solids, ICE);
   if (ice > EPS && T > 0) {
     const iceG = ice * ICE_G_PER_MMOL;
-    const meltG = Math.min(iceG, (T * C) / FUSION);
+    const flow = (ICE_CONTACT[v.kind] * T + (v.heating ? POWER[v.kind] : 0)) * dt;
+    const meltG = Math.min(iceG, Math.min(T * C, flow) / FUSION);
     T -= (meltG * FUSION) / C;
     take(v.solids, ICE, meltG / ICE_G_PER_MMOL);
     v.volume = Math.min(v.capacity, v.volume + meltG);

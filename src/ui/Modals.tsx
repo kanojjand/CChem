@@ -54,7 +54,13 @@ function neighbour(z: number, key: string): number | null {
 function Periodic({ s, lang, onAdd }: { s: Strings; lang: Lang; onAdd?: (reagentId: string) => void }) {
   const [sel, setSel] = useState<number>(1);
   const cells = useRef<Record<number, HTMLButtonElement | null>>({});
+  const card = useRef<HTMLDivElement>(null);
   const e = ELEMENTS[sel - 1];
+  // The card sits under the table: bring it into view when an element is picked.
+  const pick = (z: number) => {
+    setSel(z);
+    requestAnimationFrame(() => card.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  };
   const onKey = (ev: React.KeyboardEvent) => {
     const next = neighbour(sel, ev.key);
     if (next == null) return;
@@ -70,7 +76,7 @@ function Periodic({ s, lang, onAdd }: { s: Strings; lang: Lang; onAdd?: (reagent
             <button key={el.z} type="button" className={`pt-cell cat-${el.cat}`} aria-pressed={sel === el.z}
               ref={(b) => { cells.current[el.z] = b; }} tabIndex={sel === el.z ? 0 : -1}
               style={{ gridColumn: el.col, gridRow: el.row }}
-              onClick={() => setSel(el.z)} title={s.elements[el.z - 1]}>
+              onClick={() => pick(el.z)} title={s.elements[el.z - 1]}>
               <span>{el.z}</span>
               <b>{el.sym}</b>
             </button>
@@ -81,7 +87,7 @@ function Periodic({ s, lang, onAdd }: { s: Strings; lang: Lang; onAdd?: (reagent
       <div className="pt-legend">
         {CATS.map((c) => <span key={c}><i className={`cat-${c}`} />{s.tablesModal.categories[c]}</span>)}
       </div>
-      <ElementCard el={e} s={s} lang={lang} onAdd={onAdd} />
+      <div ref={card}><ElementCard el={e} s={s} lang={lang} onAdd={onAdd} /></div>
     </>
   );
 }
