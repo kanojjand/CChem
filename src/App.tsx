@@ -7,6 +7,7 @@ import type { VesselKind } from './engine/vessel';
 import { LANGS, STRINGS, fmt } from './i18n';
 import { EXTRA } from './i18n/extra';
 import { mountLogo, type HexaLogo } from './logo/hexaLogo';
+import { registerUpdates } from './net/update';
 import { Lab, type JournalEntry, type Outcome } from './state/lab';
 import { api } from './net/api';
 import { BACKEND_ON } from './net/config';
@@ -129,6 +130,9 @@ export function App() {
   const closeAdmin = () => { history.replaceState(null, '', location.pathname + location.search); setAdmin(false); };
 
   const say = useCallback((msg: string) => setToast({ msg, id: Date.now() }), []);
+  // A new version of the site: reload at once on an empty bench, otherwise offer it.
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => registerUpdates(() => lab.vessels.length > 0, () => setUpdateReady(true)), []);
   useEffect(() => {
     if (!toast) return;
     const t = window.setTimeout(() => setToast(null), 3000);
@@ -276,6 +280,12 @@ export function App() {
       {modal === 'profile' && <ProfileModal x={x} onClose={() => setModal(null)} onAdmin={openAdmin} onSaved={say} />}
       {reagentInfo && <ReagentModal id={reagentInfo} s={s} x={x} lang={lang} onClose={() => setReagentInfo(null)} onAdd={(id) => handle(lab.add(id, amountFor(id)))} />}
       <div className={`toast ${toast ? 'show' : ''}`} role="status" aria-live="polite">{toast?.msg}</div>
+      {updateReady && (
+        <div className="update-bar" role="status">
+          <span>{s.update.ready}</span>
+          <button type="button" className="btn primary" onClick={() => window.location.reload()}>{s.update.reload}</button>
+        </div>
+      )}
       {splash && (
         <Splash lang={lang} setLang={(l) => update({ lang: l })}
           onStart={() => { setSplash(false); try { sessionStorage.setItem('cchem.splash', '1'); } catch { /* ignore */ } }} />

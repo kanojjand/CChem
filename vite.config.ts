@@ -12,6 +12,8 @@ export default defineConfig({
     react(),
     !preview && VitePWA({
       registerType: 'autoUpdate',
+      // Registered in src/net/update.ts, which also reloads the page when a new version arrives.
+      injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'CC Hexa',
@@ -28,7 +30,12 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}']
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // A new version takes over at once instead of waiting until every tab is closed;
+        // src/net/update.ts then reloads the page or offers to.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true
       }
     })
   ],

@@ -55,6 +55,7 @@ export const en: Strings = {
   pourInto: 'Pour into',
   pourHint: 'You can also drag one vessel onto another',
   addTo: 'Add to',
+  update: { ready: 'A new version is available', reload: 'Reload' },
   toasts: {
     full: 'The vessel is full — pick another one or wash this one',
     emptyPour: 'The vessel is empty, nothing to pour',

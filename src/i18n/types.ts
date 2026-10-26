@@ -55,6 +55,7 @@ export interface Strings {
   pourHint: string;
   addTo: string;
   toasts: { full: string; emptyPour: string; washed: string; cleared: string; nothingToUndo: string; added: string; poured: string; discovery: string };
+  update: { ready: string; reload: string };
   panel: {
     title: string;
     inside: string;

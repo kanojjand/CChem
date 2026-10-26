@@ -1,7 +1,7 @@
 // CC Hexa logo: an atom behind a hexagonal letter C with the CC Lab star inside.
 // The C is drawn from exact geometry (a hexagon with pointed top and bottom, one stroke
-// weight everywhere, an opening on the right), the atom from three equal ellipses turned
-// 60° apart. The atom passes behind the C with a thin gap cut out by a mask.
+// weight everywhere, an opening on the right), the atom from three equal ellipses: one upright,
+// two tilted 40° up and down. The atom passes behind the C with a thin gap cut out by a mask.
 // From time to time the atom turns into the small C of the CC Lab mark, the big C takes the
 // CC Lab shape and the star moves to its place there; then everything comes back. The big C
 // has the same vertex count in both states, so it morphs per vertex.

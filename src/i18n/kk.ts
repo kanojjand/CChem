@@ -55,6 +55,7 @@ export const kk: Strings = {
   pourInto: 'Құю',
   pourHint: 'Ыдысты басқа ыдысқа сүйреуге болады',
   addTo: 'Қосу',
+  update: { ready: 'Жаңа нұсқа шықты', reload: 'Жаңарту' },
   toasts: {
     full: 'Ыдыс толы — басқасын таңда немесе мынаны жу',
     emptyPour: 'Ыдыс бос, құятын ештеңе жоқ',
