@@ -63,8 +63,9 @@ function Splash({ lang, setLang, onStart }: { lang: Lang; setLang: (l: Lang) => 
   const s = STRINGS[lang];
   useEffect(() => {
     if (!host.current) return;
-    const logo = mountLogo(host.current, { interval: 0, label: APP_NAME });
-    const t = window.setTimeout(() => logo.play(), 350);
+    // CC Lab mark first, then it turns into the CC Hexa logo.
+    const logo = mountLogo(host.current, { interval: 0, label: APP_NAME, startAsLab: true });
+    const t = window.setTimeout(() => logo.toggle(), 600);
     return () => { clearTimeout(t); logo.destroy(); };
   }, []);
   const start = () => { setHide(true); window.setTimeout(onStart, 350); };

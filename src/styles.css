@@ -12,6 +12,7 @@
   --accent: #1450F5;
   --accent-ink: #FFFFFF;
   --accent-soft: #E4ECFF;
+  --logo-atom: #0A9BEA;
   --ok: #0B8F63;
   --ok-soft: #DCF4E9;
   --warn: #B86E00;
@@ -50,6 +51,7 @@
   --accent: #FFFFFF;
   --accent-ink: #000000;
   --accent-soft: #1C1C20;
+  --logo-atom: #00A8F8;
   --ok: #3DDC97;
   --ok-soft: #0E281D;
   --warn: #FFB547;
@@ -103,7 +105,7 @@ sub, sup { font-size: 0.68em; line-height: 0; }
   background: var(--panel); border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.logo { width: 32px; height: 34px; color: var(--ink); background: none; border: 0; padding: 0; }
+.logo { width: 38px; height: 38px; flex: none; color: var(--ink); background: none; border: 0; padding: 0; }
 .wordmark { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: 0.01em; white-space: nowrap; }
 .found { font-size: 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .grade { display: flex; align-items: center; gap: 8px; }
@@ -403,7 +405,7 @@ table.ind td i { display: inline-block; width: 18px; height: 18px; border-radius
 .splash-screen { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: var(--page); background-image: var(--wall-pattern); cursor: pointer; padding: 24px; transition: opacity 0.35s; }
 .splash-screen.hide { opacity: 0; pointer-events: none; }
 .splash-card { display: grid; justify-items: center; gap: 14px; text-align: center; }
-.splash-logo { width: 132px; height: 142px; color: var(--ink); }
+.splash-logo { width: 148px; height: 148px; color: var(--ink); }
 .splash-name { font-family: var(--display); font-size: clamp(30px, 6vw, 46px); font-weight: 700; margin: 0; }
 .splash-tag { margin: 0; color: var(--muted); font-size: 17px; }
 .splash-hint { margin-top: 10px; font-weight: 700; color: var(--accent); animation: pulse 1.8s ease-in-out infinite; }
